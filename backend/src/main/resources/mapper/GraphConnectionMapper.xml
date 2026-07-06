@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trs.modules.connection.mapper.GraphConnectionMapper">
+
+    <resultMap id="connResultMap" type="com.trs.modules.connection.entity.GraphConnection">
+        <id     property="id"          column="id"/>
+        <result property="name"        column="name"/>
+        <result property="dbType"      column="db_type"/>
+        <result property="jdbcUrl"     column="jdbc_url"/>
+        <result property="username"    column="username"/>
+        <result property="password"    column="password"/>
+        <result property="distributed" column="distributed"/>
+        <result property="poolConfig"  column="pool_config"/>
+        <result property="remark"      column="remark"/>
+        <result property="status"      column="status"/>
+        <result property="isDefault"   column="is_default"/>
+        <result property="createTime"  column="create_time"/>
+        <result property="updateTime"  column="update_time"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, name, db_type, jdbc_url, username, password, distributed,
+        pool_config, remark, status, is_default, create_time, update_time
+    </sql>
+
+    <select id="selectAll" resultMap="connResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM sys_graph_connection
+        <where>
+            <if test="keyword != null and keyword != ''">
+                name ILIKE '%' || #{keyword} || '%'
+                OR db_type ILIKE '%' || #{keyword} || '%'
+                OR remark ILIKE '%' || #{keyword} || '%'
+            </if>
+        </where>
+        ORDER BY is_default DESC, id ASC
+    </select>
+
+    <select id="selectById" resultMap="connResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM sys_graph_connection
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByName" resultMap="connResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM sys_graph_connection
+        WHERE name = #{name}
+    </select>
+
+    <insert id="insert" parameterType="com.trs.modules.connection.entity.GraphConnection"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_graph_connection
+            (name, db_type, jdbc_url, username, password, distributed,
+             pool_config, remark, status, is_default)
+        VALUES
+            (#{name}, #{dbType}, #{jdbcUrl}, #{username}, #{password}, #{distributed},
+             #{poolConfig}, #{remark}, #{status}, #{isDefault})
+    </insert>
+
+    <update id="update" parameterType="com.trs.modules.connection.entity.GraphConnection">
+        UPDATE sys_graph_connection
+        SET name        = #{name},
+            db_type     = #{dbType},
+            jdbc_url    = #{jdbcUrl},
+            username    = #{username},
+            password    = #{password},
+            distributed = #{distributed},
+            pool_config = #{poolConfig},
+            remark      = #{remark},
+            status      = #{status},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateWithoutPassword" parameterType="com.trs.modules.connection.entity.GraphConnection">
+        UPDATE sys_graph_connection
+        SET name        = #{name},
+            db_type     = #{dbType},
+            jdbc_url    = #{jdbcUrl},
+            username    = #{username},
+            distributed = #{distributed},
+            pool_config = #{poolConfig},
+            remark      = #{remark},
+            status      = #{status},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE sys_graph_connection
+        SET status = #{status}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="clearAllDefault">
+        UPDATE sys_graph_connection
+        SET is_default = FALSE, update_time = CURRENT_TIMESTAMP
+        WHERE is_default = TRUE
+    </update>
+
+    <update id="setDefault">
+        UPDATE sys_graph_connection
+        SET is_default = TRUE, status = 1, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM sys_graph_connection WHERE id = #{id}
+    </delete>
+
+</mapper>
