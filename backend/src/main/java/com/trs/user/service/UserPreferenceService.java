@@ -9,6 +9,7 @@ public class UserPreferenceService {
 
     public static final String KEY_TOPOLOGY_ACTIVE_CONNECTION = "topology.active_connection";
     public static final String KEY_VERTEX_TYPE_ACTIVE_CONNECTION = "vertex_type.active_connection";
+    public static final String KEY_EDGE_TYPE_ACTIVE_CONNECTION = "edge_type.active_connection";
 
     private final UserPreferenceMapper mapper;
 
