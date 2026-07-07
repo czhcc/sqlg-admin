@@ -54,8 +54,11 @@ public class AuthController {
         if (auth == null || !auth.isAuthenticated()) {
             return Result.fail(401, "未登录");
         }
-        String username = (String) auth.getPrincipal();
-        User user = userService.findByUsername(username);
+        Object principal = auth.getPrincipal();
+        if (!(principal instanceof User principalUser)) {
+            return Result.fail(401, "未登录");
+        }
+        User user = userService.findById(principalUser.getId());
         if (user == null) {
             return Result.fail(404, "用户不存在");
         }
