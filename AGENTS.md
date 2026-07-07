@@ -77,9 +77,9 @@ graph_app/
 │       │       │   ├── entity/GraphConnection.java
 │       │       │   ├── mapper/GraphConnectionMapper.java
 │       │       │   └── service/GraphConnectionService.java
-│       │       ├── topology/              ← 占位 stub
-│       │       ├── vertexType/            ← 占位 stub
-│       │       ├── edgeType/              ← 占位 stub
+│       │       ├── topology/              ← ✅ 已实现(树形浏览 + 连接记忆)
+│       │       ├── vertexType/            ← ✅ 已实现(CRUD + 清空 + 关联边 + 表结构 + 示例)
+│       │       ├── edgeType/              ← ✅ 已实现(列表 + 新增 + 删除 + 清空 + 方向预览)
 │       │       ├── vertexData/            ← 占位 stub
 │       │       ├── edgeData/              ← 占位 stub
 │       │       ├── graphExplore/          ← 占位 stub
@@ -116,9 +116,9 @@ graph_app/
         └── pages/
             ├── Login.jsx                 ← 登录页 (admin/123456)
             ├── Connection.jsx            ← ✅ 完整列表+模态框 CRUD+行内操作
-            ├── Topology.jsx              ← 占位
-            ├── VertexType.jsx            ← 占位
-            ├── EdgeType.jsx              ← 占位
+            ├── Topology.jsx              ← ✅ 完整树形浏览+连接记忆
+            ├── VertexType.jsx            ← ✅ 完整列表+模态框 CRUD+行内操作
+            ├── EdgeType.jsx              ← ✅ 完整列表+新增(出/入点选择)+方向预览+删除
             ├── VertexData.jsx            ← 占位
             ├── EdgeData.jsx              ← 占位
             ├── GraphExplore.jsx          ← 占位
@@ -215,9 +215,9 @@ tmux kill-session -t backend
 | 菜单 | 后端 Controller | 前端 Page | 状态 |
 |------|----------------|-----------|------|
 | 连接管理 | `ConnectionController` | `Connection.jsx` | ✅ 完整实现 |
-| Topology 浏览 | stub | 占位 | ⬜ 待实现 |
-| 点类型管理 | stub | 占位 | ⬜ 待实现 |
-| 边类型管理 | stub | 占位 | ⬜ 待实现 |
+| Topology 浏览 | `TopologyController` | `Topology.jsx` | ✅ 完整实现 |
+| 点类型管理 | `VertexTypeController` | `VertexType.jsx` | ✅ 完整实现 |
+| 边类型管理 | `EdgeTypeController` | `EdgeType.jsx` | ✅ 完整实现 |
 | 点数据浏览 | stub | 占位 | ⬜ 待实现 |
 | 边数据浏览 | stub | 占位 | ⬜ 待实现 |
 | 图关系展开 | stub | 占位 | ⬜ 待实现 |

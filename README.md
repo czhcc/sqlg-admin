@@ -53,7 +53,8 @@ Sqlg 是基于 Apache TinkerPop 的图数据库实现，可以将图模型映射
 - 🔌 **连接管理** — 多图数据库连接配置(完整 CRUD + 测试连接 + 启停 + 默认连接),支持 PostgreSQL / H2 / HSQLDB / MariaDB / MySQL
 - 🗺️ **拓扑浏览** — 以树形结构查看图数据库的 Schema / VertexLabel / EdgeLabel / 属性 / 索引,支持连接切换与缓存刷新
 - 🏷️ **点类型管理** — VertexLabel 的 CRUD、清空点数据、关联边查看、底层表结构查看、Gremlin/SQL 示例生成
-- 🚧 **边类型 / 点数据 / 边数据 / 图关系展开 / Gremlin 控制台 / 导入导出 / 操作日志** — 7 个模块(占位骨架,待实现)
+- 🔗 **边类型管理** — EdgeLabel 的列表/新增/删除,选择 out/in VertexLabel,配置属性/identifier,边方向预览与 Gremlin 示例
+- 🚧 **点数据 / 边数据 / 图关系展开 / Gremlin 控制台 / 导入导出 / 操作日志** — 6 个模块(占位骨架,待实现)
 - 📊 **Flyway 数据库迁移** — 版本化的 schema 演进
 - 🎨 **响应式左右布局** — 左侧菜单 + 右侧功能区
 - 🌐 **主机 IP 访问** — 开发服务器支持局域网访问
@@ -103,7 +104,7 @@ graph_app/
 │       │   ├── config/              # Security / Jwt / Sqlg / BeanConfig
 │       │   ├── security/            # JwtAuthFilter
 │       │   ├── user/                # 用户 + 登录
-│       │   └── modules/             # 业务模块(connection/topology/vertexType 已实现,其余 stub)
+│       │   └── modules/             # 业务模块(connection/topology/vertexType/edgeType 已实现,其余 stub)
 │       └── resources/
 │           ├── application.yml
 │           ├── sqlg.properties
@@ -115,7 +116,7 @@ graph_app/
     ├── .env.example
     └── src/
         ├── App.jsx                  # 路由表
-        ├── api/                     # client.js (axios + JWT) / auth / connection / topology / vertexType
+        ├── api/                     # client.js (axios + JWT) / auth / connection / topology / vertexType / edgeType
         ├── context/AuthContext.jsx
         ├── components/              # Layout / ProtectedRoute / Placeholder
         └── pages/                   # 10 个功能页 + Login
@@ -217,7 +218,7 @@ npm run dev
 | 连接管理 | ✅ | ✅ | 完整实现(CRUD + 测试 + 启停 + 默认) |
 | Topology 浏览 | ✅ | ✅ | 完整实现(树形展开 + 连接记忆 + 刷新) |
 | 点类型管理 | ✅ | ✅ | 完整实现(CRUD + 清空点 + 关联边 + 表结构 + 示例) |
-| 边类型管理 | stub | 占位 | 待实现 |
+| 边类型管理 | ✅ | ✅ | 完整实现(列表 + 新增 + 删除 + 清空 + 表结构 + 示例 + 方向预览) |
 | 点数据浏览 | stub | 占位 | 待实现 |
 | 边数据浏览 | stub | 占位 | 待实现 |
 | 图关系展开 | stub | 占位 | 待实现 |
@@ -258,6 +259,17 @@ npm run dev
 | GET | `/vertex-type/{connectionId}/{schema}/{label}/table-schema` | 查看底层物理表结构 |
 | GET | `/vertex-type/gremlin-examples/{schema}/{label}` | 生成 Gremlin 示例查询 |
 | GET | `/vertex-type/sql-examples/{schema}/{label}` | 生成 SQL 示例查询 |
+| GET | `/edge-type/connections` | 列出可用的连接 + 用户上次选择 |
+| PUT | `/edge-type/active-connection` | 记住用户选择的连接 `{connectionId: Long\|null}` |
+| GET | `/edge-type/{connectionId}` | 列出该连接下所有 EdgeLabel |
+| GET | `/edge-type/{connectionId}/{schema}/{label}` | 获取单个 EdgeLabel 详情(属性 / 索引 / 出入点类型) |
+| POST | `/edge-type/{connectionId}` | 新增 EdgeLabel(需指定 out/in 点类型) |
+| DELETE | `/edge-type/{connectionId}` | 删除 EdgeLabel 及底层 E_XXX 表 `{schema, label}` |
+| POST | `/edge-type/{connectionId}/clear-edges` | 仅清空边数据,保留 EdgeLabel 定义 |
+| GET | `/edge-type/{connectionId}/{schema}/{label}/table-schema` | 查看底层物理表结构 |
+| GET | `/edge-type/{connectionId}/vertex-labels` | 列出所有 VertexLabel(供新增边表单选择出入点) |
+| GET | `/edge-type/gremlin-examples/{schema}/{label}` | 生成 Gremlin 示例查询 |
+| GET | `/edge-type/sql-examples/{schema}/{label}` | 生成 SQL 示例查询 |
 
 统一响应格式:
 ```json
