@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 public class UserPreferenceService {
 
     public static final String KEY_TOPOLOGY_ACTIVE_CONNECTION = "topology.active_connection";
+    public static final String KEY_VERTEX_TYPE_ACTIVE_CONNECTION = "vertex_type.active_connection";
 
     private final UserPreferenceMapper mapper;
 
