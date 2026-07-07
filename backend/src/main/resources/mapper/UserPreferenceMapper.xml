@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trs.user.mapper.UserPreferenceMapper">
+
+    <resultMap id="prefMap" type="com.trs.user.entity.UserPreference">
+        <id     property="id"          column="id"/>
+        <result property="userId"      column="user_id"/>
+        <result property="prefKey"     column="pref_key"/>
+        <result property="prefValue"   column="pref_value"/>
+        <result property="createTime"  column="create_time"/>
+        <result property="updateTime"  column="update_time"/>
+    </resultMap>
+
+    <select id="select" resultMap="prefMap">
+        SELECT id, user_id, pref_key, pref_value, create_time, update_time
+        FROM sys_user_preference
+        WHERE user_id = #{userId} AND pref_key = #{prefKey}
+    </select>
+
+    <insert id="upsert">
+        INSERT INTO sys_user_preference (user_id, pref_key, pref_value)
+        VALUES (#{userId}, #{prefKey}, #{prefValue})
+        ON CONFLICT (user_id, pref_key)
+        DO UPDATE SET pref_value = EXCLUDED.pref_value, update_time = CURRENT_TIMESTAMP
+    </insert>
+
+</mapper>
