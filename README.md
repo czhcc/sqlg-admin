@@ -1,6 +1,47 @@
-# 图数据库管理平台 (Graph Database Management Platform)
+# Sqlg 图数据库管理平台 (Sqlg Graph Management Platform)
 
-基于 Web 的图数据库统一管理平台,通过浏览器即可管理多个图数据库连接、查看拓扑、浏览点/边数据、执行 Gremlin 查询、导入导出数据。
+基于 Web 的 **Sqlg 图数据库统一管理平台**，用于通过浏览器集中管理多个 Sqlg 图库连接、查看 Sqlg Topology、维护 VertexLabel / EdgeLabel、浏览点/边数据、执行 Gremlin 查询、导入导出图数据，并提供面向 Sqlg 的图结构管理与运维辅助能力。
+
+本平台面向使用 **Sqlg + PostgreSQL** 构建图数据库的开发与运维场景，目标是提供一个轻量、直观、可视化的 Sqlg 管理后台，降低直接使用 Gremlin Console、数据库客户端或手写 Topology API 的操作成本。
+
+平台重点管理的是 **Sqlg 图库本身**，包括图连接、Schema、Topology、点类型、边类型、属性、Identifier、索引以及点边实例数据。它不是知识图谱本体平台，也不绑定特定业务模型，而是一个通用的 Sqlg 图数据库管理工具。
+
+## 核心能力
+
+* 管理多个 Sqlg 图数据库连接
+* 查看当前连接下的 Sqlg Topology
+* 管理 Schema、VertexLabel、EdgeLabel
+* 管理点类型和边类型上的属性字段
+* 支持字符串 Identifier / 复合 Identifier 配置
+* 支持常用 Sqlg 属性类型，包括 JSON / JSONB 属性
+* 浏览、查询、新增、编辑、删除点数据
+* 浏览、查询、新增、编辑、删除边数据
+* 执行 Gremlin 查询并查看查询结果
+* 支持点边关系的图形化展示与关系展开
+* 支持点数据、边数据、查询结果的导入导出
+* 提供操作日志、危险操作确认、查询限制等基础管理能力
+
+## 平台定位
+
+Sqlg 是基于 Apache TinkerPop 的图数据库实现，可以将图模型映射到底层关系型数据库表结构中，例如 PostgreSQL 中的 `V_` 点表、`E_` 边表以及 `sqlg_schema` Topology 元数据。
+
+本平台围绕 Sqlg 的这些特性进行管理封装，帮助用户完成：
+
+* 从 Web 页面管理 Sqlg 图库连接
+* 从 Topology 视角查看和维护图结构
+* 从 Gremlin 视角查询和操作图数据
+* 从数据库表结构视角理解 Sqlg 的底层映射
+* 避免直接修改底层表导致 Topology 与物理表结构不一致
+
+## 适用场景
+
+* Sqlg 图数据库开发调试
+* PostgreSQL 上的图数据管理
+* 多个 Sqlg 图库连接统一维护
+* Gremlin 查询验证与结果查看
+* VertexLabel / EdgeLabel / 属性 / 索引管理
+* 图数据导入、导出和运维辅助
+* 替代部分 Gremlin Console 和数据库客户端的日常管理操作
 
 > 后端基于 **Spring Boot 4.1 + MyBatis + sqlg-postgres**,前端基于 **Vite 8 + React 19 + Tailwind v4**。
 
