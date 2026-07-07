@@ -15,16 +15,14 @@ import {
 import {
   Plus, Trash2, Eraser, Database, Star, ChevronDown,
   RefreshCw, Key, Table2, Terminal, FileCode,
-  X, Search, Eye, ArrowRight, GitFork, PlusCircle, MinusCircle,
+  X, Search, Eye, ArrowRight, GitFork,
 } from 'lucide-react'
 
-const PROPERTY_TYPES = ['STRING', 'INTEGER', 'LONG', 'DOUBLE', 'BOOLEAN', 'JSON', 'LOCALDATETIME', 'LOCALDATE', 'UUID']
-
 const emptyForm = {
-  outVertex: '',
-  inVertex: '',
+  schema: 'public',
+  outLabel: '',
+  inLabel: '',
   label: '',
-  properties: [],
   identifier: '',
 }
 
@@ -40,6 +38,7 @@ export default function EdgeType() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [idStrategy, setIdStrategy] = useState('auto')
   const [vertexLabels, setVertexLabels] = useState([])
   const [vertexLabelsLoading, setVertexLabelsLoading] = useState(false)
 
@@ -107,10 +106,8 @@ export default function EdgeType() {
   // ==================== 新增表单 ====================
 
   const openCreate = async () => {
-    setForm({
-      ...emptyForm,
-      properties: [{ name: '', type: 'STRING' }],
-    })
+    setForm({ ...emptyForm })
+    setIdStrategy('auto')
     setModalOpen(true)
     if (vertexLabels.length === 0) {
       setVertexLabelsLoading(true)
@@ -129,50 +126,26 @@ export default function EdgeType() {
     setModalOpen(false)
   }
 
-  const addProperty = () => {
-    setForm({
-      ...form,
-      properties: [...form.properties, { name: '', type: 'STRING' }],
-    })
-  }
-
-  const removeProperty = (idx) => {
-    setForm({
-      ...form,
-      properties: form.properties.filter((_, i) => i !== idx),
-    })
-  }
-
-  const updateProperty = (idx, field, value) => {
-    const next = form.properties.map((p, i) => i === idx ? { ...p, [field]: value } : p)
-    setForm({ ...form, properties: next })
-  }
-
   const submit = async () => {
-    if (!form.outVertex) { showToast('error', '请选择出点类型'); return }
-    if (!form.inVertex) { showToast('error', '请选择入点类型'); return }
     if (!form.label.trim()) { showToast('error', 'EdgeLabel 名称不能为空'); return }
+    if (!form.outLabel) { showToast('error', '请选择出点类型'); return }
+    if (!form.inLabel) { showToast('error', '请选择入点类型'); return }
 
-    const [outSchema, ...outRest] = form.outVertex.split('.')
-    const outLabel = outRest.join('.')
-    const [inSchema, ...inRest] = form.inVertex.split('.')
-    const inLabel = inRest.join('.')
+    const identifiers = idStrategy === 'custom'
+      ? (form.identifier && form.identifier.trim() ? [form.identifier.trim()] : [])
+      : []
+    if (idStrategy === 'custom' && identifiers.length === 0) {
+      showToast('error', '选择字符串 ID 时必须填写字段名')
+      return
+    }
 
     setSaving(true)
     try {
-      const props = form.properties
-        .filter((p) => p.name && p.name.trim())
-        .map((p) => ({ name: p.name.trim(), type: p.type }))
-      const identifiers = form.identifier && form.identifier.trim()
-        ? [form.identifier.trim()]
-        : []
       await createEdgeType(selectedId, {
-        outSchema,
-        outLabel,
-        inSchema,
-        inLabel,
+        schema: form.schema || 'public',
+        outLabel: form.outLabel,
+        inLabel: form.inLabel,
         label: form.label.trim(),
-        properties: props,
         identifiers,
       })
       showToast('success', '新增成功')
@@ -441,14 +414,13 @@ export default function EdgeType() {
         <CreateEdgeModal
           form={form}
           setForm={setForm}
+          idStrategy={idStrategy}
+          setIdStrategy={setIdStrategy}
           saving={saving}
           vertexLabels={vertexLabels}
           vertexLabelsLoading={vertexLabelsLoading}
           onClose={closeModal}
           onSubmit={submit}
-          onAddProperty={addProperty}
-          onRemoveProperty={removeProperty}
-          onUpdateProperty={updateProperty}
         />
       )}
 
@@ -472,17 +444,18 @@ export default function EdgeType() {
 // ==================== 新增边类型 Modal ====================
 
 function CreateEdgeModal({
-  form, setForm, vertexLabels, vertexLabelsLoading, saving,
-  onClose, onSubmit, onAddProperty, onRemoveProperty, onUpdateProperty,
+  form, setForm, idStrategy, setIdStrategy,
+  vertexLabels, vertexLabelsLoading, saving,
+  onClose, onSubmit,
 }) {
-  const outLabel = form.outVertex ? form.outVertex.split('.').slice(1).join('.') : ''
-  const inLabel = form.inVertex ? form.inVertex.split('.').slice(1).join('.') : ''
+  const schemas = Array.from(new Set(vertexLabels.map((v) => v.schema))).sort()
+  const labelsInSchema = vertexLabels.filter((v) => v.schema === form.schema)
   const edgeLabel = form.label || 'edge'
 
-  const gremlinPreview = form.outVertex && form.inVertex
-    ? `g.V().hasLabel('${outLabel}').has('name','张三')\n` +
+  const gremlinPreview = form.outLabel && form.inLabel
+    ? `g.V().hasLabel('${form.outLabel}').has('name','张三')\n` +
       ` .as('a')\n` +
-      ` .V().hasLabel('${inLabel}').has('name','某对象')\n` +
+      ` .V().hasLabel('${form.inLabel}').has('name','某对象')\n` +
       ` .addE('${edgeLabel}')\n` +
       ` .from('a')`
     : ''
@@ -498,21 +471,38 @@ function CreateEdgeModal({
         </div>
 
         <div className="max-h-[68vh] overflow-y-auto px-6 py-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <Field label="Schema" required>
+              <select
+                className={inputCls}
+                value={form.schema}
+                onChange={(e) => setForm({
+                  ...form,
+                  schema: e.target.value,
+                  outLabel: '',
+                  inLabel: '',
+                })}
+              >
+                {schemas.length === 0 && <option value="">-- 无 --</option>}
+                {schemas.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </Field>
             <Field label="出点类型 (Out VertexLabel)" required>
-              <NativeSelect
-                value={form.outVertex}
-                options={vertexLabels}
+              <LabelSelect
+                value={form.outLabel}
+                options={labelsInSchema}
                 loading={vertexLabelsLoading}
-                onChange={(v) => setForm({ ...form, outVertex: v })}
+                onChange={(v) => setForm({ ...form, outLabel: v })}
               />
             </Field>
             <Field label="入点类型 (In VertexLabel)" required>
-              <NativeSelect
-                value={form.inVertex}
-                options={vertexLabels}
+              <LabelSelect
+                value={form.inLabel}
+                options={labelsInSchema}
                 loading={vertexLabelsLoading}
-                onChange={(v) => setForm({ ...form, inVertex: v })}
+                onChange={(v) => setForm({ ...form, inLabel: v })}
               />
             </Field>
           </div>
@@ -529,70 +519,56 @@ function CreateEdgeModal({
           </div>
 
           <div className="mt-4">
-            <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
-              <span>边属性配置</span>
-            </div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">ID 策略</label>
             <div className="space-y-2">
-              {form.properties.map((p, idx) => (
-                <div key={idx} className="flex items-center gap-2">
+              <label className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2.5 text-sm transition-colors ${
+                idStrategy === 'auto' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}>
+                <input type="radio" className="accent-pink-600"
+                  checked={idStrategy === 'auto'}
+                  onChange={() => { setIdStrategy('auto'); setForm({ ...form, identifier: '' }) }} />
+                <Key size={15} className={idStrategy === 'auto' ? 'text-pink-500' : 'text-gray-400'} />
+                <span className="font-medium">默认自增 ID</span>
+                <span className="text-xs text-gray-400">(BIGINT, sqlg 自动生成)</span>
+              </label>
+              <label className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2.5 text-sm transition-colors ${
+                idStrategy === 'custom' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}>
+                <input type="radio" className="accent-pink-600"
+                  checked={idStrategy === 'custom'}
+                  onChange={() => setIdStrategy('custom')} />
+                <Key size={15} className={idStrategy === 'custom' ? 'text-pink-500' : 'text-gray-400'} />
+                <span className="font-medium">字符串 ID</span>
+                <span className="text-xs text-gray-400">(自定义业务主键)</span>
+              </label>
+              {idStrategy === 'custom' && (
+                <div className="pl-7">
                   <input
                     className={inputCls}
-                    value={p.name}
-                    onChange={(e) => onUpdateProperty(idx, 'name', e.target.value)}
-                    placeholder="属性名,如 since"
+                    value={form.identifier}
+                    onChange={(e) => setForm({ ...form, identifier: e.target.value })}
+                    placeholder="identifier 字段名,如 edge_id"
                   />
-                  <select
-                    className="rounded-md border border-gray-300 px-2 py-2 text-sm outline-none focus:border-pink-500"
-                    value={p.type}
-                    onChange={(e) => onUpdateProperty(idx, 'type', e.target.value)}
-                  >
-                    {PROPERTY_TYPES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveProperty(idx)}
-                    className="flex h-8 w-8 items-center justify-center rounded text-gray-400 hover:bg-red-50 hover:text-red-600"
-                    title="移除属性"
-                  >
-                    <MinusCircle size={16} />
-                  </button>
+                  <p className="mt-1 text-xs text-gray-400">
+                    将自动创建该名称的 STRING 属性并标记为业务主键
+                  </p>
                 </div>
-              ))}
-              <button
-                type="button"
-                onClick={onAddProperty}
-                className="flex items-center gap-1 rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm text-gray-500 hover:border-pink-300 hover:text-pink-600"
-              >
-                <PlusCircle size={15} /> 添加属性
-              </button>
+              )}
             </div>
-          </div>
-
-          <div className="mt-4">
-            <Field label="Identifier 字段(可选)">
-              <input
-                className={inputCls}
-                value={form.identifier}
-                onChange={(e) => setForm({ ...form, identifier: e.target.value })}
-                placeholder="留空则使用默认自增 ID;填写则将该字段作为业务主键"
-              />
-            </Field>
           </div>
 
           <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">边方向预览</div>
             <div className="flex items-center justify-center gap-3 py-2">
               <span className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">
-                {outLabel || '出点'}
+                {form.outLabel || '出点'}
               </span>
               <div className="flex flex-col items-center">
                 <ArrowRight size={20} className="text-pink-500" />
                 <span className="mt-0.5 text-xs font-medium text-pink-600">{edgeLabel}</span>
               </div>
               <span className="rounded-lg bg-pink-50 px-3 py-2 text-sm font-medium text-pink-700">
-                {inLabel || '入点'}
+                {form.inLabel || '入点'}
               </span>
             </div>
           </div>
@@ -622,7 +598,7 @@ function CreateEdgeModal({
   )
 }
 
-function NativeSelect({ value, options, loading, onChange }) {
+function LabelSelect({ value, options, loading, onChange }) {
   return (
     <select
       className={inputCls}
@@ -632,8 +608,8 @@ function NativeSelect({ value, options, loading, onChange }) {
       <option value="">-- 请选择 --</option>
       {loading && <option disabled>加载中...</option>}
       {options.map((v) => (
-        <option key={v.fullName} value={v.fullName}>
-          {v.fullName}
+        <option key={v.label} value={v.label}>
+          {v.label}
         </option>
       ))}
     </select>
