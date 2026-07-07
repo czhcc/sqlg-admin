@@ -169,7 +169,16 @@ app.jwt.secret / expiration-ms
 - **响应统一**: 所有 Controller 返回 `Result<T>` 或 `Result<?>`,错误抛 `IllegalArgumentException` 由 `GlobalExceptionHandler` 转 400
 - **字段映射**: DB `snake_case` ↔ Java `camelCase`,依赖 `map-underscore-to-camel-case`,**禁止**在 XML 里手写别名
 - **类型安全**: 禁止 `@ts-ignore` / `as any` / `@SuppressWarnings` 掩盖错误
-- **注释**: 代码尽量自解释;DDL 必须有 COMMENT;复杂逻辑(算法/正则/安全/魔数)才加 Java 注释
+- **Javadoc 注释**: **所有类和 `public` 方法必须加 Javadoc 注释**;类注释中必须包含 `@author` 和 `@date`,其中 `@author` 使用当前系统用户名(即 `whoami` 输出,如 `czh`),`@date` 使用 `yyyy/MMdd` 格式的创建日期。示例:
+  ```java
+  /**
+   * 图数据库连接管理服务,提供连接的 CRUD、启停、默认设置及连通性测试。
+   *
+   * @author czh
+   * @date 2026/07/07
+   */
+  ```
+- **注释**: 代码尽量自解释;DDL 必须有 COMMENT;方法体内复杂逻辑(算法/正则/安全/魔数)补行内注释
 - **包名冲突坑**: sqlg 用 `org.apache.commons.configuration2.Configuration`,与 Spring 的 `@Configuration` 重名 → 在 `SqlgConfig` 上用全限定 `@org.springframework.context.annotation.Configuration`
 
 ### 前端
