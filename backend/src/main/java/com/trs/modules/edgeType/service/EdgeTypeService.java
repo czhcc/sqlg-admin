@@ -123,7 +123,7 @@ public class EdgeTypeService {
 
     /**
      * 创建新的 EdgeLabel,需指定出点和入点 VertexLabel。
-     * <p>边表所在 schema 取决于出点 schema(sqlg 约定:边表跟随出点)。
+     * <p>出/入点必须位于同一 schema,边表也将创建在该 schema 下。
      *
      * @param connectionId 图数据库连接 ID
      * @param req          请求体
@@ -132,54 +132,45 @@ public class EdgeTypeService {
         if (req.getLabel() == null || req.getLabel().isBlank()) {
             throw new IllegalArgumentException("label 不能为空");
         }
-        if (req.getOutSchema() == null || req.getOutSchema().isBlank()
-                || req.getOutLabel() == null || req.getOutLabel().isBlank()) {
-            throw new IllegalArgumentException("out 点类型(schema+label)不能为空");
+        if (req.getSchema() == null || req.getSchema().isBlank()) {
+            throw new IllegalArgumentException("schema 不能为空");
         }
-        if (req.getInSchema() == null || req.getInSchema().isBlank()
-                || req.getInLabel() == null || req.getInLabel().isBlank()) {
-            throw new IllegalArgumentException("in 点类型(schema+label)不能为空");
+        if (req.getOutLabel() == null || req.getOutLabel().isBlank()) {
+            throw new IllegalArgumentException("出点类型(outLabel)不能为空");
+        }
+        if (req.getInLabel() == null || req.getInLabel().isBlank()) {
+            throw new IllegalArgumentException("入点类型(inLabel)不能为空");
         }
 
         SqlgGraph graph = registry.get(connectionId);
-        VertexLabel outVL = findVertexLabel(graph, req.getOutSchema(), req.getOutLabel());
-        VertexLabel inVL = findVertexLabel(graph, req.getInSchema(), req.getInLabel());
+        VertexLabel outVL = findVertexLabel(graph, req.getSchema(), req.getOutLabel());
+        VertexLabel inVL = findVertexLabel(graph, req.getSchema(), req.getInLabel());
 
-        // 边表 schema 由出点决定
-        Schema outSchema = outVL.getSchema();
+        Schema schema = outVL.getSchema();
 
-        // 装配属性定义
-        Map<String, PropertyDefinition> propDefs = new LinkedHashMap<>();
-        if (req.getProperties() != null) {
-            for (EdgeTypeSaveRequest.PropertyEntry pe : req.getProperties()) {
-                if (pe == null || pe.name == null || pe.name.isBlank()) continue;
-                PropertyType pt = parsePropertyType(pe.type);
-                propDefs.put(pe.name, PropertyDefinition.of(pt));
-            }
-        }
-
-        // identifier 处理:复用同名 STRING 属性作为业务主键
+        // identifier 处理:无 identifier 走 sqlg 默认自增 BIGINT 主键;
+        // 有 identifier 时将指定字段作为 STRING 属性并标记为业务主键
         List<String> identifiers = req.getIdentifiers() == null ? List.of()
                 : req.getIdentifiers().stream()
                         .filter(s -> s != null && !s.isBlank())
                         .toList();
-        for (String idName : identifiers) {
-            if (!propDefs.containsKey(idName)) {
-                propDefs.put(idName, PropertyDefinition.of(PropertyType.STRING));
-            }
-        }
 
         if (identifiers.isEmpty()) {
-            outSchema.ensureEdgeLabelExist(req.getLabel(), outVL, inVL, propDefs);
+            schema.ensureEdgeLabelExist(req.getLabel(), outVL, inVL, Map.of());
         } else {
+            Map<String, PropertyDefinition> propDefs = new LinkedHashMap<>();
             ListOrderedSet<String> ids = new ListOrderedSet<>();
-            ids.addAll(identifiers);
-            outSchema.ensureEdgeLabelExist(req.getLabel(), outVL, inVL, propDefs, ids);
+            for (String idName : identifiers) {
+                propDefs.put(idName, PropertyDefinition.of(PropertyType.STRING));
+                ids.add(idName);
+            }
+            schema.ensureEdgeLabelExist(req.getLabel(), outVL, inVL, propDefs, ids);
         }
 
         graph.tx().commit();
-        log.info("Created EdgeLabel: {} ({}->{}) identifiers={}",
-                req.getLabel(), outVL.getFullName(), inVL.getFullName(), identifiers);
+        log.info("Created EdgeLabel: {} ({}.{}, out={}, in={}) identifiers={}",
+                req.getLabel(), req.getSchema(), req.getInLabel(),
+                outVL.getName(), inVL.getName(), identifiers);
     }
 
     // ==================== 清空边数据 ====================
@@ -462,20 +453,6 @@ public class EdgeTypeService {
 
     private String buildTableName(String schema, String label) {
         return schema + ".\"E_" + label + "\"";
-    }
-
-    /**
-     * 字符串类型名转 sqlg PropertyType,失败时回退到 STRING。
-     */
-    private PropertyType parsePropertyType(String typeName) {
-        if (typeName == null || typeName.isBlank()) {
-            return PropertyType.STRING;
-        }
-        try {
-            return PropertyType.valueOf(typeName.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return PropertyType.STRING;
-        }
     }
 
     private List<Schema> sortedSchemas(Topology topology) {
