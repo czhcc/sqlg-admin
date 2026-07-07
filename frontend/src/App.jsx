@@ -7,6 +7,7 @@ import Connection from './pages/Connection'
 import Topology from './pages/Topology'
 import VertexType from './pages/VertexType'
 import EdgeType from './pages/EdgeType'
+import PropertyManagement from './pages/PropertyManagement'
 import VertexData from './pages/VertexData'
 import EdgeData from './pages/EdgeData'
 import GraphExplore from './pages/GraphExplore'
@@ -19,6 +20,7 @@ const pages = [
   { path: 'topology', element: <Topology /> },
   { path: 'vertex-type', element: <VertexType /> },
   { path: 'edge-type', element: <EdgeType /> },
+  { path: 'property-management', element: <PropertyManagement /> },
   { path: 'vertex-data', element: <VertexData /> },
   { path: 'edge-data', element: <EdgeData /> },
   { path: 'graph-explore', element: <GraphExplore /> },

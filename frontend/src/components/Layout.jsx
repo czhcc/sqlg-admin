@@ -13,6 +13,7 @@ import {
   ScrollText,
   LogOut,
   Boxes,
+  Tags,
 } from 'lucide-react'
 
 const menuItems = [
@@ -20,6 +21,7 @@ const menuItems = [
   { to: '/topology', label: 'Topology 浏览', icon: Share2 },
   { to: '/vertex-type', label: '点类型管理', icon: CircleDot },
   { to: '/edge-type', label: '边类型管理', icon: Minus },
+  { to: '/property-management', label: '属性管理', icon: Tags },
   { to: '/vertex-data', label: '点数据浏览', icon: Table },
   { to: '/edge-data', label: '边数据浏览', icon: GitFork },
   { to: '/graph-explore', label: '图关系展开', icon: Network },
