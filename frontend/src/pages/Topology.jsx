@@ -3,6 +3,7 @@ import {
   listTopologyConnections,
   getTopology,
   refreshTopology,
+  setActiveConnection,
 } from '../api/topology'
 import {
   ChevronDown, ChevronRight, Database, Star, RefreshCw,
@@ -26,15 +27,15 @@ export default function Topology() {
   const loadConnections = useCallback(async () => {
     try {
       const res = await listTopologyConnections()
-      const list = res.data || []
+      const list = res.data?.connections || []
+      const remembered = res.data?.activeConnectionId
       setConnections(list)
       if (list.length > 0) {
-        const def = list.find((c) => c.isDefault)
-        const next = def || list[0]
-        setSelectedId((prev) => {
-          if (prev == null) return next.id
-          return list.some((c) => c.id === prev) ? prev : next.id
-        })
+        const fallback = list.find((c) => c.isDefault) || list[0]
+        const initial = remembered != null && list.some((c) => c.id === remembered)
+          ? remembered
+          : fallback.id
+        setSelectedId((prev) => prev == null ? initial : prev)
       } else {
         setSelectedId(null)
       }
@@ -62,6 +63,16 @@ export default function Topology() {
   useEffect(() => { loadTopology(selectedId) }, [selectedId, loadTopology])
 
   const selected = connections.find((c) => c.id === selectedId)
+
+  const onSelect = async (id) => {
+    setSelectedId(id)
+    setDropdownOpen(false)
+    try {
+      await setActiveConnection(id)
+    } catch (e) {
+      showToast('error', '记住连接选择失败: ' + e.message)
+    }
+  }
 
   const onRefresh = async () => {
     if (!selectedId) return
@@ -113,7 +124,7 @@ export default function Topology() {
                   {connections.map((c) => (
                     <button
                       key={c.id}
-                      onClick={() => { setSelectedId(c.id); setDropdownOpen(false) }}
+                      onClick={() => onSelect(c.id)}
                       className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-indigo-50 ${
                         c.id === selectedId ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700'
                       }`}

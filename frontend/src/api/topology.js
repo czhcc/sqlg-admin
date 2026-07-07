@@ -11,3 +11,8 @@ export function getTopology(connectionId) {
 export function refreshTopology(connectionId) {
   return client.post(`/topology/${connectionId}/refresh`)
 }
+
+export function setActiveConnection(connectionId) {
+  return client.put('/topology/active-connection', { connectionId })
+}
+
