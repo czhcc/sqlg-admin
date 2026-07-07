@@ -10,7 +10,9 @@
 
 - 🔐 **JWT 鉴权登录** — 无状态会话,初始账号 `admin / 123456`
 - 🔌 **连接管理** — 多图数据库连接配置(完整 CRUD + 测试连接 + 启停 + 默认连接),支持 PostgreSQL / H2 / HSQLDB / MariaDB / MySQL
-- 🗺️ **拓扑浏览 / 点类型 / 边类型 / 点数据 / 边数据 / 图关系展开 / Gremlin 控制台 / 导入导出 / 操作日志** — 10 个功能模块(连接管理已实现,其余为占位骨架)
+- 🗺️ **拓扑浏览** — 以树形结构查看图数据库的 Schema / VertexLabel / EdgeLabel / 属性 / 索引,支持连接切换与缓存刷新
+- 🏷️ **点类型管理** — VertexLabel 的 CRUD、清空点数据、关联边查看、底层表结构查看、Gremlin/SQL 示例生成
+- 🚧 **边类型 / 点数据 / 边数据 / 图关系展开 / Gremlin 控制台 / 导入导出 / 操作日志** — 7 个模块(占位骨架,待实现)
 - 📊 **Flyway 数据库迁移** — 版本化的 schema 演进
 - 🎨 **响应式左右布局** — 左侧菜单 + 右侧功能区
 - 🌐 **主机 IP 访问** — 开发服务器支持局域网访问
@@ -60,7 +62,7 @@ graph_app/
 │       │   ├── config/              # Security / Jwt / Sqlg / BeanConfig
 │       │   ├── security/            # JwtAuthFilter
 │       │   ├── user/                # 用户 + 登录
-│       │   └── modules/             # 业务模块(connection 已实现,其余 stub)
+│       │   └── modules/             # 业务模块(connection/topology/vertexType 已实现,其余 stub)
 │       └── resources/
 │           ├── application.yml
 │           ├── sqlg.properties
@@ -72,7 +74,7 @@ graph_app/
     ├── .env.example
     └── src/
         ├── App.jsx                  # 路由表
-        ├── api/                     # client.js (axios + JWT) / auth / connection
+        ├── api/                     # client.js (axios + JWT) / auth / connection / topology / vertexType
         ├── context/AuthContext.jsx
         ├── components/              # Layout / ProtectedRoute / Placeholder
         └── pages/                   # 10 个功能页 + Login
@@ -172,8 +174,8 @@ npm run dev
 | 模块 | 后端 | 前端 | 状态 |
 |------|------|------|------|
 | 连接管理 | ✅ | ✅ | 完整实现(CRUD + 测试 + 启停 + 默认) |
-| Topology 浏览 | stub | 占位 | 待实现 |
-| 点类型管理 | stub | 占位 | 待实现 |
+| Topology 浏览 | ✅ | ✅ | 完整实现(树形展开 + 连接记忆 + 刷新) |
+| 点类型管理 | ✅ | ✅ | 完整实现(CRUD + 清空点 + 关联边 + 表结构 + 示例) |
 | 边类型管理 | stub | 占位 | 待实现 |
 | 点数据浏览 | stub | 占位 | 待实现 |
 | 边数据浏览 | stub | 占位 | 待实现 |
@@ -199,6 +201,22 @@ npm run dev
 | POST | `/connection/{id}/test` | 测试已存的连接 |
 | PUT | `/connection/{id}/status` | 启用/停用 `{status: 0\|1}` |
 | PUT | `/connection/{id}/default` | 设为默认连接 |
+| GET | `/topology/connections` | 列出可用于拓扑浏览的连接 + 用户上次选择 |
+| GET | `/topology/{connectionId}` | 获取指定连接的完整拓扑(Schema / VertexLabel / EdgeLabel / 属性 / 索引) |
+| POST | `/topology/{connectionId}/refresh` | 清除该连接的拓扑缓存,下次查询重新加载 |
+| PUT | `/topology/active-connection` | 记住用户在拓扑页选择的连接 `{connectionId: Long\|null}` |
+| GET | `/vertex-type/connections` | 列出可用的连接 + 用户上次选择 |
+| PUT | `/vertex-type/active-connection` | 记住用户选择的连接 `{connectionId: Long\|null}` |
+| GET | `/vertex-type/{connectionId}` | 列出该连接下所有 VertexLabel |
+| GET | `/vertex-type/{connectionId}/{schema}/{label}` | 获取单个 VertexLabel 详情(属性 / 索引 / 标识符) |
+| POST | `/vertex-type/{connectionId}` | 新增 VertexLabel |
+| PUT | `/vertex-type/{connectionId}` | 编辑 VertexLabel(新增缺失属性) |
+| DELETE | `/vertex-type/{connectionId}` | 删除 VertexLabel 及底层 V_XXX 表 `{schema, label}` |
+| POST | `/vertex-type/{connectionId}/clear-vertices` | 仅清空点数据,保留 VertexLabel 定义 |
+| GET | `/vertex-type/{connectionId}/{schema}/{label}/edges` | 查看关联边类型(入边 + 出边) |
+| GET | `/vertex-type/{connectionId}/{schema}/{label}/table-schema` | 查看底层物理表结构 |
+| GET | `/vertex-type/gremlin-examples/{schema}/{label}` | 生成 Gremlin 示例查询 |
+| GET | `/vertex-type/sql-examples/{schema}/{label}` | 生成 SQL 示例查询 |
 
 统一响应格式:
 ```json
