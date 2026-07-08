@@ -51,3 +51,9 @@ export function clearVertices(connectionId, schema, label) {
 export function getGremlinExamples(schema, label) {
   return client.get(`/vertex-data/gremlin-examples/${schema}/${label}`)
 }
+
+export function exportVertices(connectionId, schema, label, format, filters = {}) {
+  return client.get(`/vertex-data/${connectionId}/${schema}/${label}/export`, {
+    params: { format, ...filters },
+  })
+}

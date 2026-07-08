@@ -44,6 +44,7 @@ public class VertexDataService {
     private static final Logger log = LoggerFactory.getLogger(VertexDataService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int MAX_PAGE_SIZE = 1000;
+    private static final int EXPORT_MAX_ROWS = 10000;
 
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
@@ -383,6 +384,171 @@ public class VertexDataService {
         registry.evict(connectionId);
         log.info("Cleared {} vertices from {}.{}", count, schemaName, labelName);
         return count;
+    }
+
+    // ==================== 数据导出 ====================
+
+    /**
+     * 导出指定 VertexLabel 的点数据。
+     * <p>导出全部匹配数据(不限分页),上限 EXPORT_MAX_ROWS 条。
+     *
+     * @param connectionId 图数据库连接 ID
+     * @param schemaName   schema 名称
+     * @param labelName    VertexLabel 名称
+     * @param filters      属性过滤条件
+     * @param format       导出格式: csv / json / excel
+     * @return 导出结果 {headers, rows, format}
+     */
+    public Map<String, Object> exportVertices(Long connectionId, String schemaName, String labelName,
+                                              Map<String, Object> filters, String format) {
+        SqlgGraph graph = registry.get(connectionId);
+        var traversal = graph.traversal().V().hasLabel(labelName);
+        if (filters != null && !filters.isEmpty()) {
+            for (var entry : filters.entrySet()) {
+                if (entry.getValue() != null && !String.valueOf(entry.getValue()).isEmpty()) {
+                    traversal = traversal.has(entry.getKey(), String.valueOf(entry.getValue()));
+                }
+            }
+        }
+        var limited = traversal.limit(EXPORT_MAX_ROWS);
+
+        List<VertexRowDto> rows = new ArrayList<>();
+        limited.forEachRemaining(v -> rows.add(toRowDto(v, schemaName)));
+
+        // 收集所有出现过的属性名作为列(保持稳定顺序)
+        LinkedHashSet<String> propNames = new LinkedHashSet<>();
+        for (VertexRowDto row : rows) {
+            if (row.getProperties() != null) propNames.addAll(row.getProperties().keySet());
+        }
+
+        List<String> headers = new ArrayList<>();
+        headers.add("id");
+        headers.add("schema");
+        headers.add("label");
+        headers.addAll(propNames);
+
+        List<List<String>> dataRows = new ArrayList<>();
+        for (VertexRowDto row : rows) {
+            List<String> cells = new ArrayList<>();
+            cells.add(row.getId());
+            cells.add(row.getSchema());
+            cells.add(row.getLabel());
+            for (String pn : propNames) {
+                Object val = row.getProperties() == null ? null : row.getProperties().get(pn);
+                cells.add(val == null ? "" : String.valueOf(val));
+            }
+            dataRows.add(cells);
+        }
+
+        String effectiveFormat = format == null ? "csv" : format.toLowerCase();
+        Map<String, Object> result = new LinkedHashMap<>();
+
+        switch (effectiveFormat) {
+            case "json" -> {
+                result.put("content", exportJson(headers, dataRows));
+                result.put("filename", labelName + ".json");
+                result.put("binary", false);
+            }
+            case "excel" -> {
+                result.put("content", Base64.getEncoder().encodeToString(
+                        exportXlsx(headers, dataRows, schemaName, labelName)));
+                result.put("filename", labelName + ".xlsx");
+                result.put("binary", true);
+            }
+            default -> {
+                result.put("content", exportCsv(headers, dataRows));
+                result.put("filename", labelName + ".csv");
+                result.put("binary", false);
+            }
+        }
+
+        result.put("format", effectiveFormat);
+        result.put("rowCount", rows.size());
+        result.put("truncated", rows.size() >= EXPORT_MAX_ROWS);
+        return result;
+    }
+
+    private String exportCsv(List<String> headers, List<List<String>> rows) {
+        StringBuilder sb = new StringBuilder();
+        // UTF-8 BOM 让 Excel 正确识别编码
+        sb.append('\ufeff');
+        sb.append(String.join(",", headers.stream().map(this::csvQuote).toList())).append("\r\n");
+        for (List<String> row : rows) {
+            sb.append(String.join(",", row.stream().map(this::csvQuote).toList())).append("\r\n");
+        }
+        return sb.toString();
+    }
+
+    private String csvQuote(String s) {
+        if (s == null) return "";
+        if (s.contains(",") || s.contains("\"") || s.contains("\n") || s.contains("\r")) {
+            return "\"" + s.replace("\"", "\"\"") + "\"";
+        }
+        return s;
+    }
+
+    private String exportJson(List<String> headers, List<List<String>> rows) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[");
+        for (int i = 0; i < rows.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append("{");
+            for (int j = 0; j < headers.size(); j++) {
+                if (j > 0) sb.append(",");
+                sb.append("\"").append(headers.get(j)).append("\":");
+                String val = rows.get(i).get(j);
+                sb.append(val.isEmpty() ? "null" : jsonQuote(val));
+            }
+            sb.append("}");
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private String jsonQuote(String s) {
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"")
+                .replace("\n", "\\n").replace("\r", "\\r") + "\"";
+    }
+
+    /**
+     * 使用 Apache POI 生成真正的 .xlsx 文件。
+     */
+    private byte[] exportXlsx(List<String> headers, List<List<String>> rows,
+                              String schemaName, String labelName) {
+        try (org.apache.poi.xssf.usermodel.XSSFWorkbook wb = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            org.apache.poi.ss.usermodel.Sheet sheet = wb.createSheet(labelName);
+
+            var headerStyle = wb.createCellStyle();
+            var headerFont = wb.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(org.apache.poi.ss.usermodel.IndexedColors.PALE_BLUE.getIndex());
+            headerStyle.setFillPattern(org.apache.poi.ss.usermodel.FillPatternType.SOLID_FOREGROUND);
+
+            int rowIdx = 0;
+            // 表头行
+            var headerRow = sheet.createRow(rowIdx++);
+            for (int c = 0; c < headers.size(); c++) {
+                var cell = headerRow.createCell(c);
+                cell.setCellValue(headers.get(c));
+                cell.setCellStyle(headerStyle);
+            }
+            // 数据行
+            for (List<String> dataRow : rows) {
+                var row = sheet.createRow(rowIdx++);
+                for (int c = 0; c < dataRow.size(); c++) {
+                    row.createCell(c).setCellValue(dataRow.get(c));
+                }
+            }
+            // 自动列宽
+            for (int c = 0; c < headers.size(); c++) sheet.autoSizeColumn(c);
+
+            var baos = new java.io.ByteArrayOutputStream();
+            wb.write(baos);
+            return baos.toByteArray();
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException("生成 Excel 失败: " + e.getMessage(), e);
+        }
     }
 
     // ==================== Gremlin 示例 ====================

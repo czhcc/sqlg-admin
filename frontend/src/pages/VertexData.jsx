@@ -3,12 +3,12 @@ import {
   listVertexDataConnections, setActiveConnection, getTree, refreshTree,
   getLabelProperties, pageVertices, getVertexDetail,
   createVertex, updateVertex, deleteVertex, batchDeleteVertices,
-  clearVertices, getGremlinExamples,
+  clearVertices, getGremlinExamples, exportVertices,
 } from '../api/vertexData'
 import {
   Database, Star, ChevronDown, ChevronRight, RefreshCw, Search,
   CircleDot, Boxes, Table, Plus, Pencil, Trash2, Eraser, X,
-  Eye, TerminalSquare, Key, ChevronLeft,
+  Eye, TerminalSquare, Key, ChevronLeft, Download,
 } from 'lucide-react'
 
 export default function VertexData() {
@@ -217,6 +217,38 @@ export default function VertexData() {
     } catch (e) { showToast('error', e.message) }
   }
 
+  const [exportPopover, setExportPopover] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  const onExport = async (format) => {
+    setExportPopover(false)
+    setExporting(true)
+    try {
+      const res = await exportVertices(selectedId, selectedLabel.schema, selectedLabel.label, format, filters)
+      let blob
+      if (res.data.binary) {
+        // Excel xlsx 是二进制,后端 Base64 编码返回,前端解码
+        const binary = atob(res.data.content)
+        const bytes = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+        blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      } else {
+        blob = new Blob([res.data.content], { type: 'text/plain;charset=utf-8' })
+      }
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = res.data.filename
+      a.click()
+      URL.revokeObjectURL(url)
+      showToast('success', `已导出 ${res.data.rowCount} 条 (${format.toUpperCase()})`)
+    } catch (e) {
+      showToast('error', e.message)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const toggleSelect = (id) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
@@ -361,6 +393,34 @@ export default function VertexData() {
                       <Trash2 size={14} /> 批量删除 ({selectedIds.size})
                     </button>
                   )}
+                  <div className="relative">
+                    <button onClick={() => setExportPopover((v) => !v)} disabled={exporting}
+                      className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                      <Download size={14} /> {exporting ? '导出中...' : '导出'}
+                    </button>
+                    {exportPopover && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setExportPopover(false)} />
+                        <div className="absolute right-0 z-20 mt-1 w-36 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+                          <div className="px-3 py-1 text-xs text-gray-400">选择导出格式</div>
+                          {[
+                            { fmt: 'csv', label: 'CSV', desc: '逗号分隔' },
+                            { fmt: 'json', label: 'JSON', desc: 'JSON 数组' },
+                            { fmt: 'excel', label: 'Excel', desc: '.xls 文件' },
+                          ].map((opt) => (
+                            <button key={opt.fmt} onClick={() => onExport(opt.fmt)}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-blue-50">
+                              <Download size={13} className="text-gray-400" />
+                              <div>
+                                <div className="font-medium">{opt.label}</div>
+                                <div className="text-xs text-gray-400">{opt.desc}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <button onClick={onViewGremlin}
                     className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
                     <TerminalSquare size={14} /> Gremlin 示例

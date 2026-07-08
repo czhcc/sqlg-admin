@@ -158,6 +158,23 @@ public class VertexDataController {
         return Result.ok(Map.of("deleted", count));
     }
 
+    @GetMapping("/{connectionId}/{schema}/{label}/export")
+    public Result<Map<String, Object>> export(
+            @PathVariable Long connectionId,
+            @PathVariable String schema,
+            @PathVariable String label,
+            @RequestParam(defaultValue = "csv") String format,
+            @RequestParam(required = false) Map<String, String> allParams) {
+        Map<String, Object> filters = new LinkedHashMap<>();
+        for (var entry : allParams.entrySet()) {
+            String key = entry.getKey();
+            if (!key.equals("format") && !entry.getValue().isEmpty()) {
+                filters.put(key, entry.getValue());
+            }
+        }
+        return Result.ok(service.exportVertices(connectionId, schema, label, filters, format));
+    }
+
     @GetMapping("/gremlin-examples/{schema}/{label}")
     public Result<List<Map<String, String>>> gremlinExamples(
             @PathVariable String schema,
