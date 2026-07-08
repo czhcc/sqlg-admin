@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trs.modules.propertyManagement.mapper.PropertyMetaMapper">
+
+    <resultMap id="metaMap" type="com.trs.modules.propertyManagement.entity.PropertyMeta">
+        <id     property="id"            column="id"/>
+        <result property="connectionId"  column="connection_id"/>
+        <result property="labelKind"     column="label_kind"/>
+        <result property="schemaName"    column="schema_name"/>
+        <result property="labelName"     column="label_name"/>
+        <result property="propertyName"  column="property_name"/>
+        <result property="displayName"   column="display_name"/>
+        <result property="isSearchable"  column="is_searchable"/>
+        <result property="isListDisplay" column="is_list_display"/>
+        <result property="remark"        column="remark"/>
+        <result property="createTime"    column="create_time"/>
+        <result property="updateTime"    column="update_time"/>
+    </resultMap>
+
+    <select id="selectByLabel" resultMap="metaMap">
+        SELECT id, connection_id, label_kind, schema_name, label_name,
+               property_name, display_name, is_searchable, is_list_display,
+               remark, create_time, update_time
+        FROM sys_property_meta
+        WHERE connection_id = #{connectionId}
+          AND label_kind = #{labelKind}
+          AND schema_name = #{schemaName}
+          AND label_name = #{labelName}
+        ORDER BY property_name
+    </select>
+
+    <select id="select" resultMap="metaMap">
+        SELECT id, connection_id, label_kind, schema_name, label_name,
+               property_name, display_name, is_searchable, is_list_display,
+               remark, create_time, update_time
+        FROM sys_property_meta
+        WHERE connection_id = #{connectionId}
+          AND label_kind = #{labelKind}
+          AND schema_name = #{schemaName}
+          AND label_name = #{labelName}
+          AND property_name = #{propertyName}
+    </select>
+
+    <insert id="upsert" parameterType="com.trs.modules.propertyManagement.entity.PropertyMeta">
+        INSERT INTO sys_property_meta
+            (connection_id, label_kind, schema_name, label_name, property_name,
+             display_name, is_searchable, is_list_display, remark)
+        VALUES
+            (#{connectionId}, #{labelKind}, #{schemaName}, #{labelName}, #{propertyName},
+             #{displayName}, #{isSearchable}, #{isListDisplay}, #{remark})
+        ON CONFLICT (connection_id, label_kind, schema_name, label_name, property_name)
+        DO UPDATE SET
+            display_name   = EXCLUDED.display_name,
+            is_searchable  = EXCLUDED.is_searchable,
+            is_list_display = EXCLUDED.is_list_display,
+            remark         = EXCLUDED.remark,
+            update_time    = CURRENT_TIMESTAMP
+    </insert>
+
+    <delete id="delete">
+        DELETE FROM sys_property_meta
+        WHERE connection_id = #{connectionId}
+          AND label_kind = #{labelKind}
+          AND schema_name = #{schemaName}
+          AND label_name = #{labelName}
+          AND property_name = #{propertyName}
+    </delete>
+
+</mapper>
