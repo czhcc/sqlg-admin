@@ -5,7 +5,7 @@
 ## 1. 项目概览
 
 - **项目名**: 图数据库管理平台 (Graph Database Management Platform)
-- **目标**: 通过 Web 界面统一管理多个图数据库连接,支持 Topology 浏览、点/边类型管理、点/边数据浏览、图关系展开、Gremlin 控制台、导入导出、操作日志。
+- **目标**: 通过 Web 界面统一管理多个图数据库连接,支持 Topology 浏览、点/边类型管理、点/边数据管理、图关系展开、Gremlin 控制台、导入导出、操作日志。
 - **结构**: 两个独立工程
   - `backend/` — Spring Boot 4.1 REST API,端口 `8090`,context-path `/api`
   - `frontend/` — Vite + React 19 SPA,端口 `5173`,开发代理 `/api → http://localhost:8090`
@@ -81,7 +81,10 @@ graph_app/
 │       │       ├── vertexType/            ← ✅ 已实现(CRUD + 清空 + 关联边 + 表结构 + 示例)
 │       │       ├── edgeType/              ← ✅ 已实现(列表 + 新增 + 删除 + 清空 + 方向预览)
 │       │       ├── vertexData/            ← 占位 stub
-│       │       ├── edgeData/              ← 占位 stub
+│       │       ├── edgeData/            ← ✅ 已实现(边实例数据 CRUD + 出/入点过滤 + 清空 + 导出)
+│       │       │   ├── EdgeDataController.java
+│       │       │   ├── service/EdgeDataService.java
+│       │       │   └── dto/EdgeSaveRequest.java, EdgeDetailDto.java, EdgeRowDto.java
 │       │       ├── graphExplore/          ← 占位 stub
 │       │       ├── gremlin/               ← 占位 stub
 │       │       ├── io/                    ← 占位 stub (import/export)
@@ -120,7 +123,7 @@ graph_app/
             ├── VertexType.jsx            ← ✅ 完整列表+模态框 CRUD+行内操作
             ├── EdgeType.jsx              ← ✅ 完整列表+新增(出/入点选择)+方向预览+删除
             ├── VertexData.jsx            ← 占位
-            ├── EdgeData.jsx              ← 占位
+            ├── EdgeData.jsx              ← ✅ 完整列表+模态框 CRUD+出/入点选择+行内操作
             ├── GraphExplore.jsx          ← 占位
             ├── GremlinConsole.jsx        ← 占位
             ├── ImportExport.jsx          ← 占位
@@ -219,7 +222,7 @@ tmux kill-session -t backend
 | 点类型管理 | `VertexTypeController` | `VertexType.jsx` | ✅ 完整实现 |
 | 边类型管理 | `EdgeTypeController` | `EdgeType.jsx` | ✅ 完整实现 |
 | 点数据浏览 | stub | 占位 | ⬜ 待实现 |
-| 边数据浏览 | stub | 占位 | ⬜ 待实现 |
+| 边数据管理 | `EdgeDataController` | `EdgeData.jsx` | ✅ 完整实现 |
 | 图关系展开 | stub | 占位 | ⬜ 待实现 |
 | Gremlin 控制台 | stub | 占位 | ⬜ 待实现 |
 | 导入导出 | stub | 占位 | ⬜ 待实现 |
@@ -235,3 +238,5 @@ tmux kill-session -t backend
 6. **Vite 主机 IP 访问** — `host: true` 不够,必须 `allowedHosts: true` 才能放过 DNS-rebinding 防护
 7. **BCrypt 哈希** — `init.sql` 里的初始 admin 密码必须用真实 BCrypt 编码 "123456" 得到的 hash,不能照搬网上的示例 hash
 8. **循环依赖** — `SecurityConfig` 里定义 `PasswordEncoder` bean 会与 `JwtAuthFilter → UserService` 形成环,需把 `PasswordEncoder` 拆到独立 `BeanConfig`
+9. **sqlg `drop().iterate()` 死锁** — `graph.traversal().E().hasLabel(label).drop().iterate()` 在清空边数据时会死锁(读写混在同一事务)。解决方式与清空点数据相同:先 `graph.tx().rollback()` 回滚读取事务,再用 `graph.getConnection()` 执行 JDBC `DELETE FROM "schema"."E_<label>"`,最后 `graph.tx().commit()` + `registry.evict()`。
+10. **sqlg `V().outE()` 返回 `SqlgTraversal`** — `graph.traversal().V(v).outE(label)` 返回 `SqlgTraversal<Vertex,Edge>`,不是 `GraphTraversal<Edge,Edge>`,两者类型不兼容。需要统一拉平为 `List<Edge>` 后在内存中分页/过滤,或改用 `vertex.edges(Direction.OUT, label)` 迭代器。
