@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trs.modules.gremlin.mapper.GremlinQueryMapper">
+
+    <resultMap id="historyMap" type="com.trs.modules.gremlin.entity.GremlinQueryHistory">
+        <id     property="id"           column="id"/>
+        <result property="userId"       column="user_id"/>
+        <result property="connectionId" column="connection_id"/>
+        <result property="queryText"    column="query_text"/>
+        <result property="mode"         column="mode"/>
+        <result property="success"      column="success"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="costMs"       column="cost_ms"/>
+        <result property="resultCount"  column="result_count"/>
+        <result property="createTime"   column="create_time"/>
+    </resultMap>
+
+    <resultMap id="favoriteMap" type="com.trs.modules.gremlin.entity.GremlinQueryFavorite">
+        <id     property="id"          column="id"/>
+        <result property="userId"      column="user_id"/>
+        <result property="title"       column="title"/>
+        <result property="queryText"   column="query_text"/>
+        <result property="description" column="description"/>
+        <result property="mode"        column="mode"/>
+        <result property="sortOrder"   column="sort_order"/>
+        <result property="createTime"  column="create_time"/>
+        <result property="updateTime"  column="update_time"/>
+    </resultMap>
+
+    <select id="selectHistory" resultMap="historyMap">
+        SELECT id, user_id, connection_id, query_text, mode, success, error_message, cost_ms, result_count, create_time
+        FROM sys_gremlin_query_history
+        WHERE user_id = #{userId} AND connection_id = #{connectionId}
+        ORDER BY create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <insert id="insertHistory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_gremlin_query_history (user_id, connection_id, query_text, mode, success, error_message, cost_ms, result_count)
+        VALUES (#{userId}, #{connectionId}, #{queryText}, #{mode}, #{success}, #{errorMessage}, #{costMs}, #{resultCount})
+    </insert>
+
+    <delete id="deleteHistory">
+        DELETE FROM sys_gremlin_query_history WHERE id = #{id} AND user_id = #{userId}
+    </delete>
+
+    <delete id="clearHistory">
+        DELETE FROM sys_gremlin_query_history WHERE user_id = #{userId} AND connection_id = #{connectionId}
+    </delete>
+
+    <select id="selectFavorites" resultMap="favoriteMap">
+        SELECT id, user_id, title, query_text, description, mode, sort_order, create_time, update_time
+        FROM sys_gremlin_query_favorite
+        WHERE user_id = #{userId}
+        ORDER BY sort_order ASC, create_time ASC
+    </select>
+
+    <insert id="insertFavorite" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_gremlin_query_favorite (user_id, title, query_text, description, mode, sort_order)
+        VALUES (#{userId}, #{title}, #{queryText}, #{description}, #{mode}, #{sortOrder})
+    </insert>
+
+    <update id="updateFavorite">
+        UPDATE sys_gremlin_query_favorite
+        SET title = #{title}, query_text = #{queryText}, description = #{description}, mode = #{mode}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteFavorite">
+        DELETE FROM sys_gremlin_query_favorite WHERE id = #{id} AND user_id = #{userId}
+    </delete>
+
+</mapper>
