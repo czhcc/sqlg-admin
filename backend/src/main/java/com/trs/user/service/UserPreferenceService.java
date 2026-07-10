@@ -15,6 +15,7 @@ public class UserPreferenceService {
     public static final String KEY_EDGE_DATA_ACTIVE_CONNECTION = "edge_data.active_connection";
     public static final String KEY_GRAPH_EXPLORE_ACTIVE_CONNECTION = "graph_explore.active_connection";
     public static final String KEY_GREMLIN_ACTIVE_CONNECTION = "gremlin.active_connection";
+    public static final String KEY_IO_ACTIVE_CONNECTION = "io.active_connection";
 
     private final UserPreferenceMapper mapper;
 
