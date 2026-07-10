@@ -13,6 +13,7 @@ public class UserPreferenceService {
     public static final String KEY_PROPERTY_MANAGEMENT_ACTIVE_CONNECTION = "property_management.active_connection";
     public static final String KEY_VERTEX_DATA_ACTIVE_CONNECTION = "vertex_data.active_connection";
     public static final String KEY_EDGE_DATA_ACTIVE_CONNECTION = "edge_data.active_connection";
+    public static final String KEY_GRAPH_EXPLORE_ACTIVE_CONNECTION = "graph_explore.active_connection";
 
     private final UserPreferenceMapper mapper;
 
