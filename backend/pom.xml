@@ -94,6 +94,13 @@
             <version>${sqlg.version}</version>
         </dependency>
 
+        <!-- Gremlin Groovy script engine (Gremlin Console) -->
+        <dependency>
+            <groupId>org.apache.tinkerpop</groupId>
+            <artifactId>gremlin-groovy</artifactId>
+            <version>3.7.4</version>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
