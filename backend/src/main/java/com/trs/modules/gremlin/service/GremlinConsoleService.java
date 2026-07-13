@@ -1,6 +1,7 @@
 package com.trs.modules.gremlin.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.trs.config.PlatformConfig;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.gremlin.entity.GremlinQueryFavorite;
 import com.trs.modules.gremlin.entity.GremlinQueryHistory;
@@ -17,8 +18,8 @@ import org.umlg.sqlg.structure.SqlgGraph;
 
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
-import javax.script.ScriptException;
 import java.util.*;
+import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
 
 /**
@@ -31,7 +32,6 @@ import java.util.stream.Collectors;
 public class GremlinConsoleService {
 
     private static final Logger log = LoggerFactory.getLogger(GremlinConsoleService.class);
-    private static final int MAX_RESULTS = 10000;
     private static final int HISTORY_LIMIT = 200;
 
     private static final Set<String> DANGEROUS_KEYWORDS = Set.of(
@@ -51,13 +51,16 @@ public class GremlinConsoleService {
     private final GraphConnectionMapper connectionMapper;
     private final GremlinQueryMapper queryMapper;
     private final ScriptEngine scriptEngine;
+    private final PlatformConfig platformConfig;
 
     public GremlinConsoleService(SqlgGraphRegistry registry,
                                   GraphConnectionMapper connectionMapper,
-                                  GremlinQueryMapper queryMapper) {
+                                  GremlinQueryMapper queryMapper,
+                                  PlatformConfig platformConfig) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
         this.queryMapper = queryMapper;
+        this.platformConfig = platformConfig;
         this.scriptEngine = new GremlinGroovyScriptEngine();
     }
 
@@ -85,7 +88,13 @@ public class GremlinConsoleService {
     // ==================== 执行 Gremlin 查询 ====================
 
     public Map<String, Object> execute(Long connectionId, Long userId, String query, String mode, Map<String, Object> params) {
-        validateQuery(query, mode);
+        String effectiveMode = (mode == null || mode.isBlank())
+                ? (platformConfig.getGremlin().isReadonlyMode() ? "READONLY" : "READWRITE")
+                : mode.toUpperCase();
+        validateQuery(query, effectiveMode);
+
+        int maxResults = platformConfig.getGremlin().getMaxResultSize();
+        int timeoutMs = platformConfig.getGremlin().getTimeoutSeconds() * 1000;
 
         SqlgGraph graph = registry.get(connectionId);
         GraphTraversalSource g = graph.traversal();
@@ -102,20 +111,33 @@ public class GremlinConsoleService {
         String errorMessage = null;
         List<Object> serializedResults = Collections.emptyList();
         int resultCount = 0;
+        boolean truncated = false;
 
         try {
-            Object raw = scriptEngine.eval(query, bindings);
+            FutureTask<Object> task = new FutureTask<>(() -> scriptEngine.eval(query, bindings));
+            Thread execThread = new Thread(task);
+            execThread.setDaemon(true);
+            execThread.start();
+
+            Object raw;
+            try {
+                raw = task.get(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+            } catch (java.util.concurrent.TimeoutException e) {
+                execThread.interrupt();
+                throw new SecurityException("查询超时 (超过 " + platformConfig.getGremlin().getTimeoutSeconds() + "s)");
+            }
 
             if (raw instanceof Iterator<?> it) {
                 List<Object> list = new ArrayList<>();
-                while (it.hasNext() && list.size() < MAX_RESULTS) {
+                while (it.hasNext()) {
+                    if (list.size() >= maxResults) { truncated = true; break; }
                     list.add(it.next());
                 }
                 serializedResults = list.stream().map(this::serializeResult).collect(Collectors.toList());
             } else if (raw instanceof Iterable<?> it) {
                 List<Object> list = new ArrayList<>();
                 for (Object o : it) {
-                    if (list.size() >= MAX_RESULTS) break;
+                    if (list.size() >= maxResults) { truncated = true; break; }
                     list.add(o);
                 }
                 serializedResults = list.stream().map(this::serializeResult).collect(Collectors.toList());
@@ -128,11 +150,12 @@ public class GremlinConsoleService {
             if (!graph.tx().isOpen() || isWriteQuery(query)) {
                 graph.tx().commit();
             }
-        } catch (ScriptException e) {
+        } catch (java.util.concurrent.ExecutionException e) {
             success = false;
-            errorMessage = e.getMessage();
-            if (errorMessage == null && e.getCause() != null) {
-                errorMessage = e.getCause().getMessage();
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            errorMessage = cause.getMessage();
+            if (errorMessage == null && cause.getCause() != null) {
+                errorMessage = cause.getCause().getMessage();
             }
             try { graph.tx().rollback(); } catch (Exception ignored) {}
         } catch (Exception e) {
@@ -143,12 +166,13 @@ public class GremlinConsoleService {
 
         long cost = System.currentTimeMillis() - start;
 
-        saveHistory(userId, connectionId, query, mode, success, errorMessage, (int) cost, resultCount);
+        saveHistory(userId, connectionId, query, effectiveMode, success, errorMessage, (int) cost, resultCount);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", success);
         result.put("costMs", cost);
         result.put("resultCount", resultCount);
+        result.put("truncated", truncated);
         result.put("results", serializedResults);
 
         if (success) {
@@ -168,9 +192,18 @@ public class GremlinConsoleService {
         }
 
         String normalized = query.toLowerCase().replaceAll("\\s+", " ").trim();
-        String effectiveMode = mode == null ? "READONLY" : mode.toUpperCase();
 
-        switch (effectiveMode) {
+        List<String> configBlocked = platformConfig.getGremlin().getBlockedKeywords();
+        if (configBlocked != null) {
+            for (String kw : configBlocked) {
+                if (!kw.isBlank() && normalized.contains(kw.toLowerCase())) {
+                    throw new SecurityException(
+                            "查询中包含被配置禁止的关键字: '" + kw + "'");
+                }
+            }
+        }
+
+        switch (mode) {
             case "READONLY" -> {
                 for (String keyword : DANGEROUS_KEYWORDS) {
                     if (normalized.contains(keyword.toLowerCase())) {

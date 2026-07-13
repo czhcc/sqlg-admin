@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.trs.config.PlatformConfig;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
 import org.apache.commons.collections4.set.ListOrderedSet;
@@ -42,15 +43,21 @@ public class IoService {
     private static final Logger log = LoggerFactory.getLogger(IoService.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final int EXPORT_MAX_ROWS = 10000;
-    private static final int IMPORT_BATCH_SIZE = 500;
     private static final int PREVIEW_ROWS = 20;
 
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
+    private final PlatformConfig platformConfig;
 
-    public IoService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper) {
+    public IoService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
+                      PlatformConfig platformConfig) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
+        this.platformConfig = platformConfig;
+    }
+
+    private int importBatchSize() {
+        return platformConfig.getImportConfig().getBatchSize();
     }
 
     // ==================== 连接列表 ====================
@@ -370,7 +377,7 @@ public class IoService {
                     }
                 }
 
-                if ((imported + updated) % IMPORT_BATCH_SIZE == 0) {
+                if ((imported + updated) % importBatchSize() == 0) {
                     graph.tx().commit();
                 }
             } catch (Exception e) {
@@ -450,7 +457,7 @@ public class IoService {
                 }
                 imported++;
 
-                if (imported % IMPORT_BATCH_SIZE == 0) {
+                if (imported % importBatchSize() == 0) {
                     graph.tx().commit();
                 }
             } catch (Exception e) {

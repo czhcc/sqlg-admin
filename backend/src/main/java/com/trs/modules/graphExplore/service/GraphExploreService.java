@@ -1,5 +1,6 @@
 package com.trs.modules.graphExplore.service;
 
+import com.trs.config.PlatformConfig;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -31,17 +32,25 @@ public class GraphExploreService {
 
     private static final Logger log = LoggerFactory.getLogger(GraphExploreService.class);
 
-    /** 单次展开最大邻居数,防止超大图爆炸 */
-    private static final int MAX_NEIGHBORS = 500;
-    /** 顶点搜索最大返回数 */
     private static final int MAX_SEARCH_RESULTS = 200;
 
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
+    private final PlatformConfig platformConfig;
 
-    public GraphExploreService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper) {
+    public GraphExploreService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
+                                PlatformConfig platformConfig) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
+        this.platformConfig = platformConfig;
+    }
+
+    private int maxNeighbors() {
+        return platformConfig.getGraphExpand().getMaxNodes();
+    }
+
+    private int maxEdges() {
+        return platformConfig.getGraphExpand().getMaxEdges();
     }
 
     // ==================== 连接列表 ====================
@@ -169,7 +178,7 @@ public class GraphExploreService {
 
         Iterator<Edge> edgeIt = center.edges(dir, edgeLabels);
         int count = 0;
-        while (edgeIt.hasNext() && count < MAX_NEIGHBORS) {
+        while (edgeIt.hasNext() && count < maxNeighbors()) {
             Edge e = edgeIt.next();
             String edgeId = String.valueOf(e.id());
             if (seenEdgeIds.contains(edgeId)) continue;
@@ -209,7 +218,7 @@ public class GraphExploreService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("nodes", nodes);
         result.put("edges", edges);
-        result.put("truncated", count >= MAX_NEIGHBORS);
+        result.put("truncated", count >= maxNeighbors());
         return result;
     }
 
@@ -230,7 +239,7 @@ public class GraphExploreService {
         int totalNeighbors = 0;
 
         for (String vertexIdStr : vertexIdStrs) {
-            if (totalNeighbors >= MAX_NEIGHBORS) break;
+            if (totalNeighbors >= maxNeighbors()) break;
             try {
                 Vertex center = findVertex(graph, vertexIdStr);
                 if (!seenNodeIds.contains(vertexIdStr)) {
@@ -239,7 +248,7 @@ public class GraphExploreService {
                 }
 
                 Iterator<Edge> edgeIt = center.edges(dir, edgeLabels);
-                while (edgeIt.hasNext() && totalNeighbors < MAX_NEIGHBORS) {
+                while (edgeIt.hasNext() && totalNeighbors < maxNeighbors()) {
                     Edge e = edgeIt.next();
                     String edgeId = String.valueOf(e.id());
                     if (seenEdgeIds.contains(edgeId)) continue;
@@ -276,7 +285,7 @@ public class GraphExploreService {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("nodes", allNodes);
         result.put("edges", allEdges);
-        result.put("truncated", totalNeighbors >= MAX_NEIGHBORS);
+        result.put("truncated", totalNeighbors >= maxNeighbors());
         return result;
     }
 
