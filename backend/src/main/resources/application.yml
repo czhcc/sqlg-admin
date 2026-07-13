@@ -44,6 +44,21 @@ app:
     header: Authorization
     prefix: "Bearer "
 
+sqlg-admin:
+  gremlin:
+    max-result-size: 1000
+    timeout-seconds: 30
+    readonly-mode: false
+    blocked-keywords:
+      - io
+      - system
+  graph-expand:
+    max-depth: 3
+    max-nodes: 500
+    max-edges: 1000
+  import:
+    batch-size: 1000
+
 logging:
   level:
     com.trs: DEBUG
