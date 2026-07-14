@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.trs.config.PlatformConfig;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
+import com.trs.modules.log.service.OperationLogService;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
 import org.apache.commons.collections4.set.ListOrderedSet;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -48,12 +49,14 @@ public class IoService {
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
     private final PlatformConfig platformConfig;
+    private final OperationLogService logService;
 
     public IoService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
-                      PlatformConfig platformConfig) {
+                      PlatformConfig platformConfig, OperationLogService logService) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
         this.platformConfig = platformConfig;
+        this.logService = logService;
     }
 
     private int importBatchSize() {
@@ -162,6 +165,16 @@ public class IoService {
         result.put("format", effectiveFormat);
         result.put("rowCount", rows.size());
         result.put("truncated", rows.size() >= EXPORT_MAX_ROWS);
+
+        try {
+            logService.log()
+                .module("导入导出").action("导出点数据").httpMethod("GET")
+                .type("EXPORT").name("导出点: " + schemaName + "." + labelName + " (" + effectiveFormat + ")")
+                .status("SUCCESS").connection(connectionId)
+                .schema(schemaName).objectType("VertexLabel").objectName(schemaName + "." + labelName)
+                .affected(rows.size()).result("导出 " + rows.size() + " 条").submit();
+        } catch (Exception ignored) {}
+
         return result;
     }
 
@@ -233,6 +246,16 @@ public class IoService {
         result.put("format", "json");
         result.put("rowCount", schemasNode.size());
         result.put("truncated", false);
+
+        try {
+            logService.log()
+                .module("导入导出").action("导出 Topology").httpMethod("GET")
+                .type("EXPORT").name("导出 Topology JSON")
+                .status("SUCCESS").connection(connectionId)
+                .objectType("Topology").affected(schemasNode.size())
+                .result("导出 " + schemasNode.size() + " 个 Schema").submit();
+        } catch (Exception ignored) {}
+
         return result;
     }
 
@@ -396,6 +419,19 @@ public class IoService {
         result.put("totalRows", rows.size());
         result.put("errorRows", errorRows.size() > 0 ? errorRows.subList(0, Math.min(100, errorRows.size())) : List.of());
         result.put("errorMessages", errorMessages.size() > 0 ? errorMessages.subList(0, Math.min(20, errorMessages.size())) : List.of());
+
+        try {
+            logService.log()
+                .module("导入导出").action("导入点数据").httpMethod("POST")
+                .type("IMPORT").name("导入点: " + req.getSchema() + "." + req.getLabel() + " (" + req.getFormat() + ")")
+                .status(errorRows.isEmpty() ? "SUCCESS" : "PARTIAL_SUCCESS").connection(connectionId)
+                .schema(req.getSchema()).objectType("VertexLabel").objectName(req.getSchema() + "." + req.getLabel())
+                .affected(imported + updated).affected(imported)
+                .result("新增 " + imported + ", 更新 " + updated + ", 失败 " + errorRows.size())
+                .error(errorMessages.isEmpty() ? null : errorMessages.get(0))
+                .submit();
+        } catch (Exception ignored) {}
+
         return result;
     }
 
@@ -475,6 +511,19 @@ public class IoService {
         result.put("totalRows", rows.size());
         result.put("errorRows", errorRows.size() > 0 ? errorRows.subList(0, Math.min(100, errorRows.size())) : List.of());
         result.put("errorMessages", errorMessages.size() > 0 ? errorMessages.subList(0, Math.min(20, errorMessages.size())) : List.of());
+
+        try {
+            logService.log()
+                .module("导入导出").action("导入边数据").httpMethod("POST")
+                .type("IMPORT").name("导入边: " + req.getSchema() + "." + req.getLabel() + " (" + req.getFormat() + ")")
+                .status(errorRows.isEmpty() ? "SUCCESS" : "PARTIAL_SUCCESS").connection(connectionId)
+                .schema(req.getSchema()).objectType("EdgeLabel").objectName(req.getSchema() + "." + req.getLabel())
+                .affected(imported)
+                .result("新增 " + imported + ", 失败 " + errorRows.size())
+                .error(errorMessages.isEmpty() ? null : errorMessages.get(0))
+                .submit();
+        } catch (Exception ignored) {}
+
         return result;
     }
 

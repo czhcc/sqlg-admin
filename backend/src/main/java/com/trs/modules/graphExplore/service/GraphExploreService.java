@@ -2,6 +2,7 @@ package com.trs.modules.graphExplore.service;
 
 import com.trs.config.PlatformConfig;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
+import com.trs.modules.log.service.OperationLogService;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -37,12 +38,14 @@ public class GraphExploreService {
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
     private final PlatformConfig platformConfig;
+    private final OperationLogService logService;
 
     public GraphExploreService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
-                                PlatformConfig platformConfig) {
+                                PlatformConfig platformConfig, OperationLogService logService) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
         this.platformConfig = platformConfig;
+        this.logService = logService;
     }
 
     private int maxNeighbors() {

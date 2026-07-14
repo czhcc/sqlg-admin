@@ -2,6 +2,7 @@ package com.trs.modules.vertexData.service;
 
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
+import com.trs.modules.log.service.OperationLogService;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
 import com.trs.modules.vertexData.dto.VertexDetailDto;
 import com.trs.modules.vertexData.dto.VertexRowDto;
@@ -48,10 +49,13 @@ public class VertexDataService {
 
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
+    private final OperationLogService logService;
 
-    public VertexDataService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper) {
+    public VertexDataService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
+                              OperationLogService logService) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
+        this.logService = logService;
     }
 
     // ==================== 连接列表 ====================
@@ -277,6 +281,16 @@ public class VertexDataService {
         }
         graph.tx().commit();
         log.info("Created vertex in {}.{} with properties {}", schemaName, req.getLabel(), converted.keySet());
+        try {
+            String summary = converted.entrySet().stream().filter(e -> e.getValue() != null)
+                    .map(e -> e.getKey() + "=" + e.getValue()).limit(3)
+                    .collect(java.util.stream.Collectors.joining(", "));
+            logService.log().module("点数据管理").action("新增点").httpMethod("POST")
+                .type("CREATE").name("新增点: " + schemaName + "." + req.getLabel() + (summary.isEmpty() ? "" : " [" + summary + "]"))
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("Vertex").objectName(schemaName + "." + req.getLabel())
+                .affected(1).result("成功").submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 编辑点 ====================
@@ -301,6 +315,12 @@ public class VertexDataService {
         }
         graph.tx().commit();
         log.info("Updated vertex {}: {}", vertexIdStr, converted.keySet());
+        try {
+            logService.log().module("点数据管理").action("编辑点").httpMethod("PUT")
+                .type("UPDATE").name("编辑点: " + schemaName + "." + labelName + " #" + vertexIdStr)
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("Vertex").objectName(schemaName + "." + labelName).objectId(vertexIdStr).submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 删除单个点 ====================
@@ -318,6 +338,12 @@ public class VertexDataService {
         v.remove();
         graph.tx().commit();
         log.info("Deleted vertex {}", vertexIdStr);
+        try {
+            logService.log().module("点数据管理").action("删除点").httpMethod("DELETE")
+                .type("DELETE").name("删除点: " + vertexIdStr)
+                .status("SUCCESS").connection(connectionId)
+                .objectType("Vertex").objectId(vertexIdStr).result("已删除").submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 批量删除 ====================
@@ -347,6 +373,12 @@ public class VertexDataService {
         }
         graph.tx().commit();
         log.info("Batch deleted {} vertices", count);
+        try {
+            logService.log().module("点数据管理").action("批量删除点").httpMethod("POST")
+                .type("DELETE").name("批量删除点: " + count + " 条").dangerous()
+                .status("SUCCESS").connection(connectionId)
+                .objectType("Vertex").affected(count).result("删除 " + count + " 条").submit();
+        } catch (Exception ignored) {}
         return count;
     }
 
@@ -383,6 +415,13 @@ public class VertexDataService {
         // 操作后 sqlg 的 vertex ID 缓存可能失效,evict 重建
         registry.evict(connectionId);
         log.info("Cleared {} vertices from {}.{}", count, schemaName, labelName);
+        try {
+            logService.log().module("点数据管理").action("清空点数据").httpMethod("POST")
+                .type("CLEAR").name("清空点数据: " + schemaName + "." + labelName).dangerous()
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("VertexLabel").objectName(schemaName + "." + labelName)
+                .affected((int) count).result("影响 " + count + " 条").submit();
+        } catch (Exception ignored) {}
         return count;
     }
 

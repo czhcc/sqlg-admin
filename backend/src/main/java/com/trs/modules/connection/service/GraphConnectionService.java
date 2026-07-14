@@ -2,6 +2,7 @@ package com.trs.modules.connection.service;
 
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
+import com.trs.modules.log.service.OperationLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -32,9 +33,11 @@ public class GraphConnectionService {
     }
 
     private final GraphConnectionMapper mapper;
+    private final OperationLogService logService;
 
-    public GraphConnectionService(GraphConnectionMapper mapper) {
+    public GraphConnectionService(GraphConnectionMapper mapper, OperationLogService logService) {
         this.mapper = mapper;
+        this.logService = logService;
     }
 
     public List<GraphConnection> list(String keyword) {
@@ -59,7 +62,14 @@ public class GraphConnectionService {
             mapper.clearAllDefault();
             mapper.setDefault(c.getId());
         }
-        return mapper.selectById(c.getId());
+        GraphConnection result = mapper.selectById(c.getId());
+        try {
+            logService.log().module("连接管理").action("新增连接").httpMethod("POST")
+                .type("CREATE").name("新增连接: " + c.getName())
+                .status("SUCCESS").connection(c.getId()).objectType("Connection").objectName(c.getName())
+                .objectName(c.getName()).result("成功").submit();
+        } catch (Exception ignored) {}
+        return result;
     }
 
     @Transactional
@@ -84,6 +94,12 @@ public class GraphConnectionService {
             mapper.clearAllDefault();
             mapper.setDefault(id);
         }
+        try {
+            logService.log().module("连接管理").action("编辑连接").httpMethod("PUT")
+                .type("UPDATE").name("编辑连接: " + exist.getName())
+                .status("SUCCESS").connection(id).objectType("Connection").objectName(exist.getName())
+                .result("成功").submit();
+        } catch (Exception ignored) {}
         return mapper.selectById(id);
     }
 
@@ -94,6 +110,12 @@ public class GraphConnectionService {
             throw new IllegalArgumentException("连接不存在: id=" + id);
         }
         mapper.deleteById(id);
+        try {
+            logService.log().module("连接管理").action("删除连接").httpMethod("DELETE")
+                .type("DELETE").name("删除连接: " + exist.getName()).dangerous()
+                .status("SUCCESS").connection(id).objectType("Connection").objectName(exist.getName())
+                .result("已删除").submit();
+        } catch (Exception ignored) {}
     }
 
     @Transactional
@@ -102,6 +124,13 @@ public class GraphConnectionService {
             throw new IllegalArgumentException("status 只能是 0 或 1");
         }
         mapper.updateStatus(id, status);
+        try {
+            GraphConnection conn = mapper.selectById(id);
+            logService.log().module("连接管理").action("更新状态").httpMethod("PUT")
+                .type("UPDATE").name((status == 1 ? "启用" : "停用") + "连接: " + (conn != null ? conn.getName() : id))
+                .status("SUCCESS").connection(id).objectType("Connection")
+                .result(status == 1 ? "已启用" : "已停用").submit();
+        } catch (Exception ignored) {}
     }
 
     @Transactional
@@ -112,6 +141,12 @@ public class GraphConnectionService {
         }
         mapper.clearAllDefault();
         mapper.setDefault(id);
+        try {
+            logService.log().module("连接管理").action("设为默认连接").httpMethod("PUT")
+                .type("UPDATE").name("设为默认连接: " + exist.getName())
+                .status("SUCCESS").connection(id).objectType("Connection").objectName(exist.getName())
+                .result("已设为默认").submit();
+        } catch (Exception ignored) {}
     }
 
     public TestResult test(GraphConnection c) {

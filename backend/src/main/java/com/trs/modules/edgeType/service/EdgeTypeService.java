@@ -3,6 +3,7 @@ package com.trs.modules.edgeType.service;
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.edgeType.dto.*;
+import com.trs.modules.log.service.OperationLogService;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
 import com.trs.modules.vertexType.dto.TableColumnInfo;
 import org.apache.commons.collections4.set.ListOrderedSet;
@@ -32,10 +33,13 @@ public class EdgeTypeService {
 
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
+    private final OperationLogService logService;
 
-    public EdgeTypeService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper) {
+    public EdgeTypeService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
+                            OperationLogService logService) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
+        this.logService = logService;
     }
 
     // ==================== 列表 ====================
@@ -171,6 +175,12 @@ public class EdgeTypeService {
         log.info("Created EdgeLabel: {} ({}.{}, out={}, in={}) identifiers={}",
                 req.getLabel(), req.getSchema(), req.getInLabel(),
                 outVL.getName(), inVL.getName(), identifiers);
+        try {
+            logService.log().module("边类型管理").action("创建 EdgeLabel").httpMethod("POST")
+                .type("CREATE").name("创建边类型: " + req.getSchema() + "." + req.getLabel())
+                .status("SUCCESS").connection(connectionId).schema(req.getSchema())
+                .objectType("EdgeLabel").objectName(req.getSchema() + "." + req.getLabel()).submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 清空边数据 ====================
@@ -193,6 +203,13 @@ public class EdgeTypeService {
         graph.tx().commit();
 
         log.info("Cleared {} edges from {}.{}", count, schemaName, labelName);
+        try {
+            logService.log().module("边类型管理").action("清空边数据").httpMethod("POST")
+                .type("CLEAR").name("清空边数据: " + schemaName + "." + labelName).dangerous()
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("EdgeLabel").objectName(schemaName + "." + labelName)
+                .affected((int) count).result("影响 " + count + " 条").submit();
+        } catch (Exception ignored) {}
         return count;
     }
 
@@ -213,6 +230,12 @@ public class EdgeTypeService {
         graph.tx().commit();
 
         log.info("Deleted EdgeLabel: {}.{}", schemaName, labelName);
+        try {
+            logService.log().module("边类型管理").action("删除 EdgeLabel").httpMethod("DELETE")
+                .type("DELETE").name("删除边类型: " + schemaName + "." + labelName).dangerous()
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("EdgeLabel").objectName(schemaName + "." + labelName).submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 底层表结构 ====================

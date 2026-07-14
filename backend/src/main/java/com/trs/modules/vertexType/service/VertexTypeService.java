@@ -2,6 +2,7 @@ package com.trs.modules.vertexType.service;
 
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
+import com.trs.modules.log.service.OperationLogService;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
 import com.trs.modules.vertexType.dto.*;
 import org.apache.commons.collections4.set.ListOrderedSet;
@@ -31,10 +32,13 @@ public class VertexTypeService {
 
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
+    private final OperationLogService logService;
 
-    public VertexTypeService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper) {
+    public VertexTypeService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
+                              OperationLogService logService) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
+        this.logService = logService;
     }
 
     // ==================== 列表 ====================
@@ -159,6 +163,12 @@ public class VertexTypeService {
 
         graph.tx().commit();
         log.info("Created VertexLabel: {}.{} (identifiers={})", schemaName, req.getLabel(), identifiers);
+        try {
+            logService.log().module("点类型管理").action("创建 VertexLabel").httpMethod("POST")
+                .type("CREATE").name("创建点类型: " + schemaName + "." + req.getLabel())
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("VertexLabel").objectName(schemaName + "." + req.getLabel()).submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 编辑 ====================
@@ -191,6 +201,12 @@ public class VertexTypeService {
 
         graph.tx().commit();
         log.info("Renamed VertexLabel: {}.{} -> {}.{}", origSchema, origLabel, origSchema, newLabel);
+        try {
+            logService.log().module("点类型管理").action("重命名 VertexLabel").httpMethod("PUT")
+                .type("RENAME").name("重命名点类型: " + origSchema + "." + origLabel + " → " + origSchema + "." + newLabel)
+                .status("SUCCESS").connection(connectionId).schema(origSchema)
+                .objectType("VertexLabel").objectName(origSchema + "." + origLabel).submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 清空点数据 ====================
@@ -213,6 +229,13 @@ public class VertexTypeService {
         graph.tx().commit();
 
         log.info("Cleared {} vertices from {}.{}", count, schemaName, labelName);
+        try {
+            logService.log().module("点类型管理").action("清空点数据").httpMethod("POST")
+                .type("CLEAR").name("清空点数据: " + schemaName + "." + labelName).dangerous()
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("VertexLabel").objectName(schemaName + "." + labelName)
+                .affected((int) count).result("影响 " + count + " 条").submit();
+        } catch (Exception ignored) {}
         return count;
     }
 
@@ -233,6 +256,12 @@ public class VertexTypeService {
         graph.tx().commit();
 
         log.info("Deleted VertexLabel: {}.{}", schemaName, labelName);
+        try {
+            logService.log().module("点类型管理").action("删除 VertexLabel").httpMethod("DELETE")
+                .type("DELETE").name("删除点类型: " + schemaName + "." + labelName).dangerous()
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("VertexLabel").objectName(schemaName + "." + labelName).submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 关联边类型 ====================

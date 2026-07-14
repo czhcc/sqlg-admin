@@ -6,6 +6,7 @@ import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.edgeData.dto.EdgeDetailDto;
 import com.trs.modules.edgeData.dto.EdgeRowDto;
 import com.trs.modules.edgeData.dto.EdgeSaveRequest;
+import com.trs.modules.log.service.OperationLogService;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -51,10 +52,13 @@ public class EdgeDataService {
 
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
+    private final OperationLogService logService;
 
-    public EdgeDataService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper) {
+    public EdgeDataService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
+                            OperationLogService logService) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
+        this.logService = logService;
     }
 
     // ==================== 连接列表 ====================
@@ -275,6 +279,13 @@ public class EdgeDataService {
         }
         graph.tx().commit();
         log.info("Created edge {} from {} to {}", req.getLabel(), req.getOutVertexId(), req.getInVertexId());
+        try {
+            logService.log().module("边数据管理").action("新增边").httpMethod("POST")
+                .type("CREATE").name("新增边: " + req.getLabel() + " [" + req.getOutVertexId() + " → " + req.getInVertexId() + "]")
+                .status("SUCCESS").connection(connectionId).schema(req.getSchema())
+                .objectType("Edge").objectName(req.getLabel())
+                .objectId(req.getOutVertexId() + "→" + req.getInVertexId()).affected(1).submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 编辑边 ====================
@@ -293,6 +304,12 @@ public class EdgeDataService {
         }
         graph.tx().commit();
         log.info("Updated edge {}: {}", edgeIdStr, converted.keySet());
+        try {
+            logService.log().module("边数据管理").action("编辑边").httpMethod("PUT")
+                .type("UPDATE").name("编辑边: " + labelName + " #" + edgeIdStr)
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("Edge").objectName(labelName).objectId(edgeIdStr).submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 删除单条边 ====================
@@ -303,6 +320,12 @@ public class EdgeDataService {
         e.remove();
         graph.tx().commit();
         log.info("Deleted edge {}", edgeIdStr);
+        try {
+            logService.log().module("边数据管理").action("删除边").httpMethod("DELETE")
+                .type("DELETE").name("删除边: " + edgeIdStr)
+                .status("SUCCESS").connection(connectionId)
+                .objectType("Edge").objectId(edgeIdStr).result("已删除").submit();
+        } catch (Exception ignored) {}
     }
 
     // ==================== 批量删除 ====================
@@ -325,6 +348,12 @@ public class EdgeDataService {
         }
         graph.tx().commit();
         log.info("Batch deleted {} edges", count);
+        try {
+            logService.log().module("边数据管理").action("批量删除边").httpMethod("POST")
+                .type("DELETE").name("批量删除边: " + count + " 条").dangerous()
+                .status("SUCCESS").connection(connectionId)
+                .objectType("Edge").affected(count).result("删除 " + count + " 条").submit();
+        } catch (Exception ignored) {}
         return count;
     }
 
@@ -349,6 +378,13 @@ public class EdgeDataService {
         }
         registry.evict(connectionId);
         log.info("Cleared {} edges from {}.{}", count, schemaName, labelName);
+        try {
+            logService.log().module("边数据管理").action("清空边数据").httpMethod("POST")
+                .type("CLEAR").name("清空边数据: " + schemaName + "." + labelName).dangerous()
+                .status("SUCCESS").connection(connectionId).schema(schemaName)
+                .objectType("EdgeLabel").objectName(schemaName + "." + labelName)
+                .affected((int) count).result("影响 " + count + " 条").submit();
+        } catch (Exception ignored) {}
         return count;
     }
 

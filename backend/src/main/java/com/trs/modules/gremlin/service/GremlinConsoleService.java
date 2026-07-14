@@ -3,6 +3,7 @@ package com.trs.modules.gremlin.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.trs.config.PlatformConfig;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
+import com.trs.modules.log.service.OperationLogService;
 import com.trs.modules.gremlin.entity.GremlinQueryFavorite;
 import com.trs.modules.gremlin.entity.GremlinQueryHistory;
 import com.trs.modules.gremlin.mapper.GremlinQueryMapper;
@@ -52,15 +53,18 @@ public class GremlinConsoleService {
     private final GremlinQueryMapper queryMapper;
     private final ScriptEngine scriptEngine;
     private final PlatformConfig platformConfig;
+    private final OperationLogService logService;
 
     public GremlinConsoleService(SqlgGraphRegistry registry,
                                   GraphConnectionMapper connectionMapper,
                                   GremlinQueryMapper queryMapper,
-                                  PlatformConfig platformConfig) {
+                                  PlatformConfig platformConfig,
+                                  OperationLogService logService) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
         this.queryMapper = queryMapper;
         this.platformConfig = platformConfig;
+        this.logService = logService;
         this.scriptEngine = new GremlinGroovyScriptEngine();
     }
 
@@ -167,6 +171,29 @@ public class GremlinConsoleService {
         long cost = System.currentTimeMillis() - start;
 
         saveHistory(userId, connectionId, query, effectiveMode, success, errorMessage, (int) cost, resultCount);
+
+        boolean writeQuery = isWriteQuery(query);
+        String queryOneLine = query.replaceAll("\\s+", " ").trim();
+        try {
+            logService.log()
+                .user(userId, null)
+                .module("Gremlin 控制台")
+                .action("执行 Gremlin 查询")
+                .httpMethod("POST")
+                .type(writeQuery ? "EXECUTE" : "QUERY")
+                .name("Gremlin: " + substring(queryOneLine, 80))
+                .status(success ? "SUCCESS" : "FAILED")
+                .connection(connectionId)
+                .objectType(writeQuery ? "Gremlin 写操作" : "Gremlin 查询")
+                .objectName(substring(queryOneLine, 200))
+                .detail(substring(query, 2000))
+                .affected(resultCount)
+                .error(errorMessage)
+                .costMs((int) cost)
+                .params(substring(query, 2000))
+                .result(success ? ("返回 " + resultCount + " 条" + (truncated ? " (截断)" : "")) : "失败")
+                .submit();
+        } catch (Exception ignored) {}
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("success", success);
@@ -416,5 +443,10 @@ public class GremlinConsoleService {
 
     public void evict(Long connectionId) {
         registry.evict(connectionId);
+    }
+
+    private static String substring(String s, int max) {
+        if (s == null) return null;
+        return s.length() <= max ? s : s.substring(0, max);
     }
 }
