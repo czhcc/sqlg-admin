@@ -5,7 +5,7 @@
 ## 1. 项目概览
 
 - **项目名**: 图数据库管理平台 (Graph Database Management Platform)
-- **目标**: 通过 Web 界面统一管理多个图数据库连接,支持 Topology 浏览、点/边类型管理、点/边数据管理、图关系展开、Gremlin 控制台、导入导出、操作日志。
+- **目标**: 通过 Web 界面统一管理多个图数据库连接,支持 Topology 浏览、点/边类型与属性管理、点/边数据管理、图关系展开、Gremlin 控制台、导入导出,以及用户与权限、审计日志(登录日志/操作日志)。
 - **结构**: 两个独立工程
   - `backend/` — Spring Boot 4.1 REST API,端口 `8090`,context-path `/api`
   - `frontend/` — Vite + React 19 SPA,端口 `5173`,开发代理 `/api → http://localhost:8090`
@@ -104,7 +104,7 @@ graph_app/
     ├── .env.example                      ← VITE_API_TARGET / VITE_API_BASE
     └── src/
         ├── main.jsx                      ← createRoot 入口
-        ├── App.jsx                       ← 路由表 (10 个菜单 + login)
+        ├── App.jsx                       ← 路由表 (15 个功能页 + 2 个分组 + login)
         ├── index.css                     ← @import "tailwindcss"
         ├── api/
         │   ├── client.js                 ← axios 实例 + JWT 拦截 + 401 自动跳登录
@@ -114,7 +114,7 @@ graph_app/
         │   └── AuthContext.jsx           ← useAuth() / AuthProvider
         ├── components/
         │   ├── ProtectedRoute.jsx        ← 未登录重定向 /login
-        │   ├── Layout.jsx                ← 左侧菜单(10 项 + lucide 图标)+ 右侧 children
+        │   ├── Layout.jsx                ← 左侧分组菜单(扁平项 + 2 个可折叠分组: 用户与权限 / 审计日志)
         │   └── Placeholder.jsx           ← 未实现功能的占位页
         └── pages/
             ├── Login.jsx                 ← 登录页 (admin/123456)
@@ -122,12 +122,17 @@ graph_app/
             ├── Topology.jsx              ← ✅ 完整树形浏览+连接记忆
             ├── VertexType.jsx            ← ✅ 完整列表+模态框 CRUD+行内操作
             ├── EdgeType.jsx              ← ✅ 完整列表+新增(出/入点选择)+方向预览+删除
-            ├── VertexData.jsx            ← 占位
+            ├── PropertyManagement.jsx    ← ✅ 完整属性树+连接记忆+属性 CRUD+索引管理
+            ├── VertexData.jsx            ← ✅ 完整分页查询+过滤+CRUD+批量删除+清空
             ├── EdgeData.jsx              ← ✅ 完整列表+模态框 CRUD+出/入点选择+行内操作
-            ├── GraphExplore.jsx          ← 占位
-            ├── GremlinConsole.jsx        ← 占位
-            ├── ImportExport.jsx          ← 占位
-            └── OperationLog.jsx          ← 占位
+            ├── GraphExplore.jsx          ← ✅ G6 图谱+双击展开+多布局+类型着色
+            ├── GremlinConsole.jsx        ← ✅ CodeMirror+自动补全+安全模式+五视图+历史/收藏
+            ├── ImportExport.jsx          ← ✅ CSV/JSON 导入导出+预览+字段映射+Topology 导出/导入
+            ├── OperationLog.jsx          ← ✅ 分页筛选+详情+危险操作标记+JDBC脱敏 (归入「审计日志」分组)
+            ├── UserManagement.jsx        ← 🟡 占位 (归入「用户与权限」分组)
+            ├── RoleManagement.jsx        ← 🟡 占位 (归入「用户与权限」分组)
+            ├── PermissionOverview.jsx    ← 🟡 占位 (归入「用户与权限」分组)
+            └── LoginLog.jsx              ← 🟡 占位 (归入「审计日志」分组)
 ```
 
 ## 4. 数据库 (Flyway 管理)
@@ -187,7 +192,7 @@ app.jwt.secret / expiration-ms
 ### 前端
 
 - **API 调用**: 必须经 `src/api/client.js`(自动注入 JWT、统一 401 处理),**禁止**裸 `fetch` / 裸 `axios`
-- **路由**: 10 个功能页都在 `ProtectedRoute` 包裹下,新增页同步加到 `App.jsx` 路由表 + `Layout.jsx` 菜单
+- **路由**: 15 个功能页都在 `ProtectedRoute` 包裹下,新增页同步加到 `App.jsx` 路由表 + `Layout.jsx` 菜单;菜单支持扁平项与可折叠分组(用 `group` 字段标识分组,`menuItems` 中分组项带 `children`)
 - **样式**: 仅用 Tailwind v4 utility class,**不要**新增 `tailwind.config.js`、不要写自定义 CSS(除非全局重置)
 - **图标**: 优先 `lucide-react`,按需 import
 - **表单弹窗**: 用 `fixed inset-0` 模态层,参考 `Connection.jsx` 实现
@@ -215,18 +220,23 @@ tmux kill-session -t backend
 
 ## 8. 实现进度
 
-| 菜单 | 后端 Controller | 前端 Page | 状态 |
-|------|----------------|-----------|------|
-| 连接管理 | `ConnectionController` | `Connection.jsx` | ✅ 完整实现 |
-| Topology 浏览 | `TopologyController` | `Topology.jsx` | ✅ 完整实现 |
-| 点类型管理 | `VertexTypeController` | `VertexType.jsx` | ✅ 完整实现 |
-| 边类型管理 | `EdgeTypeController` | `EdgeType.jsx` | ✅ 完整实现 |
-| 点数据浏览 | stub | 占位 | ⬜ 待实现 |
-| 边数据管理 | `EdgeDataController` | `EdgeData.jsx` | ✅ 完整实现 |
-| 图关系展开 | stub | 占位 | ⬜ 待实现 |
-| Gremlin 控制台 | stub | 占位 | ⬜ 待实现 |
-| 导入导出 | stub | 占位 | ⬜ 待实现 |
-| 操作日志 | stub | 占位 | ⬜ 待实现 |
+| 菜单 | 分组 | 后端 Controller | 前端 Page | 状态 |
+|------|------|----------------|-----------|------|
+| 连接管理 | — | `ConnectionController` | `Connection.jsx` | ✅ 完整实现 |
+| Topology 浏览 | — | `TopologyController` | `Topology.jsx` | ✅ 完整实现 |
+| 点类型管理 | — | `VertexTypeController` | `VertexType.jsx` | ✅ 完整实现 |
+| 边类型管理 | — | `EdgeTypeController` | `EdgeType.jsx` | ✅ 完整实现 |
+| 属性管理 | — | `PropertyManagementController` | `PropertyManagement.jsx` | ✅ 完整实现 |
+| 点数据管理 | — | `VertexDataController` | `VertexData.jsx` | ✅ 完整实现 |
+| 边数据管理 | — | `EdgeDataController` | `EdgeData.jsx` | ✅ 完整实现 |
+| 图关系展开 | — | `GraphExploreController` | `GraphExplore.jsx` | ✅ 完整实现 |
+| Gremlin 控制台 | — | `GremlinController` | `GremlinConsole.jsx` | ✅ 完整实现 |
+| 导入导出 | — | `ImportExportController` | `ImportExport.jsx` | ✅ 完整实现 |
+| 用户管理 | 用户与权限 | ⬜ | `UserManagement.jsx` | 🟡 前端占位 · 后端待实现 |
+| 角色管理 | 用户与权限 | ⬜ | `RoleManagement.jsx` | 🟡 前端占位 · 后端待实现 |
+| 权限总览 | 用户与权限 | ⬜ | `PermissionOverview.jsx` | 🟡 前端占位 · 后端待实现 |
+| 登录日志 | 审计日志 | ⬜ | `LoginLog.jsx` | 🟡 前端占位 · 后端待实现 |
+| 操作日志 | 审计日志 | `OperationLogController` | `OperationLog.jsx` | ✅ 完整实现 |
 
 ## 9. 踩过的坑(供后人参考)
 
