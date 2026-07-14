@@ -14,6 +14,10 @@ import GraphExplore from './pages/GraphExplore'
 import GremlinConsole from './pages/GremlinConsole'
 import ImportExport from './pages/ImportExport'
 import OperationLog from './pages/OperationLog'
+import UserManagement from './pages/UserManagement'
+import RoleManagement from './pages/RoleManagement'
+import PermissionOverview from './pages/PermissionOverview'
+import LoginLog from './pages/LoginLog'
 
 const pages = [
   { path: 'connection', element: <Connection /> },
@@ -27,6 +31,10 @@ const pages = [
   { path: 'gremlin', element: <GremlinConsole /> },
   { path: 'import-export', element: <ImportExport /> },
   { path: 'operation-log', element: <OperationLog /> },
+  { path: 'user-management', element: <UserManagement /> },
+  { path: 'role-management', element: <RoleManagement /> },
+  { path: 'permission-overview', element: <PermissionOverview /> },
+  { path: 'login-log', element: <LoginLog /> },
 ]
 
 export default function App() {
