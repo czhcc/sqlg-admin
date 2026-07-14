@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trs.modules.log.mapper.OperationLogMapper">
+
+    <resultMap id="logMap" type="com.trs.modules.log.entity.OperationLog">
+        <id     property="id"               column="id"/>
+        <result property="userId"           column="user_id"/>
+        <result property="username"         column="username"/>
+        <result property="module"           column="module"/>
+        <result property="action"           column="action"/>
+        <result property="method"           column="method"/>
+        <result property="params"           column="params"/>
+        <result property="result"           column="result"/>
+        <result property="ip"               column="ip"/>
+        <result property="costMs"           column="cost_ms"/>
+        <result property="createTime"       column="create_time"/>
+        <result property="operationType"    column="operation_type"/>
+        <result property="operationName"    column="operation_name"/>
+        <result property="status"           column="status"/>
+        <result property="connectionId"     column="connection_id"/>
+        <result property="connectionName"   column="connection_name"/>
+        <result property="jdbcUrlMasked"    column="jdbc_url_masked"/>
+        <result property="schemaName"       column="schema_name"/>
+        <result property="objectType"       column="object_type"/>
+        <result property="objectName"       column="object_name"/>
+        <result property="objectId"         column="object_id"/>
+        <result property="detail"           column="detail"/>
+        <result property="affectedCount"    column="affected_count"/>
+        <result property="errorMessage"     column="error_message"/>
+        <result property="userAgent"        column="user_agent"/>
+        <result property="isDangerous"      column="is_dangerous"/>
+    </resultMap>
+
+    <sql id="allColumns">
+        id, user_id, username, module, action, method, params, result, ip, cost_ms, create_time,
+        operation_type, operation_name, status, connection_id, connection_name, jdbc_url_masked,
+        schema_name, object_type, object_name, object_id, detail, affected_count, error_message,
+        user_agent, is_dangerous
+    </sql>
+
+    <sql id="whereClause">
+        <where>
+            <if test="module != null and module != ''">AND module = #{module}</if>
+            <if test="operationType != null and operationType != ''">AND operation_type = #{operationType}</if>
+            <if test="status != null and status != ''">AND status = #{status}</if>
+            <if test="connectionId != null">AND connection_id = #{connectionId}</if>
+            <if test="username != null and username != ''">AND username = #{username}</if>
+            <if test="isDangerous != null">AND is_dangerous = #{isDangerous}</if>
+            <if test="startTime != null">AND create_time &gt;= #{startTime}</if>
+            <if test="endTime != null">AND create_time &lt;= #{endTime}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    action ILIKE '%' || #{keyword} || '%'
+                    OR object_name ILIKE '%' || #{keyword} || '%'
+                    OR detail ILIKE '%' || #{keyword} || '%'
+                    OR error_message ILIKE '%' || #{keyword} || '%'
+                )
+            </if>
+        </where>
+    </sql>
+
+    <insert id="insert" parameterType="com.trs.modules.log.entity.OperationLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_operation_log (
+            user_id, username, module, action, method, params, result, ip, cost_ms, create_time,
+            operation_type, operation_name, status, connection_id, connection_name, jdbc_url_masked,
+            schema_name, object_type, object_name, object_id, detail, affected_count, error_message,
+            user_agent, is_dangerous
+        ) VALUES (
+            #{userId}, #{username}, #{module}, #{action}, #{method}, #{params}, #{result}, #{ip}, #{costMs}, CURRENT_TIMESTAMP,
+            #{operationType}, #{operationName}, #{status}, #{connectionId}, #{connectionName}, #{jdbcUrlMasked},
+            #{schemaName}, #{objectType}, #{objectName}, #{objectId}, #{detail}, #{affectedCount}, #{errorMessage},
+            #{userAgent}, #{isDangerous}
+        )
+    </insert>
+
+    <select id="selectById" resultMap="logMap">
+        SELECT <include refid="allColumns"/> FROM sys_operation_log WHERE id = #{id}
+    </select>
+
+    <select id="selectPage" resultMap="logMap">
+        SELECT <include refid="allColumns"/> FROM sys_operation_log
+        <include refid="whereClause"/>
+        ORDER BY create_time DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT count(*) FROM sys_operation_log
+        <include refid="whereClause"/>
+    </select>
+
+    <select id="selectDistinctModules" resultType="string">
+        SELECT DISTINCT module FROM sys_operation_log WHERE module IS NOT NULL ORDER BY module
+    </select>
+
+    <delete id="deleteBefore">
+        DELETE FROM sys_operation_log WHERE create_time &lt; #{before}
+    </delete>
+
+</mapper>
