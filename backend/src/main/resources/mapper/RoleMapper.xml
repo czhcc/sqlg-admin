@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trs.user.mapper.RoleMapper">
+
+    <resultMap id="roleResultMap" type="com.trs.user.entity.Role">
+        <id     property="id"                    column="id"/>
+        <result property="roleKey"               column="role_key"/>
+        <result property="roleName"              column="role_name"/>
+        <result property="description"           column="description"/>
+        <result property="status"                column="status"/>
+        <result property="isBuiltin"             column="is_builtin"/>
+        <result property="menuPermissions"       column="menu_permissions"/>
+        <result property="operationPermissions"  column="operation_permissions"/>
+        <result property="gremlinPermission"     column="gremlin_permission"/>
+        <result property="dangerousPermissions"  column="dangerous_permissions"/>
+        <result property="connectionDefault"     column="connection_default"/>
+        <result property="createTime"            column="create_time"/>
+        <result property="updateTime"            column="update_time"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        id, role_key, role_name, description, status, is_builtin,
+        menu_permissions, operation_permissions, gremlin_permission,
+        dangerous_permissions, connection_default, create_time, update_time
+    </sql>
+
+    <select id="selectAll" resultMap="roleResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM sys_role
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (role_key ILIKE '%' || #{keyword} || '%'
+                  OR role_name ILIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectById" resultMap="roleResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM sys_role WHERE id = #{id}
+    </select>
+
+    <select id="selectByKey" resultMap="roleResultMap">
+        SELECT <include refid="baseColumns"/>
+        FROM sys_role WHERE role_key = #{roleKey}
+    </select>
+
+    <insert id="insert" parameterType="com.trs.user.entity.Role" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_role (role_key, role_name, description, status, is_builtin,
+            menu_permissions, operation_permissions, gremlin_permission,
+            dangerous_permissions, connection_default)
+        VALUES (#{roleKey}, #{roleName}, #{description}, #{status}, COALESCE(#{isBuiltin}, false),
+            #{menuPermissions}, #{operationPermissions}, #{gremlinPermission},
+            #{dangerousPermissions}, #{connectionDefault})
+    </insert>
+
+    <update id="update" parameterType="com.trs.user.entity.Role">
+        UPDATE sys_role
+        <set>
+            <if test="roleName != null">role_name = #{roleName},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="menuPermissions != null">menu_permissions = #{menuPermissions},</if>
+            <if test="operationPermissions != null">operation_permissions = #{operationPermissions},</if>
+            <if test="gremlinPermission != null">gremlin_permission = #{gremlinPermission},</if>
+            <if test="dangerousPermissions != null">dangerous_permissions = #{dangerousPermissions},</if>
+            <if test="connectionDefault != null">connection_default = #{connectionDefault},</if>
+            update_time = CURRENT_TIMESTAMP
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE sys_role SET status = #{status}, update_time = CURRENT_TIMESTAMP WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM sys_role WHERE id = #{id} AND is_builtin = false
+    </delete>
+
+    <select id="countUsersByRoleKey" resultType="int">
+        SELECT count(*) FROM sys_user
+        WHERE string_to_array(COALESCE(roles, ''), ',') @> ARRAY[#{roleKey}]::text[]
+    </select>
+
+    <select id="selectUserIdsByRoleKey" resultType="long">
+        SELECT id FROM sys_user
+        WHERE string_to_array(COALESCE(roles, ''), ',') @> ARRAY[#{roleKey}]::text[]
+    </select>
+
+    <update id="addRoleToUser">
+        UPDATE sys_user
+        SET roles = CASE
+            WHEN roles IS NULL OR roles = '' THEN #{roleKey}
+            WHEN string_to_array(roles, ',') @> ARRAY[#{roleKey}] THEN roles
+            ELSE roles || ',' || #{roleKey}
+        END,
+        update_time = CURRENT_TIMESTAMP
+        WHERE id = #{userId}
+    </update>
+
+    <update id="removeRoleFromUser">
+        UPDATE sys_user
+        SET roles = (
+            SELECT string_agg(r, ',') FROM (
+                SELECT trim(part) AS r
+                FROM unnest(string_to_array(COALESCE(roles, ''), ',')) AS part
+                WHERE trim(part) != #{roleKey} AND trim(part) != ''
+            ) t
+        ),
+        update_time = CURRENT_TIMESTAMP
+        WHERE id = #{userId}
+    </update>
+
+    <resultMap id="connAuthMap" type="java.util.LinkedHashMap">
+        <result property="connectionId" column="connection_id"/>
+        <result property="accessLevel" column="access_level"/>
+    </resultMap>
+
+    <select id="selectConnectionAuth" resultMap="connAuthMap">
+        SELECT connection_id, access_level FROM sys_role_connection_auth WHERE role_id = #{roleId}
+    </select>
+
+    <insert id="upsertConnectionAuth">
+        INSERT INTO sys_role_connection_auth (role_id, connection_id, access_level)
+        VALUES (#{roleId}, #{connectionId}, #{accessLevel})
+        ON CONFLICT (role_id, connection_id) DO UPDATE SET access_level = #{accessLevel}
+    </insert>
+
+    <delete id="deleteConnectionAuth">
+        DELETE FROM sys_role_connection_auth WHERE role_id = #{roleId} AND connection_id = #{connectionId}
+    </delete>
+
+</mapper>
