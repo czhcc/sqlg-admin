@@ -1,19 +1,27 @@
 package com.trs.user.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.log.entity.LoginLog;
 import com.trs.modules.log.mapper.LoginLogMapper;
-import com.trs.user.entity.RoleDefinition;
+import com.trs.user.entity.Role;
 import com.trs.user.entity.User;
+import com.trs.user.mapper.RoleMapper;
 import com.trs.user.mapper.UserMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 系统用户服务,提供登录校验、用户 CRUD、角色分配、权限计算等能力。
@@ -24,17 +32,24 @@ import java.util.Map;
 @Service
 public class UserService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final TypeReference<List<String>> STR_LIST = new TypeReference<>() {};
+
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final GraphConnectionMapper connectionMapper;
     private final LoginLogMapper loginLogMapper;
+    private final RoleMapper roleMapper;
 
     public UserService(UserMapper userMapper, PasswordEncoder passwordEncoder,
-                       GraphConnectionMapper connectionMapper, LoginLogMapper loginLogMapper) {
+                       GraphConnectionMapper connectionMapper, LoginLogMapper loginLogMapper,
+                       RoleMapper roleMapper) {
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
         this.connectionMapper = connectionMapper;
         this.loginLogMapper = loginLogMapper;
+        this.roleMapper = roleMapper;
     }
 
     // ==================== 登录相关 (原有) ====================
@@ -144,13 +159,14 @@ public class UserService {
         User u = userMapper.selectById(id);
         if (u == null) throw new IllegalArgumentException("用户不存在: " + id);
 
-        List<RoleDefinition> validRoles = new ArrayList<>();
+        List<String> validKeys = new ArrayList<>();
         for (String key : roleKeys) {
-            RoleDefinition r = RoleDefinition.fromKey(key);
+            Role r = roleMapper.selectByKey(key);
             if (r == null) throw new IllegalArgumentException("未知角色: " + key);
-            validRoles.add(r);
+            validKeys.add(r.getRoleKey());
         }
-        userMapper.updateRoles(id, RoleDefinition.toCsv(validRoles));
+        String csv = validKeys.isEmpty() ? null : String.join(",", validKeys);
+        userMapper.updateRoles(id, csv);
     }
 
     public void delete(Long id) {
@@ -166,37 +182,91 @@ public class UserService {
     public Map<String, Object> getEffectivePermissions(Long id) {
         User u = userMapper.selectById(id);
         if (u == null) throw new IllegalArgumentException("用户不存在: " + id);
-        List<RoleDefinition> roles = RoleDefinition.parse(u.getRoles());
-        Map<String, Object> perms = RoleDefinition.computeEffectivePermissions(roles);
+        List<Role> roles = loadUserRoles(u);
+
+        Set<String> menus = new LinkedHashSet<>();
+        Set<String> operations = new LinkedHashSet<>();
+        Set<String> gremlinLevels = new LinkedHashSet<>();
+        Set<String> dangerousPerms = new LinkedHashSet<>();
+
+        for (Role r : roles) {
+            menus.addAll(parseJsonList(r.getMenuPermissions()));
+            operations.addAll(parseJsonList(r.getOperationPermissions()));
+            gremlinLevels.add(r.getGremlinPermission());
+            dangerousPerms.addAll(parseJsonList(r.getDangerousPermissions()));
+        }
+
+        String mergedGremlin;
+        if (gremlinLevels.contains("DANGEROUS")) mergedGremlin = "DANGEROUS";
+        else if (gremlinLevels.contains("WRITE")) mergedGremlin = "WRITE";
+        else if (gremlinLevels.contains("READ_ONLY")) mergedGremlin = "READ_ONLY";
+        else mergedGremlin = "NONE";
+
+        List<Map<String, String>> roleBriefs = new ArrayList<>();
+        for (Role r : roles) {
+            Map<String, String> m = new LinkedHashMap<>();
+            m.put("key", r.getRoleKey());
+            m.put("label", r.getRoleName());
+            roleBriefs.add(m);
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("roles", RoleDefinition.toBrief(roles));
-        result.putAll(perms);
+        result.put("roles", roleBriefs);
+        result.put("menus", new ArrayList<>(menus));
+        result.put("operations", new ArrayList<>(operations));
+        result.put("gremlin", mergedGremlin);
+        result.put("dangerousOps", new ArrayList<>(dangerousPerms));
+        result.put("allowDangerousOps", !dangerousPerms.isEmpty());
         return result;
     }
 
     public Map<String, Object> getConnectionPermissions(Long id) {
         User u = userMapper.selectById(id);
         if (u == null) throw new IllegalArgumentException("用户不存在: " + id);
-        List<RoleDefinition> roles = RoleDefinition.parse(u.getRoles());
-        List<Map<String, Object>> connPerms = RoleDefinition.computeConnectionPermissions(roles);
+        List<Role> roles = loadUserRoles(u);
 
-        long accessibleCount = 0;
+        List<GraphConnection> allConns = connectionMapper.selectAll(null).stream()
+                .filter(c -> c.getStatus() != null && c.getStatus() == 1)
+                .toList();
+
+        List<Map<String, Object>> connPerms = new ArrayList<>();
+        Set<Long> accessibleConnIds = new LinkedHashSet<>();
         String mergedAccess = "NONE";
-        for (Map<String, Object> cp : connPerms) {
-            String access = (String) cp.get("access");
-            if ("READ_WRITE".equals(access) || "READ".equals(access)) {
-                accessibleCount = connectionMapper.selectAll(null).stream()
-                        .filter(c -> c.getStatus() != null && c.getStatus() == 1)
-                        .count();
-                if ("READ_WRITE".equals(access)) mergedAccess = "READ_WRITE";
-                else if (!"READ_WRITE".equals(mergedAccess)) mergedAccess = "READ";
+
+        for (Role r : roles) {
+            String defaultLevel = r.getConnectionDefault();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("role", r.getRoleKey());
+            m.put("roleLabel", r.getRoleName());
+            m.put("default", defaultLevel);
+            connPerms.add(m);
+
+            if (!"NONE".equals(defaultLevel)) {
+                accessibleConnIds.addAll(allConns.stream().map(GraphConnection::getId).toList());
+                if ("ADMIN".equals(defaultLevel)) mergedAccess = "ADMIN";
+                else if ("WRITE".equals(defaultLevel) && !"ADMIN".equals(mergedAccess)) mergedAccess = "WRITE";
+                else if ("READ".equals(defaultLevel) && "NONE".equals(mergedAccess)) mergedAccess = "READ";
             }
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("permissions", connPerms);
-        result.put("accessibleCount", accessibleCount);
+        result.put("accessibleCount", accessibleConnIds.size());
         result.put("mergedAccess", mergedAccess);
+        return result;
+    }
+
+    // ==================== 角色加载 ====================
+
+    private List<Role> loadUserRoles(User u) {
+        if (u.getRoles() == null || u.getRoles().isBlank()) return List.of();
+        List<Role> result = new ArrayList<>();
+        for (String key : u.getRoles().split(",")) {
+            String trimmed = key.trim();
+            if (trimmed.isEmpty()) continue;
+            Role r = roleMapper.selectByKey(trimmed);
+            if (r != null && r.getStatus() != null && r.getStatus() == 1) result.add(r);
+        }
         return result;
     }
 
@@ -228,9 +298,16 @@ public class UserService {
         m.put("status", u.getStatus());
         m.put("remark", u.getRemark());
 
-        List<RoleDefinition> roles = RoleDefinition.parse(u.getRoles());
-        m.put("roles", RoleDefinition.toBrief(roles));
-        m.put("rolesDisplay", roles.stream().map(RoleDefinition::getLabel).reduce((a, b) -> a + ", " + b).orElse(""));
+        List<Role> roles = loadUserRoles(u);
+        List<Map<String, String>> roleBriefs = new ArrayList<>();
+        for (Role r : roles) {
+            Map<String, String> rm = new LinkedHashMap<>();
+            rm.put("key", r.getRoleKey());
+            rm.put("label", r.getRoleName());
+            roleBriefs.add(rm);
+        }
+        m.put("roles", roleBriefs);
+        m.put("rolesDisplay", roles.stream().map(Role::getRoleName).reduce((a, b) -> a + ", " + b).orElse(""));
 
         boolean hasAnyRole = !roles.isEmpty();
         m.put("accessibleConnectionCount", hasAnyRole ? connectionCount : 0);
@@ -247,5 +324,15 @@ public class UserService {
                         .filter(c -> c.getStatus() != null && c.getStatus() == 1).count());
         m.put("rolesCsv", u.getRoles());
         return m;
+    }
+
+    private List<String> parseJsonList(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return MAPPER.readValue(json, STR_LIST);
+        } catch (Exception e) {
+            log.warn("Failed to parse JSON list: {}", json, e);
+            return List.of();
+        }
     }
 }

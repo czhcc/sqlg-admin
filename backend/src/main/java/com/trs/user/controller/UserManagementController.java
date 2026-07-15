@@ -2,8 +2,8 @@ package com.trs.user.controller;
 
 import com.trs.common.Result;
 import com.trs.modules.log.service.OperationLogService;
-import com.trs.user.entity.RoleDefinition;
 import com.trs.user.entity.User;
+import com.trs.user.service.RoleManagementService;
 import com.trs.user.service.UserService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
@@ -27,10 +27,13 @@ public class UserManagementController {
 
     private final UserService userService;
     private final OperationLogService logService;
+    private final RoleManagementService roleManagementService;
 
-    public UserManagementController(UserService userService, OperationLogService logService) {
+    public UserManagementController(UserService userService, OperationLogService logService,
+                                     RoleManagementService roleManagementService) {
         this.userService = userService;
         this.logService = logService;
+        this.roleManagementService = roleManagementService;
     }
 
     @GetMapping
@@ -44,19 +47,9 @@ public class UserManagementController {
 
     @GetMapping("/roles")
     public Result<List<Map<String, Object>>> roles() {
-        return Result.ok(RoleDefinition.all().stream()
-                .map(r -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("key", r.getKey());
-                    m.put("label", r.getLabel());
-                    m.put("description", r.getDescription());
-                    m.put("menuPermissions", r.getMenuPermissions());
-                    m.put("operationPermissions", r.getOperationPermissions());
-                    m.put("gremlinPermission", r.getGremlinPermission());
-                    m.put("allowDangerousOps", r.isAllowDangerousOps());
-                    return m;
-                })
-                .toList());
+        return Result.ok(roleManagementService.page(null, (short) 1).get("rows") instanceof List<?> list
+                ? (List<Map<String, Object>>) list
+                : List.of());
     }
 
     @GetMapping("/{id}")
