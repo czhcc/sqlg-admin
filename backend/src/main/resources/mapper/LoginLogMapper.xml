@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trs.modules.log.mapper.LoginLogMapper">
+
+    <resultMap id="loginLogResultMap" type="com.trs.modules.log.entity.LoginLog">
+        <id     property="id"           column="id"/>
+        <result property="userId"       column="user_id"/>
+        <result property="username"     column="username"/>
+        <result property="loginTime"    column="login_time"/>
+        <result property="logoutTime"   column="logout_time"/>
+        <result property="clientIp"     column="client_ip"/>
+        <result property="userAgent"    column="user_agent"/>
+        <result property="resultStatus" column="result_status"/>
+        <result property="failReason"   column="fail_reason"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.trs.modules.log.entity.LoginLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_login_log (user_id, username, login_time, client_ip, user_agent, result_status, fail_reason)
+        VALUES (#{userId}, #{username}, CURRENT_TIMESTAMP, #{clientIp}, #{userAgent}, #{resultStatus}, #{failReason})
+    </insert>
+
+    <select id="selectPage" resultMap="loginLogResultMap">
+        SELECT id, user_id, username, login_time, logout_time, client_ip, user_agent, result_status, fail_reason
+        FROM sys_login_log
+        <where>
+            <if test="username != null and username != ''">
+                AND username ILIKE '%' || #{username} || '%'
+            </if>
+            <if test="resultStatus != null and resultStatus != ''">
+                AND result_status = #{resultStatus}
+            </if>
+            <if test="startTime != null">AND login_time &gt;= #{startTime}</if>
+            <if test="endTime != null">AND login_time &lt;= #{endTime}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (username ILIKE '%' || #{keyword} || '%' OR client_ip ILIKE '%' || #{keyword} || '%')
+            </if>
+        </where>
+        ORDER BY login_time DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT count(*) FROM sys_login_log
+        <where>
+            <if test="username != null and username != ''">
+                AND username ILIKE '%' || #{username} || '%'
+            </if>
+            <if test="resultStatus != null and resultStatus != ''">
+                AND result_status = #{resultStatus}
+            </if>
+            <if test="startTime != null">AND login_time &gt;= #{startTime}</if>
+            <if test="endTime != null">AND login_time &lt;= #{endTime}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (username ILIKE '%' || #{keyword} || '%' OR client_ip ILIKE '%' || #{keyword} || '%')
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByUserId" resultMap="loginLogResultMap">
+        SELECT id, user_id, username, login_time, logout_time, client_ip, user_agent, result_status, fail_reason
+        FROM sys_login_log
+        WHERE user_id = #{userId}
+        ORDER BY login_time DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countByUserId" resultType="long">
+        SELECT count(*) FROM sys_login_log WHERE user_id = #{userId}
+    </select>
+
+</mapper>
