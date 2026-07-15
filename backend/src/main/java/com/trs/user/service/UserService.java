@@ -179,9 +179,29 @@ public class UserService {
 
     // ==================== 权限计算 ====================
 
+    private static final String SUPER_ADMIN_KEY = "SUPER_ADMIN";
+
+    private boolean isSuperAdmin(User u) {
+        if (u == null || u.getRoles() == null) return false;
+        return Arrays.asList(u.getRoles().split(",")).stream()
+                .map(String::trim).anyMatch(SUPER_ADMIN_KEY::equals);
+    }
+
     public Map<String, Object> getEffectivePermissions(Long id) {
         User u = userMapper.selectById(id);
         if (u == null) throw new IllegalArgumentException("用户不存在: " + id);
+
+        if (isSuperAdmin(u)) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("roles", List.of(Map.of("key", SUPER_ADMIN_KEY, "label", "超级管理员")));
+            result.put("menus", List.of("*"));
+            result.put("operations", List.of("*"));
+            result.put("gremlin", "DANGEROUS");
+            result.put("dangerousOps", List.of("*"));
+            result.put("allowDangerousOps", true);
+            return result;
+        }
+
         List<Role> roles = loadUserRoles(u);
 
         Set<String> menus = new LinkedHashSet<>();
@@ -223,11 +243,22 @@ public class UserService {
     public Map<String, Object> getConnectionPermissions(Long id) {
         User u = userMapper.selectById(id);
         if (u == null) throw new IllegalArgumentException("用户不存在: " + id);
-        List<Role> roles = loadUserRoles(u);
 
         List<GraphConnection> allConns = connectionMapper.selectAll(null).stream()
                 .filter(c -> c.getStatus() != null && c.getStatus() == 1)
                 .toList();
+
+        if (isSuperAdmin(u)) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("permissions", List.of(Map.of(
+                    "role", SUPER_ADMIN_KEY, "roleLabel", "超级管理员",
+                    "default", "ADMIN")));
+            result.put("accessibleCount", allConns.size());
+            result.put("mergedAccess", "ADMIN");
+            return result;
+        }
+
+        List<Role> roles = loadUserRoles(u);
 
         List<Map<String, Object>> connPerms = new ArrayList<>();
         Set<Long> accessibleConnIds = new LinkedHashSet<>();

@@ -95,7 +95,7 @@
         UPDATE sys_user
         SET roles = CASE
             WHEN roles IS NULL OR roles = '' THEN #{roleKey}
-            WHEN string_to_array(roles, ',') @> ARRAY[#{roleKey}] THEN roles
+            WHEN string_to_array(roles, ',') @> ARRAY[#{roleKey}]::text[] THEN roles
             ELSE roles || ',' || #{roleKey}
         END,
         update_time = CURRENT_TIMESTAMP

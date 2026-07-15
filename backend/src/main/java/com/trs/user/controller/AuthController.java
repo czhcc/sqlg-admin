@@ -95,6 +95,15 @@ public class AuthController {
         return Result.ok(user);
     }
 
+    @GetMapping("/permissions")
+    public Result<?> permissions() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) return Result.fail(401, "未登录");
+        Object principal = auth.getPrincipal();
+        if (!(principal instanceof User principalUser)) return Result.fail(401, "未登录");
+        return Result.ok(userService.getEffectivePermissions(principalUser.getId()));
+    }
+
     @PutMapping("/profile")
     public Result<?> updateProfile(@RequestBody Map<String, Object> body) {
         User u = currentUser();
