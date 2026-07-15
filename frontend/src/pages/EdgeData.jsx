@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useAuth } from '../context/AuthContext'
 import {
   listEdgeDataConnections, setActiveConnection, getTree, refreshTree,
   getEdgeLabelProperties, pageEdges, getEdgeDetail,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react'
 
 export default function EdgeData() {
+  const { hasOp } = useAuth()
   const [connections, setConnections] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -391,7 +393,7 @@ export default function EdgeData() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {selectedIds.size > 0 && (
+                  {selectedIds.size > 0 && hasOp('edge_data:batch_delete') && (
                     <button onClick={onBatchDelete}
                       className="flex items-center gap-1 rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
                       <Trash2 size={14} /> 批量删除 ({selectedIds.size})
@@ -429,14 +431,18 @@ export default function EdgeData() {
                     className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
                     <TerminalSquare size={14} /> Gremlin 示例
                   </button>
-                  <button onClick={onClear}
-                    className="flex items-center gap-1 rounded-md border border-amber-300 px-3 py-1.5 text-sm text-amber-600 hover:bg-amber-50">
-                    <Eraser size={14} /> 清空数据
-                  </button>
-                  <button onClick={openCreate}
-                    className="flex items-center gap-1 rounded-md bg-pink-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-pink-700">
-                    <Plus size={15} /> 新增边
-                  </button>
+                  {hasOp('edge_data:clear') && (
+                    <button onClick={onClear}
+                      className="flex items-center gap-1 rounded-md border border-amber-300 px-3 py-1.5 text-sm text-amber-600 hover:bg-amber-50">
+                      <Eraser size={14} /> 清空数据
+                    </button>
+                  )}
+                  {hasOp('edge_data:create') && (
+                    <button onClick={openCreate}
+                      className="flex items-center gap-1 rounded-md bg-pink-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-pink-700">
+                      <Plus size={15} /> 新增边
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -512,8 +518,8 @@ export default function EdgeData() {
                           <td className="px-3 py-3">
                             <div className="flex items-center justify-end gap-1">
                               <ActionBtn title="查看详情" onClick={() => onViewDetail(row)}><Eye size={14} /></ActionBtn>
-                              <ActionBtn title="编辑" onClick={() => openEdit(row)}><Pencil size={14} /></ActionBtn>
-                              <ActionBtn title="删除" danger onClick={() => onDelete(row)}><Trash2 size={14} /></ActionBtn>
+                              {hasOp('edge_data:update') && <ActionBtn title="编辑" onClick={() => openEdit(row)}><Pencil size={14} /></ActionBtn>}
+                              {hasOp('edge_data:delete') && <ActionBtn title="删除" danger onClick={() => onDelete(row)}><Trash2 size={14} /></ActionBtn>}
                             </div>
                           </td>
                         </tr>

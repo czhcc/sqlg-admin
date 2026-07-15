@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useAuth } from '../context/AuthContext'
 import {
   listConnections,
   createConnection,
@@ -30,6 +31,7 @@ const emptyForm = {
 }
 
 export default function Connection() {
+  const { hasOp } = useAuth()
   const [list, setList] = useState([])
   const [keyword, setKeyword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -184,12 +186,14 @@ export default function Connection() {
           >
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> 刷新
           </button>
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
-          >
-            <Plus size={15} /> 新增连接
-          </button>
+          {hasOp('connection:create') && (
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              <Plus size={15} /> 新增连接
+            </button>
+          )}
         </div>
       </header>
 
@@ -249,25 +253,27 @@ export default function Connection() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <ActionBtn title="测试连接" onClick={() => onTest(row)} disabled={testingId === row.id}>
+                      {hasOp('connection:test') && <ActionBtn title="测试连接" onClick={() => onTest(row)} disabled={testingId === row.id}>
                         <Plug size={15} />
-                      </ActionBtn>
-                      <ActionBtn title={row.status === 1 ? '停用' : '启用'} onClick={() => onToggleStatus(row)}>
+                      </ActionBtn>}
+                      {hasOp('connection:update') && <ActionBtn title={row.status === 1 ? '停用' : '启用'} onClick={() => onToggleStatus(row)}>
                         <Power size={15} className={row.status === 1 ? 'text-green-600' : 'text-gray-400'} />
-                      </ActionBtn>
-                      <ActionBtn
-                        title="设为默认"
-                        onClick={() => onSetDefault(row)}
-                        disabled={row.isDefault}
-                      >
-                        <Star size={15} className={row.isDefault ? 'fill-amber-400 text-amber-400' : ''} />
-                      </ActionBtn>
-                      <ActionBtn title="编辑" onClick={() => openEdit(row)}>
+                      </ActionBtn>}
+                      {hasOp('connection:update') &&
+                        <ActionBtn
+                          title="设为默认"
+                          onClick={() => onSetDefault(row)}
+                          disabled={row.isDefault}
+                        >
+                          <Star size={15} className={row.isDefault ? 'fill-amber-400 text-amber-400' : ''} />
+                        </ActionBtn>
+                      }
+                      {hasOp('connection:update') && <ActionBtn title="编辑" onClick={() => openEdit(row)}>
                         <Pencil size={15} />
-                      </ActionBtn>
-                      <ActionBtn title="删除" danger onClick={() => onDelete(row)}>
+                      </ActionBtn>}
+                      {hasOp('connection:delete') && <ActionBtn title="删除" danger onClick={() => onDelete(row)}>
                         <Trash2 size={15} />
-                      </ActionBtn>
+                      </ActionBtn>}
                     </div>
                   </td>
                 </tr>

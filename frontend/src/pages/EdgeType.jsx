@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useAuth } from '../context/AuthContext'
 import {
   listEdgeTypeConnections,
   setActiveConnection,
@@ -27,6 +28,7 @@ const emptyForm = {
 }
 
 export default function EdgeType() {
+  const { hasOp } = useAuth()
   const [connections, setConnections] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -286,13 +288,15 @@ export default function EdgeType() {
           >
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> 刷新
           </button>
-          <button
-            onClick={openCreate}
-            disabled={!selectedId}
-            className="flex items-center gap-1 rounded-md bg-pink-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-50"
-          >
-            <Plus size={15} /> 新增边类型
-          </button>
+          {hasOp('edge_type:create') && (
+            <button
+              onClick={openCreate}
+              disabled={!selectedId}
+              className="flex items-center gap-1 rounded-md bg-pink-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-50"
+            >
+              <Plus size={15} /> 新增边类型
+            </button>
+          )}
         </div>
       </header>
 
@@ -394,12 +398,12 @@ export default function EdgeType() {
                         <ActionBtn title="SQL 示例" onClick={() => onViewSql(row)}>
                           <FileCode size={15} />
                         </ActionBtn>
-                        <ActionBtn title="清空边数据(保留表结构)" warning onClick={() => onClearData(row)}>
+                        {hasOp('edge_data:clear') && <ActionBtn title="清空边数据(保留表结构)" warning onClick={() => onClearData(row)}>
                           <Eraser size={15} />
-                        </ActionBtn>
-                        <ActionBtn title="删除边类型(删除表+数据)" danger onClick={() => onDelete(row)}>
+                        </ActionBtn>}
+                        {hasOp('edge_type:delete') && <ActionBtn title="删除边类型(删除表+数据)" danger onClick={() => onDelete(row)}>
                           <Trash2 size={15} />
-                        </ActionBtn>
+                        </ActionBtn>}
                       </div>
                     </td>
                   </tr>

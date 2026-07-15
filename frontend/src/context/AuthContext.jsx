@@ -55,8 +55,14 @@ export function AuthProvider({ children }) {
     return permissions.menus?.includes(menuKey) || false
   }
 
+  const hasOp = (code) => {
+    if (!permissions) return false
+    if (permissions.operations?.includes('*')) return true
+    return permissions.operations?.includes(code) || false
+  }
+
   return (
-    <AuthContext.Provider value={{ user, permissions, loading, login, logout, hasMenu }}>
+    <AuthContext.Provider value={{ user, permissions, loading, login, logout, hasMenu, hasOp }}>
       {children}
     </AuthContext.Provider>
   )
