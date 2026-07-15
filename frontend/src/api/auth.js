@@ -11,3 +11,11 @@ export function logout() {
 export function getUserInfo() {
   return client.get('/auth/info')
 }
+
+export function updateProfile(body) {
+  return client.put('/auth/profile', body)
+}
+
+export function changePassword(body) {
+  return client.put('/auth/password', body)
+}
