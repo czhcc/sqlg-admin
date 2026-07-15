@@ -63,7 +63,7 @@ const childActive = (children, pathname) =>
   children.some((c) => pathname === c.to || pathname.startsWith(c.to + '/'))
 
 export default function Layout({ children }) {
-  const { user, logout } = useAuth()
+  const { user, logout, hasMenu } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(() => new Set())
@@ -71,6 +71,16 @@ export default function Layout({ children }) {
   const [profileModal, setProfileModal] = useState(false)
   const [passwordModal, setPasswordModal] = useState(false)
   const userMenuRef = useRef(null)
+
+  const menuToKey = (to) => to.replace(/^\//, '')
+
+  const visibleItems = menuItems.filter((item) => {
+    if (item.group) {
+      const visibleChildren = item.children.filter((c) => hasMenu(menuToKey(c.to)))
+      return visibleChildren.length > 0
+    }
+    return hasMenu(menuToKey(item.to))
+  })
 
   const toggleGroup = (group) => {
     setCollapsed((prev) => {
@@ -108,10 +118,11 @@ export default function Layout({ children }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto py-2">
-          {menuItems.map((item) => {
+          {visibleItems.map((item) => {
             if (item.group) {
+              const visibleChildren = item.children.filter((c) => hasMenu(menuToKey(c.to)))
               const expanded = isExpanded(item)
-              const active = childActive(item.children, location.pathname)
+              const active = childActive(visibleChildren, location.pathname)
               const GroupIcon = item.icon
               return (
                 <div key={item.group}>
@@ -129,7 +140,7 @@ export default function Layout({ children }) {
                     {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                   </button>
                   {expanded &&
-                    item.children.map(({ to, label, icon: Icon }) => (
+                    visibleChildren.map(({ to, label, icon: Icon }) => (
                       <NavLink
                         key={to}
                         to={to}

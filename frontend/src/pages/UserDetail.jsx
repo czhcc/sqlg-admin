@@ -257,27 +257,26 @@ function RolesTab({ detail, roles, userId, isNew, onSaved, showToast }) {
       <div>
         <h3 className="mb-3 text-sm font-semibold text-gray-700">分配角色</h3>
         <div className="space-y-2">
-          {roles.map((role) => (
-            <label key={role.key}
+          {roles.map((role) => {
+            const key = role.roleKey || role.key
+            const label = role.roleName || role.label
+            return (
+            <label key={key}
               className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
-                selectedRoles.includes(role.key)
+                selectedRoles.includes(key)
                   ? 'border-indigo-300 bg-indigo-50'
                   : 'border-gray-200 hover:bg-gray-50'
               }`}>
-              <input type="checkbox" checked={selectedRoles.includes(role.key)}
-                onChange={() => toggleRole(role.key)}
+              <input type="checkbox" checked={selectedRoles.includes(key)}
+                onChange={() => toggleRole(key)}
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
               <div>
-                <div className="text-sm font-medium text-gray-800">{role.label}</div>
+                <div className="text-sm font-medium text-gray-800">{label}</div>
                 <div className="text-xs text-gray-500">{role.description}</div>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {role.menuPermissions?.map((m) => (
-                    <span key={m} className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">{m}</span>
-                  ))}
-                </div>
               </div>
             </label>
-          ))}
+            )
+          })}
         </div>
         <div className="mt-4 flex justify-end">
           <button onClick={saveRoles} disabled={saving || isNew}

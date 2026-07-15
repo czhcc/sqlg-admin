@@ -5,7 +5,14 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [permissions, setPermissions] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  const fetchPermissions = (userId) => {
+    return authApi.getMyPermissions()
+      .then((res) => setPermissions(res.data))
+      .catch(() => setPermissions(null))
+  }
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -15,7 +22,10 @@ export function AuthProvider({ children }) {
     }
     authApi
       .getUserInfo()
-      .then((res) => setUser(res.data))
+      .then((res) => {
+        setUser(res.data)
+        return fetchPermissions(res.data.id)
+      })
       .catch(() => localStorage.removeItem('token'))
       .finally(() => setLoading(false))
   }, [])
@@ -23,10 +33,9 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     const res = await authApi.login(username, password)
     localStorage.setItem('token', res.data.token)
-    setUser({
-      username: res.data.username,
-      nickname: res.data.nickname,
-    })
+    const infoRes = await authApi.getUserInfo()
+    setUser(infoRes.data)
+    await fetchPermissions(infoRes.data.id)
     return res.data
   }
 
@@ -36,11 +45,18 @@ export function AuthProvider({ children }) {
     } finally {
       localStorage.removeItem('token')
       setUser(null)
+      setPermissions(null)
     }
   }
 
+  const hasMenu = (menuKey) => {
+    if (!permissions) return false
+    if (permissions.menus?.includes('*')) return true
+    return permissions.menus?.includes(menuKey) || false
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, permissions, loading, login, logout, hasMenu }}>
       {children}
     </AuthContext.Provider>
   )

@@ -12,6 +12,10 @@ export function getUserInfo() {
   return client.get('/auth/info')
 }
 
+export function getMyPermissions() {
+  return client.get('/auth/permissions')
+}
+
 export function updateProfile(body) {
   return client.put('/auth/profile', body)
 }
