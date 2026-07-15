@@ -18,6 +18,7 @@ import UserManagement from './pages/UserManagement'
 import RoleManagement from './pages/RoleManagement'
 import PermissionOverview from './pages/PermissionOverview'
 import LoginLog from './pages/LoginLog'
+import UserDetail from './pages/UserDetail'
 
 const pages = [
   { path: 'connection', element: <Connection /> },
@@ -35,6 +36,7 @@ const pages = [
   { path: 'role-management', element: <RoleManagement /> },
   { path: 'permission-overview', element: <PermissionOverview /> },
   { path: 'login-log', element: <LoginLog /> },
+  { path: 'user-detail/:id', element: <UserDetail /> },
 ]
 
 export default function App() {
