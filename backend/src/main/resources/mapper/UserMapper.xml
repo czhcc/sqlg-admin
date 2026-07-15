@@ -4,19 +4,28 @@
 <mapper namespace="com.trs.user.mapper.UserMapper">
 
     <resultMap id="userResultMap" type="com.trs.user.entity.User">
-        <id     property="id"          column="id"/>
-        <result property="username"    column="username"/>
-        <result property="password"    column="password"/>
-        <result property="nickname"    column="nickname"/>
-        <result property="email"       column="email"/>
-        <result property="phone"       column="phone"/>
-        <result property="status"      column="status"/>
-        <result property="createTime"  column="create_time"/>
-        <result property="updateTime"  column="update_time"/>
+        <id     property="id"             column="id"/>
+        <result property="username"       column="username"/>
+        <result property="password"       column="password"/>
+        <result property="nickname"       column="nickname"/>
+        <result property="email"          column="email"/>
+        <result property="phone"          column="phone"/>
+        <result property="roles"          column="roles"/>
+        <result property="remark"         column="remark"/>
+        <result property="status"         column="status"/>
+        <result property="lastLoginTime"  column="last_login_time"/>
+        <result property="createTime"     column="create_time"/>
+        <result property="updateTime"     column="update_time"/>
     </resultMap>
 
     <sql id="baseColumns">
-        id, username, password, nickname, email, phone, status, create_time, update_time
+        id, username, password, nickname, email, phone, roles, remark, status,
+        last_login_time, create_time, update_time
+    </sql>
+
+    <sql id="listColumns">
+        id, username, nickname, email, phone, roles, remark, status,
+        last_login_time, create_time, update_time
     </sql>
 
     <select id="selectByUsername" resultMap="userResultMap">
@@ -31,15 +40,89 @@
         WHERE id = #{id}
     </select>
 
+    <select id="selectPage" resultMap="userResultMap">
+        SELECT <include refid="listColumns"/>
+        FROM sys_user
+        <where>
+            AND username != 'admin'
+            <if test="keyword != null and keyword != ''">
+                AND (username ILIKE '%' || #{keyword} || '%'
+                  OR nickname ILIKE '%' || #{keyword} || '%'
+                  OR email ILIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT count(*) FROM sys_user
+        <where>
+            AND username != 'admin'
+            <if test="keyword != null and keyword != ''">
+                AND (username ILIKE '%' || #{keyword} || '%'
+                  OR nickname ILIKE '%' || #{keyword} || '%'
+                  OR email ILIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </select>
+
     <insert id="insert" parameterType="com.trs.user.entity.User" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_user (username, password, nickname, email, phone, status)
-        VALUES (#{username}, #{password}, #{nickname}, #{email}, #{phone}, #{status})
+        INSERT INTO sys_user (username, password, nickname, email, phone, roles, remark, status)
+        VALUES (#{username}, #{password}, #{nickname}, #{email}, #{phone}, #{roles}, #{remark}, #{status})
     </insert>
+
+    <update id="update" parameterType="com.trs.user.entity.User">
+        UPDATE sys_user
+        <set>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = CURRENT_TIMESTAMP
+        </set>
+        WHERE id = #{id}
+    </update>
 
     <update id="updatePassword">
         UPDATE sys_user
         SET password = #{password}, update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
     </update>
+
+    <update id="updateStatus">
+        UPDATE sys_user
+        SET status = #{status}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateRoles">
+        UPDATE sys_user
+        SET roles = #{roles}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateLastLoginTime">
+        UPDATE sys_user
+        SET last_login_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM sys_user WHERE id = #{id}
+    </delete>
+
+    <select id="countByUsername" resultType="int">
+        SELECT count(*) FROM sys_user
+        WHERE username = #{username}
+        <if test="excludeId != null">AND id != #{excludeId}</if>
+    </select>
 
 </mapper>
