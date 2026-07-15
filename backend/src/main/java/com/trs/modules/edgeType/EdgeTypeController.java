@@ -6,6 +6,7 @@ import com.trs.modules.edgeType.dto.EdgeTypeListDto;
 import com.trs.modules.edgeType.dto.EdgeTypeSaveRequest;
 import com.trs.modules.edgeType.service.EdgeTypeService;
 import com.trs.modules.vertexType.dto.TableColumnInfo;
+import com.trs.security.PermissionChecker;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -29,10 +30,13 @@ public class EdgeTypeController {
 
     private final EdgeTypeService service;
     private final UserPreferenceService preferenceService;
+    private final PermissionChecker permissionChecker;
 
-    public EdgeTypeController(EdgeTypeService service, UserPreferenceService preferenceService) {
+    public EdgeTypeController(EdgeTypeService service, UserPreferenceService preferenceService,
+                               PermissionChecker permissionChecker) {
         this.service = service;
         this.preferenceService = preferenceService;
+        this.permissionChecker = permissionChecker;
     }
 
     /**
@@ -122,6 +126,7 @@ public class EdgeTypeController {
     public Result<?> create(
             @PathVariable Long connectionId,
             @RequestBody EdgeTypeSaveRequest req) {
+        permissionChecker.require("edge_type:create");
         service.create(connectionId, req);
         return Result.ok();
     }
@@ -137,6 +142,7 @@ public class EdgeTypeController {
     public Result<?> delete(
             @PathVariable Long connectionId,
             @RequestBody Map<String, String> body) {
+        permissionChecker.require("edge_type:delete");
         String schema = body.get("schema");
         String label = body.get("label");
         if (schema == null || label == null) {
@@ -158,6 +164,7 @@ public class EdgeTypeController {
     public Result<Map<String, Object>> clearEdges(
             @PathVariable Long connectionId,
             @RequestBody Map<String, String> body) {
+        permissionChecker.require("edge_data:clear");
         String schema = body.get("schema");
         String label = body.get("label");
         if (schema == null || label == null) {

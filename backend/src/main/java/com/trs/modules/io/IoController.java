@@ -2,6 +2,7 @@ package com.trs.modules.io;
 
 import com.trs.common.Result;
 import com.trs.modules.io.service.IoService;
+import com.trs.security.PermissionChecker;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -24,10 +25,13 @@ public class IoController {
 
     private final IoService service;
     private final UserPreferenceService preferenceService;
+    private final PermissionChecker permissionChecker;
 
-    public IoController(IoService service, UserPreferenceService preferenceService) {
+    public IoController(IoService service, UserPreferenceService preferenceService,
+                        PermissionChecker permissionChecker) {
         this.service = service;
         this.preferenceService = preferenceService;
+        this.permissionChecker = permissionChecker;
     }
 
     @GetMapping("/connections")
@@ -100,6 +104,7 @@ public class IoController {
     public Result<Map<String, Object>> importTopology(
             @PathVariable Long connectionId,
             @RequestBody Map<String, Object> body) {
+        permissionChecker.require("io:topology_import");
         String content = str(body, "content");
         if (content == null || content.isBlank()) {
             return Result.fail(400, "Topology JSON 内容不能为空");
@@ -121,6 +126,7 @@ public class IoController {
     public Result<Map<String, Object>> importVertices(
             @PathVariable Long connectionId,
             @RequestBody IoService.ImportVerticesRequest req) {
+        permissionChecker.require("io:import");
         return Result.ok(service.importVertices(connectionId, req));
     }
 
@@ -128,6 +134,7 @@ public class IoController {
     public Result<Map<String, Object>> importEdges(
             @PathVariable Long connectionId,
             @RequestBody IoService.ImportEdgesRequest req) {
+        permissionChecker.require("io:import");
         return Result.ok(service.importEdges(connectionId, req));
     }
 

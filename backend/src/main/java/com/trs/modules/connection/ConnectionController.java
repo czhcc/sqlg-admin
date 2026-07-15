@@ -3,6 +3,7 @@ package com.trs.modules.connection;
 import com.trs.common.Result;
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.service.GraphConnectionService;
+import com.trs.security.PermissionChecker;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,9 +14,11 @@ import java.util.Map;
 public class ConnectionController {
 
     private final GraphConnectionService service;
+    private final PermissionChecker permissionChecker;
 
-    public ConnectionController(GraphConnectionService service) {
+    public ConnectionController(GraphConnectionService service, PermissionChecker permissionChecker) {
         this.service = service;
+        this.permissionChecker = permissionChecker;
     }
 
     @GetMapping
@@ -30,27 +33,32 @@ public class ConnectionController {
 
     @PostMapping
     public Result<GraphConnection> create(@RequestBody GraphConnection body) {
+        permissionChecker.require("connection:create");
         return Result.ok(service.create(body));
     }
 
     @PutMapping("/{id}")
     public Result<GraphConnection> update(@PathVariable Long id, @RequestBody GraphConnection body) {
+        permissionChecker.require("connection:update");
         return Result.ok(service.update(id, body));
     }
 
     @DeleteMapping("/{id}")
     public Result<?> delete(@PathVariable Long id) {
+        permissionChecker.require("connection:delete");
         service.delete(id);
         return Result.ok();
     }
 
     @PostMapping("/test")
     public Result<GraphConnectionService.TestResult> test(@RequestBody GraphConnection body) {
+        permissionChecker.require("connection:test");
         return Result.ok(service.test(body));
     }
 
     @PostMapping("/{id}/test")
     public Result<GraphConnectionService.TestResult> testById(@PathVariable Long id) {
+        permissionChecker.require("connection:test");
         GraphConnection c = service.getById(id);
         if (c == null) return Result.fail(404, "连接不存在");
         c.setId(id);
@@ -60,6 +68,7 @@ public class ConnectionController {
 
     @PutMapping("/{id}/status")
     public Result<?> updateStatus(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        permissionChecker.require("connection:update");
         Object v = body.get("status");
         short status;
         if (v instanceof Number n) status = n.shortValue();
@@ -71,6 +80,7 @@ public class ConnectionController {
 
     @PutMapping("/{id}/default")
     public Result<?> setDefault(@PathVariable Long id) {
+        permissionChecker.require("connection:update");
         service.setDefault(id);
         return Result.ok();
     }

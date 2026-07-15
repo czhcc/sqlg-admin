@@ -5,6 +5,7 @@ import com.trs.modules.propertyManagement.dto.PropertyDetailDto;
 import com.trs.modules.propertyManagement.dto.PropertySaveRequest;
 import com.trs.modules.propertyManagement.dto.PropertyUpdateRequest;
 import com.trs.modules.propertyManagement.service.PropertyManagementService;
+import com.trs.security.PermissionChecker;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -28,11 +29,14 @@ public class PropertyManagementController {
 
     private final PropertyManagementService service;
     private final UserPreferenceService preferenceService;
+    private final PermissionChecker permissionChecker;
 
     public PropertyManagementController(PropertyManagementService service,
-                                        UserPreferenceService preferenceService) {
+                                        UserPreferenceService preferenceService,
+                                        PermissionChecker permissionChecker) {
         this.service = service;
         this.preferenceService = preferenceService;
+        this.permissionChecker = permissionChecker;
     }
 
     /**
@@ -142,6 +146,7 @@ public class PropertyManagementController {
             @PathVariable String schema,
             @PathVariable String label,
             @RequestBody PropertySaveRequest req) {
+        permissionChecker.require("property:create");
         service.addProperty(connectionId, kind, schema, label, req);
         return Result.ok();
     }
@@ -165,6 +170,7 @@ public class PropertyManagementController {
             @PathVariable String label,
             @PathVariable String propertyName,
             @RequestBody PropertyUpdateRequest req) {
+        permissionChecker.require("property:update");
         service.updatePropertyMeta(connectionId, kind, schema, label, propertyName, req);
         return Result.ok();
     }
@@ -185,6 +191,7 @@ public class PropertyManagementController {
             @PathVariable String schema,
             @PathVariable String label,
             @RequestBody Map<String, String> body) {
+        permissionChecker.require("property:delete");
         String propertyName = body.get("propertyName");
         if (propertyName == null || propertyName.isBlank()) {
             return Result.fail(400, "propertyName 不能为空");
@@ -210,6 +217,7 @@ public class PropertyManagementController {
             @PathVariable String schema,
             @PathVariable String label,
             @RequestBody Map<String, Object> body) {
+        permissionChecker.require("property:index");
         String propertyName = (String) body.get("propertyName");
         if (propertyName == null || propertyName.isBlank()) {
             return Result.fail(400, "propertyName 不能为空");

@@ -4,6 +4,7 @@ import com.trs.common.Result;
 import com.trs.modules.vertexData.dto.VertexDetailDto;
 import com.trs.modules.vertexData.dto.VertexSaveRequest;
 import com.trs.modules.vertexData.service.VertexDataService;
+import com.trs.security.PermissionChecker;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -26,10 +27,13 @@ public class VertexDataController {
 
     private final VertexDataService service;
     private final UserPreferenceService preferenceService;
+    private final PermissionChecker permissionChecker;
 
-    public VertexDataController(VertexDataService service, UserPreferenceService preferenceService) {
+    public VertexDataController(VertexDataService service, UserPreferenceService preferenceService,
+                                 PermissionChecker permissionChecker) {
         this.service = service;
         this.preferenceService = preferenceService;
+        this.permissionChecker = permissionChecker;
     }
 
     @GetMapping("/connections")
@@ -118,6 +122,7 @@ public class VertexDataController {
     public Result<?> create(
             @PathVariable Long connectionId,
             @RequestBody VertexSaveRequest req) {
+        permissionChecker.require("vertex_data:create");
         service.create(connectionId, req);
         return Result.ok();
     }
@@ -127,6 +132,7 @@ public class VertexDataController {
             @PathVariable Long connectionId,
             @PathVariable String vertexId,
             @RequestBody VertexSaveRequest req) {
+        permissionChecker.require("vertex_data:update");
         service.update(connectionId, vertexId, req);
         return Result.ok();
     }
@@ -135,6 +141,7 @@ public class VertexDataController {
     public Result<?> delete(
             @PathVariable Long connectionId,
             @PathVariable String vertexId) {
+        permissionChecker.require("vertex_data:delete");
         service.delete(connectionId, vertexId);
         return Result.ok();
     }
@@ -143,6 +150,7 @@ public class VertexDataController {
     public Result<Map<String, Object>> batchDelete(
             @PathVariable Long connectionId,
             @RequestBody Map<String, Object> body) {
+        permissionChecker.require("vertex_data:batch_delete");
         @SuppressWarnings("unchecked")
         List<String> ids = (List<String>) body.get("ids");
         int count = service.batchDelete(connectionId, ids);
@@ -154,6 +162,7 @@ public class VertexDataController {
             @PathVariable Long connectionId,
             @PathVariable String schema,
             @PathVariable String label) {
+        permissionChecker.require("vertex_data:clear");
         long count = service.clearVertices(connectionId, schema, label);
         return Result.ok(Map.of("deleted", count));
     }

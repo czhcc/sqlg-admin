@@ -6,6 +6,7 @@ import com.trs.modules.vertexType.dto.VertexTypeDetailDto;
 import com.trs.modules.vertexType.dto.VertexTypeListDto;
 import com.trs.modules.vertexType.dto.VertexTypeSaveRequest;
 import com.trs.modules.vertexType.service.VertexTypeService;
+import com.trs.security.PermissionChecker;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -29,10 +30,13 @@ public class VertexTypeController {
 
     private final VertexTypeService service;
     private final UserPreferenceService preferenceService;
+    private final PermissionChecker permissionChecker;
 
-    public VertexTypeController(VertexTypeService service, UserPreferenceService preferenceService) {
+    public VertexTypeController(VertexTypeService service, UserPreferenceService preferenceService,
+                                 PermissionChecker permissionChecker) {
         this.service = service;
         this.preferenceService = preferenceService;
+        this.permissionChecker = permissionChecker;
     }
 
     /**
@@ -122,6 +126,7 @@ public class VertexTypeController {
     public Result<?> create(
             @PathVariable Long connectionId,
             @RequestBody VertexTypeSaveRequest req) {
+        permissionChecker.require("vertex_type:create");
         service.create(connectionId, req);
         return Result.ok();
     }
@@ -137,6 +142,7 @@ public class VertexTypeController {
     public Result<?> update(
             @PathVariable Long connectionId,
             @RequestBody VertexTypeSaveRequest req) {
+        permissionChecker.require("vertex_type:update");
         service.update(connectionId, req);
         return Result.ok();
     }
@@ -153,6 +159,7 @@ public class VertexTypeController {
     public Result<Map<String, Object>> clearVertices(
             @PathVariable Long connectionId,
             @RequestBody Map<String, String> body) {
+        permissionChecker.require("vertex_data:clear");
         String schema = body.get("schema");
         String label = body.get("label");
         if (schema == null || label == null) {
@@ -174,6 +181,7 @@ public class VertexTypeController {
     public Result<?> delete(
             @PathVariable Long connectionId,
             @RequestBody Map<String, String> body) {
+        permissionChecker.require("vertex_type:delete");
         String schema = body.get("schema");
         String label = body.get("label");
         if (schema == null || label == null) {
