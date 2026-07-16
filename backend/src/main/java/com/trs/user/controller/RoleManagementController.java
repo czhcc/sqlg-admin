@@ -95,17 +95,12 @@ public class RoleManagementController {
         return Result.ok(service.getConnectionAuth(id));
     }
 
-    @PutMapping("/{id}/connections/default")
-    public Result<?> updateConnectionDefault(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        service.updateConnectionDefault(id, str(body.get("default")));
-        logAction(id, "更新默认连接权限");
-        return Result.ok();
-    }
-
     @PutMapping("/{id}/connections/{connectionId}")
     public Result<?> updateConnectionAuth(@PathVariable Long id, @PathVariable Long connectionId,
                                             @RequestBody Map<String, Object> body) {
-        service.updateConnectionAuth(id, connectionId, str(body.get("accessLevel")));
+        boolean visible = Boolean.TRUE.equals(body.get("visible"));
+        service.updateConnectionAuth(id, connectionId, visible);
+        logAction(id, "更新连接可见性");
         return Result.ok();
     }
 

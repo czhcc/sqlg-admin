@@ -120,8 +120,23 @@
         <result property="accessLevel" column="access_level"/>
     </resultMap>
 
+    <resultMap id="connAuthWithRoleMap" type="java.util.LinkedHashMap">
+        <result property="roleId" column="role_id"/>
+        <result property="connectionId" column="connection_id"/>
+        <result property="accessLevel" column="access_level"/>
+    </resultMap>
+
     <select id="selectConnectionAuth" resultMap="connAuthMap">
         SELECT connection_id, access_level FROM sys_role_connection_auth WHERE role_id = #{roleId}
+    </select>
+
+    <select id="selectConnectionAuthForRoles" resultMap="connAuthWithRoleMap">
+        SELECT role_id, connection_id, access_level
+        FROM sys_role_connection_auth
+        WHERE role_id IN
+        <foreach item="rid" collection="roleIds" open="(" separator="," close=")">
+            #{rid}
+        </foreach>
     </select>
 
     <insert id="upsertConnectionAuth">

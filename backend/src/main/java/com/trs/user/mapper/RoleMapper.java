@@ -39,6 +39,14 @@ public interface RoleMapper {
 
     java.util.List<java.util.Map<String, Object>> selectConnectionAuth(@Param("roleId") Long roleId);
 
+    /**
+     * 批量查询多个角色的连接授权记录,用于连接列表的角色可见性过滤。
+     *
+     * @param roleIds 角色ID列表
+     * @return 每条记录包含 roleId / connectionId / accessLevel
+     */
+    java.util.List<java.util.Map<String, Object>> selectConnectionAuthForRoles(@Param("roleIds") java.util.List<Long> roleIds);
+
     int upsertConnectionAuth(@Param("roleId") Long roleId, @Param("connectionId") Long connectionId, @Param("accessLevel") String accessLevel);
 
     int deleteConnectionAuth(@Param("roleId") Long roleId, @Param("connectionId") Long connectionId);

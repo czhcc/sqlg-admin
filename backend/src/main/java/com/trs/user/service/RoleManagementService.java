@@ -117,7 +117,7 @@ public class RoleManagementService {
         roleMapper.update(r);
     }
 
-    // ==================== 连接授权 ====================
+    // ==================== 可见连接 ====================
 
     public Map<String, Object> getConnectionAuth(Long roleId) {
         Role r = roleMapper.selectById(roleId);
@@ -130,38 +130,73 @@ public class RoleManagementService {
             authMap.put(((Number) a.get("connectionId")).longValue(), (String) a.get("accessLevel"));
         }
 
+        String defaultLevel = r.getConnectionDefault();
+
         List<Map<String, Object>> rows = new ArrayList<>();
         for (GraphConnection c : allConns) {
+            String level = authMap.getOrDefault(c.getId(), defaultLevel);
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("connectionId", c.getId());
             m.put("connectionName", c.getName());
             m.put("dbType", c.getDbType());
             m.put("status", c.getStatus());
-            m.put("accessLevel", authMap.getOrDefault(c.getId(), r.getConnectionDefault()));
+            m.put("visible", !"NONE".equals(level));
             rows.add(m);
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("default", r.getConnectionDefault());
+        result.put("defaultVisible", !"NONE".equals(defaultLevel));
         result.put("connections", rows);
         return result;
     }
 
-    public void updateConnectionAuth(Long roleId, Long connectionId, String accessLevel) {
+    public void updateConnectionAuth(Long roleId, Long connectionId, boolean visible) {
         Role r = roleMapper.selectById(roleId);
         if (r == null) throw new IllegalArgumentException("角色不存在: " + roleId);
-        if ("NONE".equals(accessLevel) || accessLevel == null) {
-            roleMapper.deleteConnectionAuth(roleId, connectionId);
-        } else {
-            roleMapper.upsertConnectionAuth(roleId, connectionId, accessLevel);
-        }
+        String accessLevel = visible ? "READ" : "NONE";
+        roleMapper.upsertConnectionAuth(roleId, connectionId, accessLevel);
     }
 
-    public void updateConnectionDefault(Long roleId, String defaultLevel) {
-        Role r = roleMapper.selectById(roleId);
-        if (r == null) throw new IllegalArgumentException("角色不存在: " + roleId);
-        r.setConnectionDefault(defaultLevel);
-        roleMapper.update(r);
+    /**
+     * 计算给定角色集合下可见的连接ID集合。
+     * 连接对某角色可见 = 显式授权存在且级别非 NONE,或无显式授权且角色默认级别非 NONE。
+     * 只要任意一个角色可见,该连接即对用户可见。
+     *
+     * @param roleKeys 角色编码集合
+     * @return 可见的连接ID集合; 角色为空时返回 null 表示不做过滤
+     */
+    public java.util.Set<Long> getVisibleConnectionIds(java.util.Set<String> roleKeys) {
+        if (roleKeys == null || roleKeys.isEmpty()) return null;
+
+        java.util.List<Role> roles = new java.util.ArrayList<>();
+        for (String key : roleKeys) {
+            Role r = roleMapper.selectByKey(key);
+            if (r != null) roles.add(r);
+        }
+        if (roles.isEmpty()) return java.util.Set.of();
+
+        java.util.List<Long> roleIds = roles.stream().map(Role::getId).collect(java.util.stream.Collectors.toList());
+        java.util.List<Map<String, Object>> auths = roleMapper.selectConnectionAuthForRoles(roleIds);
+
+        java.util.Map<Long, java.util.Map<Long, String>> authByRole = new java.util.HashMap<>();
+        for (Map<String, Object> a : auths) {
+            Long rid = ((Number) a.get("roleId")).longValue();
+            Long connId = ((Number) a.get("connectionId")).longValue();
+            String level = (String) a.get("accessLevel");
+            authByRole.computeIfAbsent(rid, k -> new java.util.HashMap<>()).put(connId, level);
+        }
+
+        List<GraphConnection> allConns = connectionMapper.selectAll(null);
+        java.util.Set<Long> result = new java.util.HashSet<>();
+        for (GraphConnection c : allConns) {
+            for (Role r : roles) {
+                java.util.Map<Long, String> connMap = authByRole.get(r.getId());
+                String level = connMap != null ? connMap.get(c.getId()) : null;
+                boolean roleVisible = level != null ? !"NONE".equals(level) : !"NONE".equals(r.getConnectionDefault());
+                if (roleVisible) { result.add(c.getId()); break; }
+            }
+        }
+        return result;
     }
 
     // ==================== 用户成员 ====================
