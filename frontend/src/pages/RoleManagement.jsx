@@ -59,7 +59,7 @@ export default function RoleManagement() {
     { label: '操作权限', icon: ShieldCheck, action: () => navigate(`/role-detail/${row.id}?tab=operations`) },
     { label: '可见连接', icon: GitFork, action: () => navigate(`/role-detail/${row.id}?tab=connections`) },
     { label: 'Gremlin 权限', icon: TerminalSquare, action: () => navigate(`/role-detail/${row.id}?tab=gremlin`) },
-    { label: '危险操作权限', icon: AlertTriangle, action: () => navigate(`/role-detail/${row.id}?tab=dangerous`) },
+    { label: '危险操作资格', icon: AlertTriangle, action: () => navigate(`/role-detail/${row.id}?tab=dangerous`) },
     ...(row.isBuiltin ? [] : [{ label: '删除', icon: Trash2, danger: true, action: () => onDelete(row) }]),
   ]
 

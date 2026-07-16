@@ -351,7 +351,7 @@ function PermissionsTab({ userId }) {
         }`}>{perms.gremlin || 'NONE'}</span>
       </PermSection>
 
-      <PermSection title="危险操作权限">
+      <PermSection title="危险操作资格">
         {perms.allowDangerousOps
           ? <span className="rounded bg-red-50 px-2 py-0.5 text-sm text-red-700">允许</span>
           : <span className="rounded bg-gray-100 px-2 py-0.5 text-sm text-gray-500">无</span>}
