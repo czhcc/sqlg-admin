@@ -83,7 +83,7 @@ export default function UserManagement() {
     { label: '重置密码', icon: KeyRound, action: () => navigate(`/user-detail/${row.id}?tab=roles`) },
     { label: '分配角色', icon: Users, action: () => navigate(`/user-detail/${row.id}?tab=roles`) },
     { label: '查看有效权限', icon: ShieldCheck, action: () => navigate(`/user-detail/${row.id}?tab=permissions`) },
-    { label: '查看连接授权', icon: GitFork, action: () => navigate(`/user-detail/${row.id}?tab=connections`) },
+    { label: '查看可见连接', icon: GitFork, action: () => navigate(`/user-detail/${row.id}?tab=connections`) },
     { label: '查看登录日志', icon: LogIn, action: () => navigate(`/user-detail/${row.id}?tab=login-logs`) },
     { label: '查看操作日志', icon: ScrollText, action: () => navigate(`/user-detail/${row.id}?tab=operation-logs`) },
     { label: '删除用户', icon: Trash2, danger: true, action: () => onDelete(row) },
