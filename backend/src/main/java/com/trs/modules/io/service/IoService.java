@@ -9,6 +9,8 @@ import com.trs.modules.connection.ConnectionVisibilityHelper;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.log.service.OperationLogService;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
+import com.trs.security.PermissionChecker;
+import com.trs.user.entity.PermissionCatalog;
 import org.apache.commons.collections4.set.ListOrderedSet;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -52,15 +54,18 @@ public class IoService {
     private final PlatformConfig platformConfig;
     private final OperationLogService logService;
     private final ConnectionVisibilityHelper connectionVisibilityHelper;
+    private final PermissionChecker permissionChecker;
 
     public IoService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
                       PlatformConfig platformConfig, OperationLogService logService,
-                      ConnectionVisibilityHelper connectionVisibilityHelper) {
+                      ConnectionVisibilityHelper connectionVisibilityHelper,
+                      PermissionChecker permissionChecker) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
         this.platformConfig = platformConfig;
         this.logService = logService;
         this.connectionVisibilityHelper = connectionVisibilityHelper;
+        this.permissionChecker = permissionChecker;
     }
 
     private int importBatchSize() {
@@ -328,6 +333,10 @@ public class IoService {
         Map<String, PropertyColumn> propTypes = new LinkedHashMap<>();
         vl.getProperties().forEach((k, v) -> propTypes.put(k, v));
 
+        if (req.isOverwrite() && !permissionChecker.hasDangerousQualification(PermissionCatalog.DANGEROUS_IMPORT_OVERWRITE)) {
+            throw new SecurityException("当前角色未配置「覆盖导入」操作资格,无法以覆盖模式导入数据。");
+        }
+
         List<Map<String, String>> rows = new ArrayList<>();
         List<String> columns = new ArrayList<>();
         List<String> parseErrors = new ArrayList<>();
@@ -521,6 +530,10 @@ public class IoService {
     public Map<String, Object> importTopology(Long connectionId, String content) {
         SqlgGraph graph = registry.get(connectionId);
         Topology topology = graph.getTopology();
+
+        if (!permissionChecker.hasDangerousQualification(PermissionCatalog.DANGEROUS_IMPORT_OVERWRITE)) {
+            throw new SecurityException("当前角色未配置「覆盖导入」操作资格,无法导入 Topology。");
+        }
 
         JsonNode root;
         try {

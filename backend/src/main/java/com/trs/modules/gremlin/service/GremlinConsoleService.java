@@ -9,6 +9,8 @@ import com.trs.modules.gremlin.entity.GremlinQueryFavorite;
 import com.trs.modules.gremlin.entity.GremlinQueryHistory;
 import com.trs.modules.gremlin.mapper.GremlinQueryMapper;
 import com.trs.modules.topology.support.SqlgGraphRegistry;
+import com.trs.security.PermissionChecker;
+import com.trs.user.entity.PermissionCatalog;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
@@ -56,13 +58,15 @@ public class GremlinConsoleService {
     private final PlatformConfig platformConfig;
     private final OperationLogService logService;
     private final ConnectionVisibilityHelper connectionVisibilityHelper;
+    private final PermissionChecker permissionChecker;
 
     public GremlinConsoleService(SqlgGraphRegistry registry,
                                   GraphConnectionMapper connectionMapper,
                                   GremlinQueryMapper queryMapper,
                                   PlatformConfig platformConfig,
                                   OperationLogService logService,
-                                  ConnectionVisibilityHelper connectionVisibilityHelper) {
+                                  ConnectionVisibilityHelper connectionVisibilityHelper,
+                                  PermissionChecker permissionChecker) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
         this.queryMapper = queryMapper;
@@ -70,6 +74,7 @@ public class GremlinConsoleService {
         this.logService = logService;
         this.scriptEngine = new GremlinGroovyScriptEngine();
         this.connectionVisibilityHelper = connectionVisibilityHelper;
+        this.permissionChecker = permissionChecker;
     }
 
     // ==================== 连接列表 ====================
@@ -239,6 +244,12 @@ public class GremlinConsoleService {
             case "ADMIN" -> {
             }
             default -> throw new IllegalArgumentException("无效的执行模式: " + mode + " (应为 READONLY/READWRITE/ADMIN)");
+        }
+
+        if (DANGEROUS_KEYWORDS.stream().anyMatch(kw -> normalized.contains(kw.toLowerCase()))) {
+            if (!permissionChecker.hasDangerousQualification(PermissionCatalog.DANGEROUS_GREMLIN_EXECUTE)) {
+                throw new SecurityException("当前角色未配置「危险 Gremlin」操作资格,无法执行包含 drop() 等危险操作的查询。");
+            }
         }
     }
 
