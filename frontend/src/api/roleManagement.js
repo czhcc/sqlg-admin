@@ -36,12 +36,8 @@ export function getConnectionAuth(id) {
   return client.get(`/role/management/${id}/connections`)
 }
 
-export function updateConnectionDefault(id, defaultLevel) {
-  return client.put(`/role/management/${id}/connections/default`, { default: defaultLevel })
-}
-
-export function updateConnectionAuth(id, connectionId, accessLevel) {
-  return client.put(`/role/management/${id}/connections/${connectionId}`, { accessLevel })
+export function updateConnectionAuth(id, connectionId, visible) {
+  return client.put(`/role/management/${id}/connections/${connectionId}`, { visible })
 }
 
 export function getRoleMembers(id) {

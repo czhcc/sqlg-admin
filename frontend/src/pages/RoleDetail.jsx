@@ -4,7 +4,7 @@ import {
   getRoleDetail, getRoleCatalog, updateRoleBasic,
   updateMenuPermissions, updateOperationPermissions,
   updateGremlinPermission, updateDangerousPermissions,
-  getConnectionAuth, updateConnectionDefault, updateConnectionAuth,
+  getConnectionAuth, updateConnectionAuth,
   getRoleMembers, addRoleMembers, removeRoleMember,
 } from '../api/roleManagement'
 import { pageUsers } from '../api/userManagement'
@@ -19,7 +19,7 @@ const TABS = [
   { key: 'members', label: '用户成员', icon: Users },
   { key: 'menus', label: '菜单权限', icon: List },
   { key: 'operations', label: '操作权限', icon: ShieldCheck },
-  { key: 'connections', label: '连接授权', icon: GitFork },
+  { key: 'connections', label: '可见连接', icon: GitFork },
   { key: 'gremlin', label: 'Gremlin 权限', icon: TerminalSquare },
   { key: 'dangerous', label: '危险操作权限', icon: AlertTriangle },
 ]
@@ -443,7 +443,7 @@ function OperationPermissionTab({ detail, catalog, roleId, onSaved, showToast })
   )
 }
 
-// ==================== 连接授权 ====================
+// ==================== 可见连接 ====================
 
 function ConnectionAuthTab({ roleId }) {
   const [data, setData] = useState(null)
@@ -460,32 +460,21 @@ function ConnectionAuthTab({ roleId }) {
 
   if (!data) return <div className="text-center text-gray-400">加载中...</div>
 
-  const LEVELS = ['NONE', 'READ', 'WRITE', 'ADMIN']
-  const levelColor = { NONE: 'bg-gray-100 text-gray-500', READ: 'bg-cyan-50 text-cyan-700', WRITE: 'bg-green-50 text-green-700', ADMIN: 'bg-purple-50 text-purple-700' }
-
-  const onDefaultChange = async (val) => {
-    try { await updateConnectionDefault(roleId, val); showToast('success', '默认权限已更新'); load() }
+  const onToggle = async (connId, visible) => {
+    try { await updateConnectionAuth(roleId, connId, visible); load() }
     catch (e) { showToast('error', e.message) }
   }
 
-  const onConnChange = async (connId, val) => {
-    try { await updateConnectionAuth(roleId, connId, val); load() }
-    catch (e) { showToast('error', e.message) }
-  }
+  const visibleCount = data.connections?.filter((c) => c.visible).length || 0
+  const totalCount = data.connections?.length || 0
 
   return (
     <div>
-      <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">默认连接权限</label>
-        <div className="flex gap-2">
-          {LEVELS.map((lv) => (
-            <button key={lv} onClick={() => onDefaultChange(lv)}
-              className={`rounded px-3 py-1.5 text-sm font-medium transition-colors ${
-                data.default === lv ? 'bg-indigo-600 text-white' : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50'
-              }`}>{lv}</button>
-          ))}
-        </div>
-        <p className="mt-1 text-xs text-gray-400">新增连接时自动继承此默认权限</p>
+      <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
+        <span className="rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+          {visibleCount} / {totalCount} 个连接可见
+        </span>
+        <span className="text-gray-400">勾选的连接将对此角色的用户显示</span>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -495,7 +484,7 @@ function ConnectionAuthTab({ roleId }) {
               <th className="px-4 py-2">连接名称</th>
               <th className="px-4 py-2">类型</th>
               <th className="px-4 py-2">状态</th>
-              <th className="px-4 py-2">访问级别</th>
+              <th className="px-4 py-2 text-center">可见</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -509,11 +498,17 @@ function ConnectionAuthTab({ roleId }) {
                     ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">启用</span>
                     : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">停用</span>}
                 </td>
-                <td className="px-4 py-2">
-                  <select value={c.accessLevel} onChange={(e) => onConnChange(c.connectionId, e.target.value)}
-                    className={`rounded border-0 px-2 py-1 text-xs font-medium ${levelColor[c.accessLevel] || ''}`}>
-                    {LEVELS.map((lv) => <option key={lv} value={lv}>{lv}</option>)}
-                  </select>
+                <td className="px-4 py-2 text-center">
+                  <button
+                    onClick={() => onToggle(c.connectionId, !c.visible)}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      c.visible ? 'bg-indigo-600' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                      c.visible ? 'translate-x-4' : 'translate-x-1'
+                    }`} />
+                  </button>
                 </td>
               </tr>
             ))}
