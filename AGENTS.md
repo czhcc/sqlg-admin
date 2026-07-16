@@ -234,7 +234,7 @@ tmux kill-session -t backend
 | 导入导出 | — | `ImportExportController` | `ImportExport.jsx` | ✅ 完整实现 |
 | 用户管理 | 用户与权限 | ⬜ | `UserManagement.jsx` | 🟡 前端占位 · 后端待实现 |
 | 角色管理 | 用户与权限 | ⬜ | `RoleManagement.jsx` | 🟡 前端占位 · 后端待实现 |
-| 权限总览 | 用户与权限 | ⬜ | `PermissionOverview.jsx` | 🟡 前端占位 · 后端待实现 |
+| 权限总览 | 用户与权限 | `PermissionOverviewController` | `PermissionOverview.jsx` | ✅ 完整实现 |
 | 登录日志 | 审计日志 | ⬜ | `LoginLog.jsx` | 🟡 前端占位 · 后端待实现 |
 | 操作日志 | 审计日志 | `OperationLogController` | `OperationLog.jsx` | ✅ 完整实现 |
 
