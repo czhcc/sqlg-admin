@@ -6,7 +6,7 @@ import com.trs.modules.edgeType.dto.EdgeTypeListDto;
 import com.trs.modules.edgeType.dto.EdgeTypeSaveRequest;
 import com.trs.modules.edgeType.service.EdgeTypeService;
 import com.trs.modules.vertexType.dto.TableColumnInfo;
-import com.trs.security.PermissionChecker;
+import com.trs.security.RequirePermission;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -30,13 +30,10 @@ public class EdgeTypeController {
 
     private final EdgeTypeService service;
     private final UserPreferenceService preferenceService;
-    private final PermissionChecker permissionChecker;
 
-    public EdgeTypeController(EdgeTypeService service, UserPreferenceService preferenceService,
-                               PermissionChecker permissionChecker) {
+    public EdgeTypeController(EdgeTypeService service, UserPreferenceService preferenceService) {
         this.service = service;
         this.preferenceService = preferenceService;
-        this.permissionChecker = permissionChecker;
     }
 
     /**
@@ -122,11 +119,11 @@ public class EdgeTypeController {
      * @param req          请求体(需含 out/in 点类型 schema+label)
      * @return 操作结果
      */
+    @RequirePermission(menu = "edge-type", code = "edge_type:create", name = "新增边类型")
     @PostMapping("/{connectionId}")
     public Result<?> create(
             @PathVariable Long connectionId,
             @RequestBody EdgeTypeSaveRequest req) {
-        permissionChecker.require("edge_type:create");
         service.create(connectionId, req);
         return Result.ok();
     }
@@ -138,11 +135,11 @@ public class EdgeTypeController {
      * @param body         {schema: String, label: String}
      * @return 操作结果
      */
+    @RequirePermission(menu = "edge-type", code = "edge_type:delete", name = "删除边类型")
     @DeleteMapping("/{connectionId}")
     public Result<?> delete(
             @PathVariable Long connectionId,
             @RequestBody Map<String, String> body) {
-        permissionChecker.require("edge_type:delete");
         String schema = body.get("schema");
         String label = body.get("label");
         if (schema == null || label == null) {
@@ -160,11 +157,11 @@ public class EdgeTypeController {
      * @param body         {schema: String, label: String}
      * @return {deleted: 删除数量}
      */
+    @RequirePermission(menu = "edge-type", code = "edge_data:clear", name = "清空边数据")
     @PostMapping("/{connectionId}/clear-edges")
     public Result<Map<String, Object>> clearEdges(
             @PathVariable Long connectionId,
             @RequestBody Map<String, String> body) {
-        permissionChecker.require("edge_data:clear");
         String schema = body.get("schema");
         String label = body.get("label");
         if (schema == null || label == null) {

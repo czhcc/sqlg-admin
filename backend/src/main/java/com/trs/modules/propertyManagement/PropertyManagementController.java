@@ -5,7 +5,7 @@ import com.trs.modules.propertyManagement.dto.PropertyDetailDto;
 import com.trs.modules.propertyManagement.dto.PropertySaveRequest;
 import com.trs.modules.propertyManagement.dto.PropertyUpdateRequest;
 import com.trs.modules.propertyManagement.service.PropertyManagementService;
-import com.trs.security.PermissionChecker;
+import com.trs.security.RequirePermission;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -29,14 +29,11 @@ public class PropertyManagementController {
 
     private final PropertyManagementService service;
     private final UserPreferenceService preferenceService;
-    private final PermissionChecker permissionChecker;
 
     public PropertyManagementController(PropertyManagementService service,
-                                        UserPreferenceService preferenceService,
-                                        PermissionChecker permissionChecker) {
+                                        UserPreferenceService preferenceService) {
         this.service = service;
         this.preferenceService = preferenceService;
-        this.permissionChecker = permissionChecker;
     }
 
     /**
@@ -139,6 +136,7 @@ public class PropertyManagementController {
      * @param req          请求体
      * @return 操作结果
      */
+    @RequirePermission(menu = "property-management", code = "property:create", name = "新增属性")
     @PostMapping("/{connectionId}/{kind}/{schema}/{label}")
     public Result<?> addProperty(
             @PathVariable Long connectionId,
@@ -146,7 +144,6 @@ public class PropertyManagementController {
             @PathVariable String schema,
             @PathVariable String label,
             @RequestBody PropertySaveRequest req) {
-        permissionChecker.require("property:create");
         service.addProperty(connectionId, kind, schema, label, req);
         return Result.ok();
     }
@@ -162,6 +159,7 @@ public class PropertyManagementController {
      * @param req          请求体
      * @return 操作结果
      */
+    @RequirePermission(menu = "property-management", code = "property:update", name = "编辑属性")
     @PutMapping("/{connectionId}/{kind}/{schema}/{label}/{propertyName}")
     public Result<?> updateProperty(
             @PathVariable Long connectionId,
@@ -170,7 +168,6 @@ public class PropertyManagementController {
             @PathVariable String label,
             @PathVariable String propertyName,
             @RequestBody PropertyUpdateRequest req) {
-        permissionChecker.require("property:update");
         service.updatePropertyMeta(connectionId, kind, schema, label, propertyName, req);
         return Result.ok();
     }
@@ -184,6 +181,7 @@ public class PropertyManagementController {
      * @param body         {propertyName: String}
      * @return 操作结果
      */
+    @RequirePermission(menu = "property-management", code = "property:delete", name = "删除属性")
     @DeleteMapping("/{connectionId}/{kind}/{schema}/{label}")
     public Result<?> removeProperty(
             @PathVariable Long connectionId,
@@ -191,7 +189,6 @@ public class PropertyManagementController {
             @PathVariable String schema,
             @PathVariable String label,
             @RequestBody Map<String, String> body) {
-        permissionChecker.require("property:delete");
         String propertyName = body.get("propertyName");
         if (propertyName == null || propertyName.isBlank()) {
             return Result.fail(400, "propertyName 不能为空");
@@ -210,6 +207,7 @@ public class PropertyManagementController {
      * @param body         {propertyName: String, unique: boolean}
      * @return 操作结果
      */
+    @RequirePermission(menu = "property-management", code = "property:index", name = "索引管理")
     @PostMapping("/{connectionId}/{kind}/{schema}/{label}/index")
     public Result<?> createIndex(
             @PathVariable Long connectionId,
@@ -217,7 +215,6 @@ public class PropertyManagementController {
             @PathVariable String schema,
             @PathVariable String label,
             @RequestBody Map<String, Object> body) {
-        permissionChecker.require("property:index");
         String propertyName = (String) body.get("propertyName");
         if (propertyName == null || propertyName.isBlank()) {
             return Result.fail(400, "propertyName 不能为空");

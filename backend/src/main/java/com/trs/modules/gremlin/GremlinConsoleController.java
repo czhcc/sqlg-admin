@@ -4,7 +4,7 @@ import com.trs.common.Result;
 import com.trs.modules.gremlin.entity.GremlinQueryFavorite;
 import com.trs.modules.gremlin.entity.GremlinQueryHistory;
 import com.trs.modules.gremlin.service.GremlinConsoleService;
-import com.trs.security.PermissionChecker;
+import com.trs.security.RequirePermission;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -27,13 +27,10 @@ public class GremlinConsoleController {
 
     private final GremlinConsoleService service;
     private final UserPreferenceService preferenceService;
-    private final PermissionChecker permissionChecker;
 
-    public GremlinConsoleController(GremlinConsoleService service, UserPreferenceService preferenceService,
-                                     PermissionChecker permissionChecker) {
+    public GremlinConsoleController(GremlinConsoleService service, UserPreferenceService preferenceService) {
         this.service = service;
         this.preferenceService = preferenceService;
-        this.permissionChecker = permissionChecker;
     }
 
     @GetMapping("/connections")
@@ -74,11 +71,11 @@ public class GremlinConsoleController {
         return Result.ok();
     }
 
+    @RequirePermission(menu = "gremlin", code = "gremlin:execute", name = "执行 Gremlin 查询")
     @PostMapping("/{connectionId}/execute")
     public Result<Map<String, Object>> execute(
             @PathVariable Long connectionId,
             @RequestBody Map<String, Object> body) {
-        permissionChecker.require("gremlin:execute");
         User u = currentUser();
         if (u == null) return Result.fail(401, "未登录");
         String query = str(body, "query");

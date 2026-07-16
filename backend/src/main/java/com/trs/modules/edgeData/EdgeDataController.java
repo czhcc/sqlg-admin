@@ -4,7 +4,7 @@ import com.trs.common.Result;
 import com.trs.modules.edgeData.dto.EdgeDetailDto;
 import com.trs.modules.edgeData.dto.EdgeSaveRequest;
 import com.trs.modules.edgeData.service.EdgeDataService;
-import com.trs.security.PermissionChecker;
+import com.trs.security.RequirePermission;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -28,13 +28,10 @@ public class EdgeDataController {
 
     private final EdgeDataService service;
     private final UserPreferenceService preferenceService;
-    private final PermissionChecker permissionChecker;
 
-    public EdgeDataController(EdgeDataService service, UserPreferenceService preferenceService,
-                               PermissionChecker permissionChecker) {
+    public EdgeDataController(EdgeDataService service, UserPreferenceService preferenceService) {
         this.service = service;
         this.preferenceService = preferenceService;
-        this.permissionChecker = permissionChecker;
     }
 
     @GetMapping("/connections")
@@ -127,51 +124,51 @@ public class EdgeDataController {
         return Result.ok(service.getDetail(connectionId, edgeId));
     }
 
+    @RequirePermission(menu = "edge-data", code = "edge_data:create", name = "新增边")
     @PostMapping("/{connectionId}")
     public Result<?> create(
             @PathVariable Long connectionId,
             @RequestBody EdgeSaveRequest req) {
-        permissionChecker.require("edge_data:create");
         service.create(connectionId, req);
         return Result.ok();
     }
 
+    @RequirePermission(menu = "edge-data", code = "edge_data:update", name = "编辑边")
     @PutMapping("/{connectionId}/edge/{edgeId}")
     public Result<?> update(
             @PathVariable Long connectionId,
             @PathVariable String edgeId,
             @RequestBody EdgeSaveRequest req) {
-        permissionChecker.require("edge_data:update");
         service.update(connectionId, edgeId, req);
         return Result.ok();
     }
 
+    @RequirePermission(menu = "edge-data", code = "edge_data:delete", name = "删除边")
     @DeleteMapping("/{connectionId}/edge/{edgeId}")
     public Result<?> delete(
             @PathVariable Long connectionId,
             @PathVariable String edgeId) {
-        permissionChecker.require("edge_data:delete");
         service.delete(connectionId, edgeId);
         return Result.ok();
     }
 
+    @RequirePermission(menu = "edge-data", code = "edge_data:batch_delete", name = "批量删除边")
     @PostMapping("/{connectionId}/batch-delete")
     public Result<Map<String, Object>> batchDelete(
             @PathVariable Long connectionId,
             @RequestBody Map<String, Object> body) {
-        permissionChecker.require("edge_data:batch_delete");
         @SuppressWarnings("unchecked")
         List<String> ids = (List<String>) body.get("ids");
         int count = service.batchDelete(connectionId, ids);
         return Result.ok(Map.of("deleted", count));
     }
 
+    @RequirePermission(menu = "edge-data", code = "edge_data:clear", name = "清空边数据")
     @PostMapping("/{connectionId}/{schema}/{label}/clear")
     public Result<Map<String, Object>> clear(
             @PathVariable Long connectionId,
             @PathVariable String schema,
             @PathVariable String label) {
-        permissionChecker.require("edge_data:clear");
         long count = service.clearEdges(connectionId, schema, label);
         return Result.ok(Map.of("deleted", count));
     }

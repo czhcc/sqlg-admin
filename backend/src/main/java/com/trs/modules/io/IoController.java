@@ -2,7 +2,7 @@ package com.trs.modules.io;
 
 import com.trs.common.Result;
 import com.trs.modules.io.service.IoService;
-import com.trs.security.PermissionChecker;
+import com.trs.security.RequirePermission;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -25,13 +25,10 @@ public class IoController {
 
     private final IoService service;
     private final UserPreferenceService preferenceService;
-    private final PermissionChecker permissionChecker;
 
-    public IoController(IoService service, UserPreferenceService preferenceService,
-                        PermissionChecker permissionChecker) {
+    public IoController(IoService service, UserPreferenceService preferenceService) {
         this.service = service;
         this.preferenceService = preferenceService;
-        this.permissionChecker = permissionChecker;
     }
 
     @GetMapping("/connections")
@@ -100,11 +97,11 @@ public class IoController {
         return Result.ok(service.exportTopology(connectionId));
     }
 
+    @RequirePermission(menu = "import-export", code = "io:topology_import", name = "导入 Topology")
     @PostMapping("/{connectionId}/import/topology")
     public Result<Map<String, Object>> importTopology(
             @PathVariable Long connectionId,
             @RequestBody Map<String, Object> body) {
-        permissionChecker.require("io:topology_import");
         String content = str(body, "content");
         if (content == null || content.isBlank()) {
             return Result.fail(400, "Topology JSON 内容不能为空");
@@ -122,19 +119,19 @@ public class IoController {
         return Result.ok(service.previewImport(connectionId, content, format, type));
     }
 
+    @RequirePermission(menu = "import-export", code = "io:import", name = "导入点数据")
     @PostMapping("/{connectionId}/import/vertices")
     public Result<Map<String, Object>> importVertices(
             @PathVariable Long connectionId,
             @RequestBody IoService.ImportVerticesRequest req) {
-        permissionChecker.require("io:import");
         return Result.ok(service.importVertices(connectionId, req));
     }
 
+    @RequirePermission(menu = "import-export", code = "io:import", name = "导入边数据")
     @PostMapping("/{connectionId}/import/edges")
     public Result<Map<String, Object>> importEdges(
             @PathVariable Long connectionId,
             @RequestBody IoService.ImportEdgesRequest req) {
-        permissionChecker.require("io:import");
         return Result.ok(service.importEdges(connectionId, req));
     }
 

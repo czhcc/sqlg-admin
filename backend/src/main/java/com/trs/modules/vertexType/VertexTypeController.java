@@ -6,7 +6,7 @@ import com.trs.modules.vertexType.dto.VertexTypeDetailDto;
 import com.trs.modules.vertexType.dto.VertexTypeListDto;
 import com.trs.modules.vertexType.dto.VertexTypeSaveRequest;
 import com.trs.modules.vertexType.service.VertexTypeService;
-import com.trs.security.PermissionChecker;
+import com.trs.security.RequirePermission;
 import com.trs.user.entity.User;
 import com.trs.user.service.UserPreferenceService;
 import org.springframework.security.core.Authentication;
@@ -30,13 +30,10 @@ public class VertexTypeController {
 
     private final VertexTypeService service;
     private final UserPreferenceService preferenceService;
-    private final PermissionChecker permissionChecker;
 
-    public VertexTypeController(VertexTypeService service, UserPreferenceService preferenceService,
-                                 PermissionChecker permissionChecker) {
+    public VertexTypeController(VertexTypeService service, UserPreferenceService preferenceService) {
         this.service = service;
         this.preferenceService = preferenceService;
-        this.permissionChecker = permissionChecker;
     }
 
     /**
@@ -122,11 +119,11 @@ public class VertexTypeController {
      * @param req          请求体
      * @return 操作结果
      */
+    @RequirePermission(menu = "vertex-type", code = "vertex_type:create", name = "新增点类型")
     @PostMapping("/{connectionId}")
     public Result<?> create(
             @PathVariable Long connectionId,
             @RequestBody VertexTypeSaveRequest req) {
-        permissionChecker.require("vertex_type:create");
         service.create(connectionId, req);
         return Result.ok();
     }
@@ -138,11 +135,11 @@ public class VertexTypeController {
      * @param req          请求体(需含 originalSchema/originalLabel)
      * @return 操作结果
      */
+    @RequirePermission(menu = "vertex-type", code = "vertex_type:update", name = "编辑点类型")
     @PutMapping("/{connectionId}")
     public Result<?> update(
             @PathVariable Long connectionId,
             @RequestBody VertexTypeSaveRequest req) {
-        permissionChecker.require("vertex_type:update");
         service.update(connectionId, req);
         return Result.ok();
     }
@@ -155,11 +152,11 @@ public class VertexTypeController {
      * @param body         {schema: String, label: String}
      * @return {deleted: 删除数量}
      */
+    @RequirePermission(menu = "vertex-type", code = "vertex_data:clear", name = "清空点数据")
     @PostMapping("/{connectionId}/clear-vertices")
     public Result<Map<String, Object>> clearVertices(
             @PathVariable Long connectionId,
             @RequestBody Map<String, String> body) {
-        permissionChecker.require("vertex_data:clear");
         String schema = body.get("schema");
         String label = body.get("label");
         if (schema == null || label == null) {
@@ -177,11 +174,11 @@ public class VertexTypeController {
      * @param body         {schema: String, label: String}
      * @return 操作结果
      */
+    @RequirePermission(menu = "vertex-type", code = "vertex_type:delete", name = "删除点类型")
     @DeleteMapping("/{connectionId}")
     public Result<?> delete(
             @PathVariable Long connectionId,
             @RequestBody Map<String, String> body) {
-        permissionChecker.require("vertex_type:delete");
         String schema = body.get("schema");
         String label = body.get("label");
         if (schema == null || label == null) {
