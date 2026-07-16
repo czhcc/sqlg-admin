@@ -216,6 +216,11 @@ public class UserService {
             dangerousPerms.addAll(parseJsonList(r.getDangerousPermissions()));
         }
 
+        operations.removeIf(op -> {
+            String requiredQualification = com.trs.user.entity.PermissionCatalog.dangerousOpMap().get(op);
+            return requiredQualification != null && !dangerousPerms.contains(requiredQualification);
+        });
+
         String mergedGremlin;
         if (gremlinLevels.contains("DANGEROUS")) mergedGremlin = "DANGEROUS";
         else if (gremlinLevels.contains("WRITE")) mergedGremlin = "WRITE";

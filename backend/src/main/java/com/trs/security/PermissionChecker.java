@@ -1,5 +1,6 @@
 package com.trs.security;
 
+import com.trs.user.entity.PermissionCatalog;
 import com.trs.user.entity.Role;
 import com.trs.user.entity.User;
 import com.trs.user.mapper.RoleMapper;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -32,6 +34,7 @@ public class PermissionChecker {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final TypeReference<List<String>> STR_LIST = new TypeReference<>() {};
     private static final String SUPER_ADMIN_KEY = "SUPER_ADMIN";
+    private static final Map<String, String> DANGEROUS_OP_MAP = PermissionCatalog.dangerousOpMap();
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
@@ -41,31 +44,30 @@ public class PermissionChecker {
         this.roleMapper = roleMapper;
     }
 
-    /**
-     * 校验当前用户是否拥有指定操作权限。无权限时抛出 SecurityException。
-     *
-     * @param code 操作权限编码,如 "vertex_data:clear"
-     */
     public void require(String code) {
         if (!hasPermission(code)) {
             throw new SecurityException("无操作权限: " + code);
         }
+        String requiredQualification = DANGEROUS_OP_MAP.get(code);
+        if (requiredQualification != null && !hasDangerousQualification(requiredQualification)) {
+            throw new SecurityException("缺少危险操作资格: " + requiredQualification);
+        }
     }
 
-    /**
-     * 判断当前用户是否拥有指定操作权限。
-     *
-     * @param code 操作权限编码
-     * @return true 有权限
-     */
     public boolean hasPermission(String code) {
         User user = currentUser();
         if (user == null) return false;
-
         if (isSuperAdmin(user)) return true;
-
         Set<String> allOps = collectOperationPermissions(user);
         return allOps.contains(code);
+    }
+
+    public boolean hasDangerousQualification(String qualificationCode) {
+        User user = currentUser();
+        if (user == null) return false;
+        if (isSuperAdmin(user)) return true;
+        Set<String> allDangerous = collectDangerousPermissions(user);
+        return allDangerous.contains(qualificationCode);
     }
 
     private boolean isSuperAdmin(User u) {
@@ -87,6 +89,20 @@ public class PermissionChecker {
             ops.addAll(parseJsonList(r.getOperationPermissions()));
         }
         return ops;
+    }
+
+    private Set<String> collectDangerousPermissions(User u) {
+        Set<String> dangerous = new HashSet<>();
+        if (u.getRoles() == null || u.getRoles().isBlank()) return dangerous;
+
+        for (String key : u.getRoles().split(",")) {
+            String trimmed = key.trim();
+            if (trimmed.isEmpty()) continue;
+            Role r = roleMapper.selectByKey(trimmed);
+            if (r == null || r.getStatus() == null || r.getStatus() != 1) continue;
+            dangerous.addAll(parseJsonList(r.getDangerousPermissions()));
+        }
+        return dangerous;
     }
 
     private User currentUser() {
