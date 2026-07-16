@@ -125,4 +125,21 @@
         <if test="excludeId != null">AND id != #{excludeId}</if>
     </select>
 
+    <select id="selectAllForOverview" resultMap="userResultMap">
+        SELECT <include refid="listColumns"/>
+        FROM sys_user
+        <where>
+            AND username != 'admin'
+            <if test="keyword != null and keyword != ''">
+                AND (username ILIKE '%' || #{keyword} || '%'
+                  OR nickname ILIKE '%' || #{keyword} || '%'
+                  OR email ILIKE '%' || #{keyword} || '%')
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY id ASC
+    </select>
+
 </mapper>

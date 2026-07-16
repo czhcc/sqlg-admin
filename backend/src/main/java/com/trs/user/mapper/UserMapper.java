@@ -40,4 +40,13 @@ public interface UserMapper {
     int deleteById(@Param("id") Long id);
 
     int countByUsername(@Param("username") String username, @Param("excludeId") Long excludeId);
+
+    /**
+     * 查询所有用户(排除 admin),供权限总览搜索使用。
+     *
+     * @param keyword 用户名/昵称/邮箱关键词
+     * @param status  状态过滤
+     * @return 用户列表
+     */
+    List<User> selectAllForOverview(@Param("keyword") String keyword, @Param("status") Short status);
 }
