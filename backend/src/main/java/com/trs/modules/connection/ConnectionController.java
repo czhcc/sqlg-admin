@@ -21,7 +21,7 @@ public class ConnectionController {
 
     @GetMapping
     public Result<List<GraphConnection>> list(@RequestParam(required = false) String keyword) {
-        return Result.ok(service.list(keyword));
+        return Result.ok(service.listVisible(keyword));
     }
 
     @GetMapping("/{id}")

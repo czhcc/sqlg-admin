@@ -1,5 +1,6 @@
 package com.trs.modules.connection.service;
 
+import com.trs.modules.connection.ConnectionVisibilityHelper;
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.log.service.OperationLogService;
@@ -34,14 +35,24 @@ public class GraphConnectionService {
 
     private final GraphConnectionMapper mapper;
     private final OperationLogService logService;
+    private final ConnectionVisibilityHelper visibilityHelper;
 
-    public GraphConnectionService(GraphConnectionMapper mapper, OperationLogService logService) {
+    public GraphConnectionService(GraphConnectionMapper mapper, OperationLogService logService,
+                                   ConnectionVisibilityHelper visibilityHelper) {
         this.mapper = mapper;
         this.logService = logService;
+        this.visibilityHelper = visibilityHelper;
     }
 
     public List<GraphConnection> list(String keyword) {
         return mapper.selectAll(keyword);
+    }
+
+    /**
+     * 列出当前用户可见的连接(已启用),委托给 ConnectionVisibilityHelper 做角色过滤。
+     */
+    public List<GraphConnection> listVisible(String keyword) {
+        return visibilityHelper.listEnabledForCurrentUser();
     }
 
     public GraphConnection getById(Long id) {
