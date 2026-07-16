@@ -1,5 +1,6 @@
 package com.trs.modules.propertyManagement.service;
 
+import com.trs.modules.connection.ConnectionVisibilityHelper;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.propertyManagement.dto.PropertyDetailDto;
 import com.trs.modules.propertyManagement.dto.PropertySaveRequest;
@@ -57,15 +58,18 @@ public class PropertyManagementService {
     private final TopologyService topologyService;
     private final PropertyMetaMapper metaMapper;
     private final GraphConnectionMapper connectionMapper;
+    private final ConnectionVisibilityHelper connectionVisibilityHelper;
 
     public PropertyManagementService(SqlgGraphRegistry registry,
                                      TopologyService topologyService,
                                      PropertyMetaMapper metaMapper,
-                                     GraphConnectionMapper connectionMapper) {
+                                     GraphConnectionMapper connectionMapper,
+                                     ConnectionVisibilityHelper connectionVisibilityHelper) {
         this.registry = registry;
         this.topologyService = topologyService;
         this.metaMapper = metaMapper;
         this.connectionMapper = connectionMapper;
+        this.connectionVisibilityHelper = connectionVisibilityHelper;
     }
 
     // ==================== 连接列表 ====================
@@ -76,22 +80,7 @@ public class PropertyManagementService {
      * @return 连接简要信息列表
      */
     public List<Map<String, Object>> listConnections() {
-        return connectionMapper.selectAll(null).stream()
-                .filter(c -> c.getStatus() != null && c.getStatus() == 1)
-                .sorted((a, b) -> {
-                    int da = Boolean.TRUE.equals(a.getIsDefault()) ? 0 : 1;
-                    int db = Boolean.TRUE.equals(b.getIsDefault()) ? 0 : 1;
-                    return Integer.compare(da, db);
-                })
-                .map(c -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", c.getId());
-                    m.put("name", c.getName());
-                    m.put("dbType", c.getDbType());
-                    m.put("isDefault", Boolean.TRUE.equals(c.getIsDefault()));
-                    return m;
-                })
-                .collect(Collectors.toList());
+        return connectionVisibilityHelper.listConnectionDtosForCurrentUser();
     }
 
     // ==================== 左侧树 ====================

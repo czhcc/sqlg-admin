@@ -1,5 +1,6 @@
 package com.trs.modules.vertexType.service;
 
+import com.trs.modules.connection.ConnectionVisibilityHelper;
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.log.service.OperationLogService;
@@ -33,12 +34,15 @@ public class VertexTypeService {
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
     private final OperationLogService logService;
+    private final ConnectionVisibilityHelper connectionVisibilityHelper;
 
     public VertexTypeService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
-                              OperationLogService logService) {
+                              OperationLogService logService,
+                              ConnectionVisibilityHelper connectionVisibilityHelper) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
         this.logService = logService;
+        this.connectionVisibilityHelper = connectionVisibilityHelper;
     }
 
     // ==================== 列表 ====================
@@ -413,22 +417,7 @@ public class VertexTypeService {
      * @return 连接简要信息列表
      */
     public List<Map<String, Object>> listConnections() {
-        return connectionMapper.selectAll(null).stream()
-                .filter(c -> c.getStatus() != null && c.getStatus() == 1)
-                .sorted((a, b) -> {
-                    int da = Boolean.TRUE.equals(a.getIsDefault()) ? 0 : 1;
-                    int db = Boolean.TRUE.equals(b.getIsDefault()) ? 0 : 1;
-                    return Integer.compare(da, db);
-                })
-                .map(c -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", c.getId());
-                    m.put("name", c.getName());
-                    m.put("dbType", c.getDbType());
-                    m.put("isDefault", Boolean.TRUE.equals(c.getIsDefault()));
-                    return m;
-                })
-                .collect(Collectors.toList());
+        return connectionVisibilityHelper.listConnectionDtosForCurrentUser();
     }
 
     // ==================== 内部工具 ====================
