@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
+import com.trs.security.PermissionRegistry;
 import com.trs.user.entity.PermissionCatalog;
 import com.trs.user.entity.Role;
 import com.trs.user.mapper.RoleMapper;
@@ -33,10 +34,13 @@ public class RoleManagementService {
 
     private final RoleMapper roleMapper;
     private final GraphConnectionMapper connectionMapper;
+    private final PermissionRegistry permissionRegistry;
 
-    public RoleManagementService(RoleMapper roleMapper, GraphConnectionMapper connectionMapper) {
+    public RoleManagementService(RoleMapper roleMapper, GraphConnectionMapper connectionMapper,
+                                  PermissionRegistry permissionRegistry) {
         this.roleMapper = roleMapper;
         this.connectionMapper = connectionMapper;
+        this.permissionRegistry = permissionRegistry;
     }
 
     // ==================== 列表 ====================
@@ -194,7 +198,7 @@ public class RoleManagementService {
 
     public Map<String, Object> getCatalog() {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("menus", PermissionCatalog.menuTree());
+        result.put("menus", permissionRegistry.getMenuTree());
         result.put("gremlinLevels", PermissionCatalog.gremlinLevels());
         result.put("connectionLevels", PermissionCatalog.connectionLevels());
         result.put("dangerousOps", PermissionCatalog.dangerousOps());
