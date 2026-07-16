@@ -21,7 +21,7 @@ const TABS = [
   { key: 'operations', label: '操作权限', icon: ShieldCheck },
   { key: 'connections', label: '可见连接', icon: GitFork },
   { key: 'gremlin', label: 'Gremlin 权限', icon: TerminalSquare },
-  { key: 'dangerous', label: '危险操作权限', icon: AlertTriangle },
+  { key: 'dangerous', label: '危险操作资格', icon: AlertTriangle },
 ]
 
 export default function RoleDetail() {
@@ -568,7 +568,7 @@ function GremlinTab({ detail, catalog, roleId, onSaved, showToast }) {
   )
 }
 
-// ==================== 危险操作权限 ====================
+// ==================== 危险操作资格 ====================
 
 function DangerousTab({ detail, catalog, roleId, onSaved, showToast }) {
   const [selected, setSelected] = useState(new Set(detail.dangerousPermissions || []))
@@ -578,16 +578,6 @@ function DangerousTab({ detail, catalog, roleId, onSaved, showToast }) {
     setSelected((prev) => { const n = new Set(prev); n.has(code) ? n.delete(code) : n.add(code); return n })
   }
 
-  const toggleGroup = (group) => {
-    const codes = group.items.map((i) => i.code)
-    const allChecked = codes.every((c) => selected.has(c))
-    setSelected((prev) => {
-      const n = new Set(prev)
-      codes.forEach((c) => allChecked ? n.delete(c) : n.add(c))
-      return n
-    })
-  }
-
   const save = async () => {
     setSaving(true)
     try { await updateDangerousPermissions(roleId, [...selected]); onSaved() }
@@ -595,35 +585,64 @@ function DangerousTab({ detail, catalog, roleId, onSaved, showToast }) {
     finally { setSaving(false) }
   }
 
+  const operationPerms = new Set(detail.operationPermissions || [])
+  const dangerousOps = catalog.dangerousOps || []
+
+  const warnings = []
+  for (const dq of dangerousOps) {
+    const hasQualification = selected.has(dq.code)
+    const matchingOps = (dq.operations || []).filter((op) => operationPerms.has(op))
+    if (hasQualification && matchingOps.length === 0) {
+      warnings.push({
+        type: ' qualification-without-ops',
+        message: `已配置「${dq.label}」危险操作资格,但该角色当前没有相关操作权限,此资格暂时不会生效。`,
+      })
+    }
+    if (!hasQualification && matchingOps.length > 0) {
+      const opLabels = matchingOps.join('、')
+      warnings.push({
+        type: 'ops-without-qualification',
+        message: `已配置 ${opLabels} 操作权限,但未配置「${dq.label}」危险操作资格,该角色仍无法执行这些操作。`,
+      })
+    }
+  }
+
   return (
     <div>
       <div className="mb-4 space-y-3">
-        {catalog.dangerousOps.map((group) => {
-          const codes = group.items.map((i) => i.code)
-          const allChecked = codes.every((c) => selected.has(c))
-          const someChecked = codes.some((c) => selected.has(c))
+        {dangerousOps.map((dq) => {
+          const checked = selected.has(dq.code)
           return (
-            <div key={group.group} className="rounded-lg border border-gray-200">
-              <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-2">
-                <input type="checkbox" checked={allChecked} ref={el => el && (el.indeterminate = someChecked && !allChecked)}
-                  onChange={() => toggleGroup(group)}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
-                <span className="text-sm font-semibold text-gray-700">{group.group}</span>
+            <label key={dq.code} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
+              checked ? 'border-amber-300 bg-amber-50' : 'border-gray-200 hover:bg-gray-50'
+            }`}>
+              <input type="checkbox" checked={checked}
+                onChange={() => toggle(dq.code)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
+              <div>
+                <div className="text-sm font-medium text-gray-800">{dq.label}</div>
+                <div className="mt-1 text-xs text-gray-500">{dq.description}</div>
               </div>
-              <div className="px-4 py-2">
-                {group.items.map((item) => (
-                  <label key={item.code} className="flex items-center gap-2 py-1">
-                    <input type="checkbox" checked={selected.has(item.code)}
-                      onChange={() => toggle(item.code)}
-                      className="h-4 w-4 rounded border-gray-300 text-red-600" />
-                    <span className="text-sm text-gray-600">{item.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            </label>
           )
         })}
       </div>
+
+      {warnings.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {warnings.map((w, i) => (
+            <div key={i} className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-xs ${
+              w.type === 'qualification-without-ops'
+                ? 'border-blue-200 bg-blue-50 text-blue-700'
+                : 'border-amber-200 bg-amber-50 text-amber-700'
+            }`}>
+              <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+              <span>{w.message}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <button onClick={save} disabled={saving}
         className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
         <Save size={15} /> {saving ? '保存中...' : '保存'}
