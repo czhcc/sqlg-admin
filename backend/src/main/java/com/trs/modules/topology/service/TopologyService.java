@@ -1,5 +1,6 @@
 package com.trs.modules.topology.service;
 
+import com.trs.modules.connection.ConnectionVisibilityHelper;
 import com.trs.modules.connection.entity.GraphConnection;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.topology.dto.*;
@@ -20,29 +21,17 @@ public class TopologyService {
 
     private final SqlgGraphRegistry registry;
     private final GraphConnectionMapper connectionMapper;
+    private final ConnectionVisibilityHelper connectionVisibilityHelper;
 
-    public TopologyService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper) {
+    public TopologyService(SqlgGraphRegistry registry, GraphConnectionMapper connectionMapper,
+                            ConnectionVisibilityHelper connectionVisibilityHelper) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
+        this.connectionVisibilityHelper = connectionVisibilityHelper;
     }
 
     public List<Map<String, Object>> listConnectionsForTopology() {
-        return connectionMapper.selectAll(null).stream()
-                .filter(c -> c.getStatus() != null && c.getStatus() == 1)
-                .sorted((a, b) -> {
-                    int da = Boolean.TRUE.equals(a.getIsDefault()) ? 0 : 1;
-                    int db = Boolean.TRUE.equals(b.getIsDefault()) ? 0 : 1;
-                    return Integer.compare(da, db);
-                })
-                .map(c -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", c.getId());
-                    m.put("name", c.getName());
-                    m.put("dbType", c.getDbType());
-                    m.put("isDefault", Boolean.TRUE.equals(c.getIsDefault()));
-                    return m;
-                })
-                .collect(Collectors.toList());
+        return connectionVisibilityHelper.listConnectionDtosForCurrentUser();
     }
 
     public TopologyDto getTopology(Long connectionId) {
