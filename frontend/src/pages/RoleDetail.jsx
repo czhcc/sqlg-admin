@@ -11,6 +11,7 @@ import { pageUsers } from '../api/userManagement'
 import {
   ArrowLeft, Settings, Users, List, ShieldCheck, GitFork,
   TerminalSquare, AlertTriangle, Save, Check, X, Plus, Trash2,
+  ChevronDown, ChevronRight,
 } from 'lucide-react'
 
 const TABS = [
@@ -373,13 +374,18 @@ function OperationPermissionTab({ detail, catalog, roleId, onSaved, showToast })
     finally { setSaving(false) }
   }
 
-  const renderOpTree = (items) => items.map((item) => {
+  const renderOpTree = (items, depth = 0) => items.map((item) => {
     if (item.children) {
+      const childChecked = item.children.flatMap((c) => c.operations || []).filter((o) => selected.has(o.code))
+      const childTotal = item.children.flatMap((c) => c.operations || []).length
       return (
-        <div key={item.key} className="mb-2">
-          <div className="rounded-t bg-gray-100 px-3 py-1.5 text-sm font-semibold text-gray-600">{item.label}</div>
-          <div className="border-b border-l border-r border-gray-200 rounded-b p-2">
-            {renderOpTree(item.children)}
+        <div key={item.key} className="mb-3" style={{ marginLeft: depth * 0 }}>
+          <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-3 py-2 text-sm font-bold text-gray-700">
+            <span className="text-gray-400">{item.label}</span>
+            <span className="text-xs text-gray-400 font-normal">({childChecked.length}/{childTotal})</span>
+          </div>
+          <div className="border-l-2 border-gray-100">
+            {renderOpTree(item.children, depth + 1)}
           </div>
         </div>
       )
@@ -387,26 +393,37 @@ function OperationPermissionTab({ detail, catalog, roleId, onSaved, showToast })
     const allChecked = item.operations.every((o) => selected.has(o.code))
     const someChecked = item.operations.some((o) => selected.has(o.code))
     const isOpen = expanded[item.key] !== false
+    const indent = 20 + depth * 24
     return (
-      <div key={item.key} className="mb-2 border border-gray-200 rounded">
-        <div className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50">
+      <div key={item.key} className="mb-1.5">
+        <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 shadow-sm hover:border-indigo-200"
+          style={{ marginLeft: indent }}>
           <input type="checkbox" checked={allChecked} ref={el => el && (el.indeterminate = someChecked && !allChecked)}
             onChange={() => toggleMenuAll(item)}
-            className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
+            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
           <button onClick={() => setExpanded({ ...expanded, [item.key]: !isOpen })}
-            className="flex-1 text-left text-sm font-medium text-gray-700">
-            {item.label} <span className="text-xs text-gray-400">({item.operations.filter((o) => selected.has(o.code)).length}/{item.operations.length})</span>
+            className="flex flex-1 items-center gap-1.5 text-left">
+            {isOpen
+              ? <ChevronDown size={14} className="flex-shrink-0 text-gray-400" />
+              : <ChevronRight size={14} className="flex-shrink-0 text-gray-400" />}
+            <span className="text-sm font-semibold text-gray-700">{item.label}</span>
+            <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-normal text-gray-400">
+              {item.operations.filter((o) => selected.has(o.code)).length}/{item.operations.length}
+            </span>
           </button>
         </div>
         {isOpen && (
-          <div className="border-t border-gray-100 px-3 py-1">
+          <div className="mt-0.5 space-y-0.5 border-l border-gray-200" style={{ marginLeft: indent + 16 }}>
             {item.operations.map((op) => (
-              <label key={op.code} className="flex items-center gap-2 py-1">
+              <label key={op.code}
+                className={`flex cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors ${
+                  selected.has(op.code) ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-50'
+                }`}>
                 <input type="checkbox" checked={selected.has(op.code)}
                   onChange={() => toggle(op.code)}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
-                <span className="text-sm text-gray-600">{op.label}</span>
-                <span className="font-mono text-xs text-gray-400">{op.code}</span>
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <span>{op.label}</span>
+                <span className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px] text-gray-400">{op.code}</span>
               </label>
             ))}
           </div>
