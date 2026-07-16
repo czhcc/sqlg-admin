@@ -25,6 +25,12 @@ public final class PermissionCatalog {
     public static final String CONN_WRITE = "WRITE";
     public static final String CONN_ADMIN = "ADMIN";
 
+    public static final String DANGEROUS_BATCH_DELETE = "dangerous:batch_delete";
+    public static final String DANGEROUS_DATA_CLEAR = "dangerous:data_clear";
+    public static final String DANGEROUS_TOPOLOGY_DELETE = "dangerous:topology_delete";
+    public static final String DANGEROUS_GREMLIN_EXECUTE = "dangerous:gremlin_execute";
+    public static final String DANGEROUS_IMPORT_OVERWRITE = "dangerous:import_overwrite";
+
     public static List<Map<String, Object>> menuTree() {
         List<Map<String, Object>> menus = new ArrayList<>();
         menus.add(menu("connection", "连接管理", ops(
@@ -132,33 +138,40 @@ public final class PermissionCatalog {
     }
 
     public static List<Map<String, Object>> dangerousOps() {
-        List<Map<String, Object>> groups = new ArrayList<>();
-        groups.add(dangerousGroup("连接管理", List.of(
-                dangerous("dangerous:connection_delete", "删除图数据库连接")
-        )));
-        groups.add(dangerousGroup("Topology 管理", List.of(
-                dangerous("dangerous:topology_delete_schema", "删除 Schema"),
-                dangerous("dangerous:topology_delete_vertex_label", "删除 VertexLabel"),
-                dangerous("dangerous:topology_delete_edge_label", "删除 EdgeLabel"),
-                dangerous("dangerous:topology_delete_property", "删除属性"),
-                dangerous("dangerous:topology_delete_index", "删除索引")
-        )));
-        groups.add(dangerousGroup("点数据管理", List.of(
-                dangerous("dangerous:vertex_batch_delete", "批量删除点"),
-                dangerous("dangerous:vertex_clear", "清空点数据")
-        )));
-        groups.add(dangerousGroup("边数据管理", List.of(
-                dangerous("dangerous:edge_batch_delete", "批量删除边"),
-                dangerous("dangerous:edge_clear", "清空边数据")
-        )));
-        groups.add(dangerousGroup("Gremlin 控制台", List.of(
-                dangerous("dangerous:gremlin_drop", "执行包含 drop() 的查询")
-        )));
-        groups.add(dangerousGroup("导入导出", List.of(
-                dangerous("dangerous:io_overwrite", "覆盖已有数据"),
-                dangerous("dangerous:io_topology_overwrite", "覆盖导入 Topology")
-        )));
-        return groups;
+        List<Map<String, Object>> items = new ArrayList<>();
+        items.add(dangerousQualification(DANGEROUS_BATCH_DELETE, "数据批量删除",
+                "允许执行已授权的批量删除点、批量删除边操作",
+                List.of("vertex_data:batch_delete", "edge_data:batch_delete")));
+        items.add(dangerousQualification(DANGEROUS_DATA_CLEAR, "数据清空",
+                "允许执行已授权的清空点数据、清空边数据操作",
+                List.of("vertex_data:clear", "edge_data:clear")));
+        items.add(dangerousQualification(DANGEROUS_TOPOLOGY_DELETE, "Topology 删除",
+                "允许执行已授权的删除 Schema、VertexLabel、EdgeLabel、属性和索引操作",
+                List.of("vertex_type:delete", "edge_type:delete", "property:delete")));
+        items.add(dangerousQualification(DANGEROUS_GREMLIN_EXECUTE, "危险 Gremlin",
+                "允许执行已授权的 drop、批量删除等危险 Gremlin",
+                List.of("gremlin:execute")));
+        items.add(dangerousQualification(DANGEROUS_IMPORT_OVERWRITE, "覆盖导入",
+                "允许执行覆盖已有数据或 Topology 的导入操作",
+                List.of("io:import", "io:topology_import")));
+        return items;
+    }
+
+    /**
+     * 操作权限编码 → 所需危险操作资格的映射。
+     * 当用户执行这些操作时,除了基础操作权限外,还必须拥有对应的危险操作资格。
+     */
+    public static Map<String, String> dangerousOpMap() {
+        Map<String, String> map = new LinkedHashMap<>();
+        for (Map<String, Object> dq : dangerousOps()) {
+            @SuppressWarnings("unchecked")
+            List<String> ops = (List<String>) dq.get("operations");
+            String code = (String) dq.get("code");
+            for (String op : ops) {
+                map.put(op, code);
+            }
+        }
+        return map;
     }
 
     // ==================== builders ====================
@@ -198,17 +211,13 @@ public final class PermissionCatalog {
         return m;
     }
 
-    private static Map<String, Object> dangerousGroup(String group, List<Map<String, String>> items) {
+    private static Map<String, Object> dangerousQualification(String code, String label,
+                                                                String description, List<String> operations) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("group", group);
-        m.put("items", items);
-        return m;
-    }
-
-    private static Map<String, String> dangerous(String code, String label) {
-        Map<String, String> m = new LinkedHashMap<>();
         m.put("code", code);
         m.put("label", label);
+        m.put("description", description);
+        m.put("operations", operations);
         return m;
     }
 }
