@@ -2,6 +2,7 @@ package com.trs.modules.gremlin.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.trs.config.PlatformConfig;
+import com.trs.modules.connection.ConnectionVisibilityHelper;
 import com.trs.modules.connection.mapper.GraphConnectionMapper;
 import com.trs.modules.log.service.OperationLogService;
 import com.trs.modules.gremlin.entity.GremlinQueryFavorite;
@@ -54,39 +55,27 @@ public class GremlinConsoleService {
     private final ScriptEngine scriptEngine;
     private final PlatformConfig platformConfig;
     private final OperationLogService logService;
+    private final ConnectionVisibilityHelper connectionVisibilityHelper;
 
     public GremlinConsoleService(SqlgGraphRegistry registry,
                                   GraphConnectionMapper connectionMapper,
                                   GremlinQueryMapper queryMapper,
                                   PlatformConfig platformConfig,
-                                  OperationLogService logService) {
+                                  OperationLogService logService,
+                                  ConnectionVisibilityHelper connectionVisibilityHelper) {
         this.registry = registry;
         this.connectionMapper = connectionMapper;
         this.queryMapper = queryMapper;
         this.platformConfig = platformConfig;
         this.logService = logService;
         this.scriptEngine = new GremlinGroovyScriptEngine();
+        this.connectionVisibilityHelper = connectionVisibilityHelper;
     }
 
     // ==================== 连接列表 ====================
 
     public List<Map<String, Object>> listConnections() {
-        return connectionMapper.selectAll(null).stream()
-                .filter(c -> c.getStatus() != null && c.getStatus() == 1)
-                .sorted((a, b) -> {
-                    int da = Boolean.TRUE.equals(a.getIsDefault()) ? 0 : 1;
-                    int db = Boolean.TRUE.equals(b.getIsDefault()) ? 0 : 1;
-                    return Integer.compare(da, db);
-                })
-                .map(c -> {
-                    Map<String, Object> m = new LinkedHashMap<>();
-                    m.put("id", c.getId());
-                    m.put("name", c.getName());
-                    m.put("dbType", c.getDbType());
-                    m.put("isDefault", Boolean.TRUE.equals(c.getIsDefault()));
-                    return m;
-                })
-                .collect(Collectors.toList());
+        return connectionVisibilityHelper.listConnectionDtosForCurrentUser();
     }
 
     // ==================== 执行 Gremlin 查询 ====================
