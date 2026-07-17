@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
-import { searchOverviewUsers, getUserPermissionOverview } from '../api/permissionOverview'
+import {
+  searchOverviewUsers, getUserPermissionOverview,
+  searchOverviewRoles, getRolePermissionOverview,
+} from '../api/permissionOverview'
 import {
   KeyRound, Search, ShieldCheck, LayoutGrid, List, GitFork,
-  TerminalSquare, AlertTriangle, AlertOctagon, Info,
+  TerminalSquare, AlertTriangle, AlertOctagon, Info, Users,
 } from 'lucide-react'
 
-const TABS = [
+const USER_TABS = [
   { key: 'summary', label: '权限摘要', icon: LayoutGrid },
   { key: 'menus', label: '菜单权限', icon: List },
   { key: 'operations', label: '操作权限', icon: ShieldCheck },
@@ -15,67 +18,114 @@ const TABS = [
   { key: 'checks', label: '配置检查', icon: AlertTriangle },
 ]
 
+const ROLE_TABS = [
+  { key: 'summary', label: '权限摘要', icon: LayoutGrid },
+  { key: 'members', label: '用户成员', icon: Users },
+  { key: 'menus', label: '菜单权限', icon: List },
+  { key: 'operations', label: '操作权限', icon: ShieldCheck },
+  { key: 'connections', label: '可见连接', icon: GitFork },
+  { key: 'gremlin', label: 'Gremlin 权限', icon: TerminalSquare },
+  { key: 'dangerous', label: '危险操作资格', icon: AlertOctagon },
+  { key: 'checks', label: '配置检查', icon: AlertTriangle },
+]
+
 export default function PermissionOverview() {
+  const [mode, setMode] = useState('users')
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [users, setUsers] = useState([])
+  const [list, setList] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [overview, setOverview] = useState(null)
   const [activeTab, setActiveTab] = useState('summary')
-  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [loadingList, setLoadingList] = useState(false)
   const [loadingOverview, setLoadingOverview] = useState(false)
 
-  const loadUsers = useCallback(async () => {
-    setLoadingUsers(true)
+  const loadList = useCallback(async () => {
+    setLoadingList(true)
     try {
       const params = {}
       if (keyword) params.keyword = keyword
       if (statusFilter !== '') params.status = Number(statusFilter)
-      const res = await searchOverviewUsers(params)
-      setUsers(res.data?.rows || [])
+      const res = mode === 'users'
+        ? await searchOverviewUsers(params)
+        : await searchOverviewRoles(params)
+      setList(res.data?.rows || [])
     } catch { /* ignore */ } finally {
-      setLoadingUsers(false)
+      setLoadingList(false)
     }
-  }, [keyword, statusFilter])
+  }, [keyword, statusFilter, mode])
 
-  useEffect(() => { loadUsers() }, [loadUsers])
+  useEffect(() => { loadList() }, [loadList])
 
   useEffect(() => {
-    if (!selectedId && users.length > 0) {
-      setSelectedId(users[0].id)
+    if (!selectedId && list.length > 0) {
+      setSelectedId(list[0].id)
     }
-  }, [users, selectedId])
+  }, [list, selectedId])
 
   useEffect(() => {
     if (!selectedId) { setOverview(null); return }
     setLoadingOverview(true)
-    getUserPermissionOverview(selectedId)
+    const fetcher = mode === 'users'
+      ? getUserPermissionOverview(selectedId)
+      : getRolePermissionOverview(selectedId)
+    fetcher
       .then((res) => setOverview(res.data))
       .catch(() => setOverview(null))
       .finally(() => setLoadingOverview(false))
-  }, [selectedId])
+  }, [selectedId, mode])
+
+  const switchMode = (newMode) => {
+    if (newMode === mode) return
+    setMode(newMode)
+    setSelectedId(null)
+    setOverview(null)
+    setActiveTab('summary')
+    setKeyword('')
+    setStatusFilter('')
+  }
+
+  const tabs = mode === 'users' ? USER_TABS : ROLE_TABS
+  const placeholderText = mode === 'users' ? '搜索用户名/昵称' : '搜索角色编码/名称'
+  const emptyText = mode === 'users' ? '暂无用户' : '暂无角色'
+  const loadingText = mode === 'users' ? '加载权限数据...' : '加载角色权限...'
 
   return (
     <div className="flex h-full">
-      {/* Left: user search + list */}
+      {/* Left: search + list */}
       <aside className="flex w-72 flex-shrink-0 flex-col border-r border-gray-200 bg-white">
         <div className="border-b border-gray-200 px-4 py-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-            <KeyRound size={16} className="text-indigo-500" /> 选择用户
-          </h2>
-          <div className="relative mt-2">
+          <div className="flex rounded-lg bg-gray-100 p-0.5">
+            <button
+              onClick={() => switchMode('users')}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-medium transition-colors ${
+                mode === 'users' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Users size={14} /> 按用户
+            </button>
+            <button
+              onClick={() => switchMode('roles')}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-sm font-medium transition-colors ${
+                mode === 'roles' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <ShieldCheck size={14} /> 按角色
+            </button>
+          </div>
+          <div className="relative mt-3">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && loadUsers()}
-              placeholder="搜索用户名/昵称"
+              onKeyDown={(e) => e.key === 'Enter' && loadList()}
+              placeholder={placeholderText}
               className="w-full rounded-md border border-gray-300 py-1.5 pl-8 pr-3 text-sm outline-none focus:border-indigo-500"
             />
           </div>
           <select
             value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value) }}
+            onChange={(e) => setStatusFilter(e.target.value)}
             className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-indigo-500"
           >
             <option value="">全部状态</option>
@@ -84,46 +134,20 @@ export default function PermissionOverview() {
           </select>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {loadingUsers && users.length === 0 && (
+          {loadingList && list.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-gray-400">加载中...</div>
           )}
-          {!loadingUsers && users.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-gray-400">暂无用户</div>
+          {!loadingList && list.length === 0 && (
+            <div className="px-4 py-8 text-center text-sm text-gray-400">{emptyText}</div>
           )}
-          {users.map((u) => (
-            <button
-              key={u.id}
-              onClick={() => setSelectedId(u.id)}
-              className={`flex w-full items-center gap-2 border-l-2 px-4 py-2.5 text-left transition-colors ${
-                selectedId === u.id
-                  ? 'border-indigo-600 bg-indigo-50'
-                  : 'border-transparent hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600">
-                {(u.nickname || u.username || '?').charAt(0).toUpperCase()}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="truncate text-sm font-medium text-gray-800">
-                    {u.nickname || u.username}
-                  </span>
-                  {u.isSuperAdmin && (
-                    <span className="rounded bg-purple-50 px-1 py-0.5 text-[10px] text-purple-600">超管</span>
-                  )}
-                  {u.status === 0 && (
-                    <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">停用</span>
-                  )}
-                </div>
-                <div className="truncate text-xs text-gray-400">{u.username}</div>
-              </div>
-              {u.roleCount > 0 && (
-                <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] text-indigo-600">
-                  {u.roleCount}角色
-                </span>
-              )}
-            </button>
-          ))}
+          {mode === 'users'
+            ? list.map((u) => (
+              <UserListItem key={u.id} item={u} selected={selectedId === u.id} onSelect={() => setSelectedId(u.id)} />
+            ))
+            : list.map((r) => (
+              <RoleListItem key={r.id} item={r} selected={selectedId === r.id} onSelect={() => setSelectedId(r.id)} />
+            ))
+          }
         </div>
       </aside>
 
@@ -131,20 +155,23 @@ export default function PermissionOverview() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {!overview ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
-            {loadingOverview ? '加载权限数据...' : '请在左侧选择用户'}
+            {loadingOverview ? loadingText : `请在左侧选择${mode === 'users' ? '用户' : '角色'}`}
           </div>
         ) : (
           <>
-            <UserHeader overview={overview} />
-            <nav className="flex border-b border-gray-200 bg-white px-4">
-              {TABS.map((tab) => {
+            {mode === 'users'
+              ? <UserHeader overview={overview} />
+              : <RoleHeader overview={overview} />
+            }
+            <nav className="flex overflow-x-auto border-b border-gray-200 bg-white px-4">
+              {tabs.map((tab) => {
                 const badge = tab.key === 'checks' && overview.configChecks?.length > 0
                   ? overview.configChecks.length : null
                 return (
                   <button
                     key={tab.key}
                     onClick={() => setActiveTab(tab.key)}
-                    className={`flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm transition-colors ${
+                    className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors ${
                       activeTab === tab.key
                         ? 'border-indigo-600 font-medium text-indigo-700'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -161,7 +188,9 @@ export default function PermissionOverview() {
               })}
             </nav>
             <div className="flex-1 overflow-auto bg-gray-50 p-6">
-              {activeTab === 'summary' && <SummaryTab overview={overview} />}
+              {activeTab === 'summary' && mode === 'users' && <UserSummaryTab overview={overview} />}
+              {activeTab === 'summary' && mode === 'roles' && <RoleSummaryTab overview={overview} />}
+              {activeTab === 'members' && mode === 'roles' && <MembersTab overview={overview} />}
               {activeTab === 'menus' && <MenusTab overview={overview} />}
               {activeTab === 'operations' && <OperationsTab overview={overview} />}
               {activeTab === 'connections' && <ConnectionsTab overview={overview} />}
@@ -173,6 +202,72 @@ export default function PermissionOverview() {
         )}
       </div>
     </div>
+  )
+}
+
+// ==================== 左侧列表项 ====================
+
+function UserListItem({ item: u, selected, onSelect }) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`flex w-full items-center gap-2 border-l-2 px-4 py-2.5 text-left transition-colors ${
+        selected ? 'border-indigo-600 bg-indigo-50' : 'border-transparent hover:bg-gray-50'
+      }`}
+    >
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600">
+        {(u.nickname || u.username || '?').charAt(0).toUpperCase()}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-sm font-medium text-gray-800">
+            {u.nickname || u.username}
+          </span>
+          {u.isSuperAdmin && (
+            <span className="rounded bg-purple-50 px-1 py-0.5 text-[10px] text-purple-600">超管</span>
+          )}
+          {u.status === 0 && (
+            <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">停用</span>
+          )}
+        </div>
+        <div className="truncate text-xs text-gray-400">{u.username}</div>
+      </div>
+      {u.roleCount > 0 && (
+        <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] text-indigo-600">
+          {u.roleCount}角色
+        </span>
+      )}
+    </button>
+  )
+}
+
+function RoleListItem({ item: r, selected, onSelect }) {
+  return (
+    <button
+      onClick={onSelect}
+      className={`flex w-full items-center gap-2 border-l-2 px-4 py-2.5 text-left transition-colors ${
+        selected ? 'border-indigo-600 bg-indigo-50' : 'border-transparent hover:bg-gray-50'
+      }`}
+    >
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-medium text-indigo-600">
+        <ShieldCheck size={16} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="truncate text-sm font-medium text-gray-800">{r.roleName}</span>
+          {r.isBuiltin && (
+            <span className="rounded bg-blue-50 px-1 py-0.5 text-[10px] text-blue-600">内置</span>
+          )}
+          {r.status === 0 && (
+            <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">停用</span>
+          )}
+        </div>
+        <div className="truncate text-xs text-gray-400">{r.roleKey}</div>
+      </div>
+      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
+        {r.userCount}人
+      </span>
+    </button>
   )
 }
 
@@ -211,9 +306,40 @@ function UserHeader({ overview }) {
   )
 }
 
-// ==================== 权限摘要 ====================
+// ==================== 角色信息头 ====================
 
-function SummaryTab({ overview }) {
+function RoleHeader({ overview }) {
+  const r = overview.role
+  return (
+    <div className="border-b border-gray-200 bg-white px-6 py-4">
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+          <ShieldCheck size={24} />
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-lg font-semibold text-gray-800">{r.roleName}</span>
+            <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-500">{r.roleKey}</span>
+            {r.isBuiltin && (
+              <span className="rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">内置角色</span>
+            )}
+            {r.status === 1
+              ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">启用</span>
+              : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">停用</span>}
+          </div>
+          <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
+            <span>用户数量: <strong className="text-gray-700">{r.userCount}</strong></span>
+            {r.description && <span className="text-gray-400">· {r.description}</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==================== 用户权限摘要 ====================
+
+function UserSummaryTab({ overview }) {
   const s = overview.summary
   const cards = [
     { label: '所属角色', value: s.roleCount, color: 'indigo' },
@@ -225,6 +351,46 @@ function SummaryTab({ overview }) {
     { label: '配置警告', value: s.warningCount, color: s.warningCount > 0 ? 'amber' : 'gray' },
   ]
 
+  return (
+    <div className="mx-auto max-w-4xl">
+      <SummaryCards cards={cards} />
+      {overview.user?.isSuperAdmin && (
+        <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700">
+          <Info size={15} className="mr-1 inline" />
+          超级管理员拥有全部权限,包括所有菜单、操作、连接、Gremlin 危险级别和全部危险操作资格。
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ==================== 角色权限摘要 ====================
+
+function RoleSummaryTab({ overview }) {
+  const s = overview.summary
+  const cards = [
+    { label: '用户成员', value: s.userCount, color: 'indigo' },
+    { label: '菜单权限', value: s.menuCount, color: 'blue' },
+    { label: '操作权限', value: s.operationCount, color: 'cyan' },
+    { label: '可见连接', value: s.visibleConnectionCount, color: 'teal' },
+    { label: 'Gremlin 权限', value: s.gremlinLevelLabel || s.gremlinLevel, color: 'purple', isText: true },
+    { label: '危险操作资格', value: s.dangerousCount, color: 'red' },
+    { label: '配置警告', value: s.warningCount, color: s.warningCount > 0 ? 'amber' : 'gray' },
+  ]
+
+  return (
+    <div className="mx-auto max-w-4xl">
+      <SummaryCards cards={cards} />
+      <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+        <Info size={15} className="mr-1 inline" />
+        角色级检查仅关注该角色自身配置是否完整,不考虑其他角色补充的权限。
+        用户级检查则基于所有角色合并后的最终权限。
+      </div>
+    </div>
+  )
+}
+
+function SummaryCards({ cards }) {
   const colorMap = {
     indigo: 'border-indigo-200 bg-indigo-50 text-indigo-700',
     blue: 'border-blue-200 bg-blue-50 text-blue-700',
@@ -235,25 +401,64 @@ function SummaryTab({ overview }) {
     amber: 'border-amber-200 bg-amber-50 text-amber-700',
     gray: 'border-gray-200 bg-gray-50 text-gray-600',
   }
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      {cards.map((c) => (
+        <div key={c.label} className={`rounded-lg border p-4 ${colorMap[c.color]}`}>
+          <div className="text-xs opacity-70">{c.label}</div>
+          <div className="mt-1 text-2xl font-bold">{c.value}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ==================== 用户成员 (角色视图) ====================
+
+function MembersTab({ overview }) {
+  const members = overview.members || []
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {cards.map((c) => (
-          <div key={c.label} className={`rounded-lg border p-4 ${colorMap[c.color]}`}>
-            <div className="text-xs opacity-70">{c.label}</div>
-            <div className="mt-1 text-2xl font-bold">
-              {c.isText ? c.value : c.value}
-            </div>
-          </div>
-        ))}
+    <div className="mx-auto max-w-3xl">
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+        <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
+            <tr>
+              <th className="px-4 py-2">用户名</th>
+              <th className="px-4 py-2">显示名称</th>
+              <th className="px-4 py-2 w-20">状态</th>
+              <th className="px-4 py-2">其他角色</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {members.length === 0 && (
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">暂无成员</td></tr>
+            )}
+            {members.map((m) => (
+              <tr key={m.id} className="hover:bg-gray-50">
+                <td className="px-4 py-2 font-medium text-gray-800">{m.username}</td>
+                <td className="px-4 py-2 text-gray-600">{m.nickname || '—'}</td>
+                <td className="px-4 py-2">
+                  {m.status === 1
+                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">启用</span>
+                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">停用</span>}
+                </td>
+                <td className="px-4 py-2">
+                  {m.otherRoles?.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {m.otherRoles.map((label, i) => (
+                        <span key={i} className="rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : <span className="text-xs text-gray-400">无</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      {overview.user?.isSuperAdmin && (
-        <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700">
-          <Info size={15} className="mr-1 inline" />
-          超级管理员拥有全部权限,包括所有菜单、操作、连接、Gremlin 危险级别和全部危险操作资格。
-        </div>
-      )}
     </div>
   )
 }
@@ -418,25 +623,6 @@ function GremlinTab({ overview }) {
           ))}
         </div>
       </div>
-
-      {g.details?.length > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-gray-700">各角色 Gremlin 级别</h3>
-          <div className="space-y-2">
-            {g.details.map((d) => (
-              <div key={d.role} className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">{d.roleLabel}</span>
-                <span className={`rounded px-2 py-0.5 text-xs ${
-                  d.level === 'DANGEROUS' ? 'bg-red-50 text-red-700' :
-                  d.level === 'WRITE' ? 'bg-blue-50 text-blue-700' :
-                  d.level === 'READ_ONLY' ? 'bg-cyan-50 text-cyan-700' :
-                  'bg-gray-100 text-gray-500'
-                }`}>{d.levelLabel || d.level}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
