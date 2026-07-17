@@ -120,6 +120,144 @@ public class PermissionOverviewService {
         return buildNormalOverview(u, roles);
     }
 
+    // ==================== 角色搜索 ====================
+
+    /**
+     * 搜索角色列表,供权限总览左侧选择。
+     *
+     * @param keyword 角色编码/名称关键词
+     * @param status  状态过滤
+     * @return 角色摘要列表
+     */
+    public Map<String, Object> searchRoles(String keyword, Short status) {
+        List<Role> roles = roleMapper.selectAll(keyword, status);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (Role r : roles) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", r.getId());
+            m.put("roleKey", r.getRoleKey());
+            m.put("roleName", r.getRoleName());
+            m.put("description", r.getDescription());
+            m.put("status", r.getStatus());
+            m.put("isBuiltin", r.getIsBuiltin());
+            m.put("userCount", roleMapper.countUsersByRoleKey(r.getRoleKey()));
+            rows.add(m);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("total", rows.size());
+        result.put("rows", rows);
+        return result;
+    }
+
+    // ==================== 角色权限总览 ====================
+
+    /**
+     * 计算指定角色的完整权限总览,包括角色成员、菜单权限、操作权限、
+     * 可见连接、Gremlin 权限、危险操作资格和角色级配置检查。
+     *
+     * @param roleId 角色ID
+     * @return 角色权限总览数据
+     */
+    public Map<String, Object> getRolePermissionOverview(Long roleId) {
+        Role r = roleMapper.selectById(roleId);
+        if (r == null) throw new IllegalArgumentException("角色不存在: " + roleId);
+
+        Set<String> menus = new LinkedHashSet<>(parseJsonList(r.getMenuPermissions()));
+        Set<String> operations = new LinkedHashSet<>(parseJsonList(r.getOperationPermissions()));
+        Set<String> dangerous = new LinkedHashSet<>(parseJsonList(r.getDangerousPermissions()));
+        String gremlinLevel = r.getGremlinPermission() != null ? r.getGremlinPermission() : "NONE";
+
+        List<Map<String, Object>> menuTree = permissionRegistry.getMenuTree();
+
+        List<Map<String, Object>> menusResult = buildMenusWithSources(menuTree, menus, List.of(r));
+        List<Map<String, Object>> operationsResult = buildOperationsWithSources(menuTree, operations, List.of(r));
+
+        List<GraphConnection> allConns = connectionMapper.selectAll(null);
+        List<Map<String, Object>> connectionsResult = buildConnectionsWithSources(allConns, List.of(r));
+        long visibleConnCount = connectionsResult.stream().filter(c -> Boolean.TRUE.equals(c.get("visible"))).count();
+
+        Set<String> gremlinLevels = new LinkedHashSet<>();
+        gremlinLevels.add(gremlinLevel);
+        Map<String, Object> gremlinResult = buildGremlinWithSources(List.of(r), gremlinLevels, gremlinLevel, menus);
+
+        List<Map<String, Object>> dangerousResult = buildDangerousWithSources(dangerous, List.of(r));
+
+        List<Map<String, Object>> members = buildRoleMembers(r);
+
+        List<Map<String, Object>> configChecks = buildConfigChecks(
+                menus, operations, dangerous, gremlinLevel, visibleConnCount, menuTree, "角色");
+
+        int menuCount = (int) menusResult.stream().filter(m -> Boolean.TRUE.equals(m.get("granted"))).count();
+        int opCount = countGrantedOperations(operationsResult);
+        int dangerousCount = (int) dangerousResult.stream().filter(d -> Boolean.TRUE.equals(d.get("granted"))).count();
+
+        Map<String, Object> roleDto = new LinkedHashMap<>();
+        roleDto.put("id", r.getId());
+        roleDto.put("roleKey", r.getRoleKey());
+        roleDto.put("roleName", r.getRoleName());
+        roleDto.put("description", r.getDescription());
+        roleDto.put("status", r.getStatus());
+        roleDto.put("isBuiltin", r.getIsBuiltin());
+        roleDto.put("userCount", members.size());
+
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("userCount", members.size());
+        summary.put("menuCount", menuCount);
+        summary.put("operationCount", opCount);
+        summary.put("visibleConnectionCount", visibleConnCount);
+        summary.put("gremlinLevel", gremlinLevel);
+        summary.put("gremlinLevelLabel", gremlinLevelLabel(gremlinLevel));
+        summary.put("dangerousCount", dangerousCount);
+        summary.put("warningCount", configChecks.size());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("role", roleDto);
+        result.put("summary", summary);
+        result.put("members", members);
+        result.put("menus", menusResult);
+        result.put("operations", operationsResult);
+        result.put("connections", connectionsResult);
+        result.put("gremlin", gremlinResult);
+        result.put("dangerous", dangerousResult);
+        result.put("configChecks", configChecks);
+        return result;
+    }
+
+    private List<Map<String, Object>> buildRoleMembers(Role r) {
+        List<Long> userIds = roleMapper.selectUserIdsByRoleKey(r.getRoleKey());
+        List<Map<String, Object>> members = new ArrayList<>();
+        for (Long uid : userIds) {
+            User u = userMapper.selectById(uid);
+            if (u == null) continue;
+
+            List<String> otherRoleKeys = new ArrayList<>();
+            if (u.getRoles() != null && !u.getRoles().isBlank()) {
+                for (String key : u.getRoles().split(",")) {
+                    String trimmed = key.trim();
+                    if (!trimmed.isEmpty() && !trimmed.equals(r.getRoleKey())) {
+                        otherRoleKeys.add(trimmed);
+                    }
+                }
+            }
+
+            List<String> otherRoleLabels = new ArrayList<>();
+            for (String key : otherRoleKeys) {
+                Role other = roleMapper.selectByKey(key);
+                otherRoleLabels.add(other != null ? other.getRoleName() : key);
+            }
+
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", u.getId());
+            m.put("username", u.getUsername());
+            m.put("nickname", u.getNickname());
+            m.put("status", u.getStatus());
+            m.put("otherRoles", otherRoleLabels);
+            members.add(m);
+        }
+        return members;
+    }
+
     // ==================== SUPER_ADMIN 特殊处理 ====================
 
     private Map<String, Object> buildSuperAdminOverview(User u) {
@@ -493,6 +631,18 @@ public class PermissionOverviewService {
             String mergedGremlin,
             long visibleConnCount,
             List<Map<String, Object>> menuTree) {
+        return buildConfigChecks(effectiveMenus, effectiveOps, effectiveDangerous,
+                mergedGremlin, visibleConnCount, menuTree, "用户");
+    }
+
+    private List<Map<String, Object>> buildConfigChecks(
+            Set<String> effectiveMenus,
+            Set<String> effectiveOps,
+            Set<String> effectiveDangerous,
+            String mergedGremlin,
+            long visibleConnCount,
+            List<Map<String, Object>> menuTree,
+            String subject) {
 
         List<Map<String, Object>> checks = new ArrayList<>();
         Map<String, String> opToMenu = buildOperationToMenuMap(menuTree);
@@ -505,8 +655,8 @@ public class PermissionOverviewService {
             if (menuKey != null && !effectiveMenus.contains(menuKey)) {
                 String menuLabel = getMenuLabel(menuTree, menuKey);
                 checks.add(configCheck("warning", "menu_operation_mismatch",
-                        "用户拥有 " + opCode + " 操作权限，但没有「" + menuLabel + "」菜单权限。" +
-                        "该用户通过接口可能仍有操作权限，但无法从界面进入对应页面。"));
+                        subject + "拥有 " + opCode + " 操作权限，但没有「" + menuLabel + "」菜单权限。" +
+                        "该" + subject + "通过接口可能仍有操作权限，但无法从界面进入对应页面。"));
             }
         }
 
@@ -521,7 +671,7 @@ public class PermissionOverviewService {
                 boolean hasAnyBase = requiredOps.stream().anyMatch(effectiveOps::contains);
                 if (!hasAnyBase) {
                     checks.add(configCheck("warning", "dangerous_without_base_op",
-                            "用户拥有「" + qualLabel + "」危险操作资格，但没有 " +
+                            subject + "拥有「" + qualLabel + "」危险操作资格，但没有 " +
                             String.join("、", requiredOps) + " 操作权限。该危险操作资格当前不会生效。"));
                 }
             }
@@ -534,8 +684,8 @@ public class PermissionOverviewService {
                 Map<String, Object> dq = dangerousCatalog.get(requiredQual);
                 String qualLabel = dq != null ? (String) dq.get("label") : requiredQual;
                 checks.add(configCheck("warning", "base_op_without_dangerous",
-                        "用户拥有 " + opCode + " 操作权限，但没有「" + qualLabel +
-                        "」危险操作资格。用户仍然不能执行该操作。"));
+                        subject + "拥有 " + opCode + " 操作权限，但没有「" + qualLabel +
+                        "」危险操作资格。" + subject + "仍然不能执行该操作。"));
             }
         }
 
@@ -546,15 +696,15 @@ public class PermissionOverviewService {
 
         if (hasGremlinMenu && !hasGremlinCapability) {
             checks.add(configCheck("warning", "gremlin_menu_without_capability",
-                    "用户可以访问 Gremlin 控制台，但没有 gremlin 查询权限。"));
+                    subject + "可以访问 Gremlin 控制台，但没有 gremlin 查询权限。"));
         }
         if (hasGremlinCapability && !hasGremlinMenu) {
             checks.add(configCheck("warning", "gremlin_capability_without_menu",
-                    "用户拥有 Gremlin 查询权限，但没有 Gremlin 控制台菜单权限。"));
+                    subject + "拥有 Gremlin 查询权限，但没有 Gremlin 控制台菜单权限。"));
         }
         if (hasGremlinExecute && !hasGremlinMenu) {
             checks.add(configCheck("warning", "gremlin_execute_without_menu",
-                    "用户拥有 gremlin:execute 操作权限，但没有 Gremlin 控制台菜单权限。"));
+                    subject + "拥有 gremlin:execute 操作权限，但没有 Gremlin 控制台菜单权限。"));
         }
 
         // Check 5: 有数据操作权限但无可见连接
@@ -563,7 +713,7 @@ public class PermissionOverviewService {
                 op.startsWith("topology:") || op.startsWith("graph_explore:"));
         if (hasDataOp && visibleConnCount == 0) {
             checks.add(configCheck("warning", "data_op_without_connection",
-                    "用户拥有数据操作权限，但没有任何可见连接。该权限当前无法实际使用。"));
+                    subject + "拥有数据操作权限，但没有任何可见连接。该权限当前无法实际使用。"));
         }
 
         return checks;
