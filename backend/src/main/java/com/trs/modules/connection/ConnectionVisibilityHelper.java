@@ -47,12 +47,14 @@ public class ConnectionVisibilityHelper {
         if (user == null) return all;
 
         Set<String> roleKeys = parseRoleKeys(user.getRoles());
-        if (roleKeys.isEmpty()) return all;
+        if (roleKeys.isEmpty() || roleKeys.contains(SUPER_ADMIN_KEY)) return all;
 
         Set<Long> visibleIds = roleManagementService.getVisibleConnectionIds(roleKeys);
         if (visibleIds == null) return all;
         return all.stream().filter(c -> visibleIds.contains(c.getId())).collect(Collectors.toList());
     }
+
+    private static final String SUPER_ADMIN_KEY = "SUPER_ADMIN";
 
     /**
      * 返回当前用户可见连接的 DTO 列表(默认连接排在前),供前端下拉直接使用。
