@@ -15,3 +15,7 @@ export function searchOverviewRoles(params) {
 export function getRolePermissionOverview(id) {
   return client.get(`/permission/overview/roles/${id}`)
 }
+
+export function lookupPermission(type, code) {
+  return client.get('/permission/overview/lookup', { params: { type, code } })
+}

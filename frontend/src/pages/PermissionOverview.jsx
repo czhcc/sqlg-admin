@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, Fragment } from 'react'
+import { createPortal } from 'react-dom'
 import {
   searchOverviewUsers, getUserPermissionOverview,
   searchOverviewRoles, getRolePermissionOverview,
+  lookupPermission,
 } from '../api/permissionOverview'
 import {
   KeyRound, Search, ShieldCheck, LayoutGrid, List, GitFork,
-  TerminalSquare, AlertTriangle, AlertOctagon, Info, Users,
+  TerminalSquare, AlertTriangle, AlertOctagon, Info, Users, X,
 } from 'lucide-react'
 
 const USER_TABS = [
@@ -39,6 +41,11 @@ export default function PermissionOverview() {
   const [activeTab, setActiveTab] = useState('summary')
   const [loadingList, setLoadingList] = useState(false)
   const [loadingOverview, setLoadingOverview] = useState(false)
+  const [lookupQuery, setLookupQuery] = useState(null)
+
+  const openLookup = (type, code, label) => {
+    setLookupQuery({ type, code, label })
+  }
 
   const loadList = useCallback(async () => {
     setLoadingList(true)
@@ -191,16 +198,20 @@ export default function PermissionOverview() {
               {activeTab === 'summary' && mode === 'users' && <UserSummaryTab overview={overview} />}
               {activeTab === 'summary' && mode === 'roles' && <RoleSummaryTab overview={overview} />}
               {activeTab === 'members' && mode === 'roles' && <MembersTab overview={overview} />}
-              {activeTab === 'menus' && <MenusTab overview={overview} />}
-              {activeTab === 'operations' && <OperationsTab overview={overview} />}
-              {activeTab === 'connections' && <ConnectionsTab overview={overview} />}
-              {activeTab === 'gremlin' && <GremlinTab overview={overview} />}
-              {activeTab === 'dangerous' && <DangerousTab overview={overview} />}
+              {activeTab === 'menus' && <MenusTab overview={overview} onItemClick={openLookup} />}
+              {activeTab === 'operations' && <OperationsTab overview={overview} onItemClick={openLookup} />}
+              {activeTab === 'connections' && <ConnectionsTab overview={overview} onItemClick={openLookup} />}
+              {activeTab === 'gremlin' && <GremlinTab overview={overview} onItemClick={openLookup} />}
+              {activeTab === 'dangerous' && <DangerousTab overview={overview} onItemClick={openLookup} />}
               {activeTab === 'checks' && <ChecksTab overview={overview} />}
             </div>
           </>
         )}
       </div>
+
+      {lookupQuery && (
+        <PermissionLookupModal query={lookupQuery} onClose={() => setLookupQuery(null)} />
+      )}
     </div>
   )
 }
@@ -465,7 +476,7 @@ function MembersTab({ overview }) {
 
 // ==================== 菜单权限 ====================
 
-function MenusTab({ overview }) {
+function MenusTab({ overview, onItemClick }) {
   const menus = overview.menus || []
   let currentGroup = null
 
@@ -493,7 +504,10 @@ function MenusTab({ overview }) {
                       </td>
                     </tr>
                   )}
-                  <tr className="hover:bg-gray-50">
+                  <tr
+                    className="cursor-pointer hover:bg-indigo-50"
+                    onClick={() => onItemClick?.('menu', m.key, m.label)}
+                  >
                     <td className="px-4 py-2 text-gray-700">{m.label}</td>
                     <td className="px-4 py-2"><StatusBadge granted={m.granted} /></td>
                     <td className="px-4 py-2">
@@ -512,7 +526,7 @@ function MenusTab({ overview }) {
 
 // ==================== 操作权限 ====================
 
-function OperationsTab({ overview }) {
+function OperationsTab({ overview, onItemClick }) {
   const groups = overview.operations || []
 
   return (
@@ -525,7 +539,11 @@ function OperationsTab({ overview }) {
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <tbody className="divide-y divide-gray-100">
               {g.operations.map((op) => (
-                <tr key={op.code} className="hover:bg-gray-50">
+                <tr
+                  key={op.code}
+                  className="cursor-pointer hover:bg-indigo-50"
+                  onClick={() => onItemClick?.('operation', op.code, op.label)}
+                >
                   <td className="px-4 py-2 pl-8 text-gray-700">{op.label}</td>
                   <td className="px-4 py-2 w-24"><StatusBadge granted={op.granted} /></td>
                   <td className="px-4 py-2 text-xs">
@@ -543,7 +561,7 @@ function OperationsTab({ overview }) {
 
 // ==================== 可见连接 ====================
 
-function ConnectionsTab({ overview }) {
+function ConnectionsTab({ overview, onItemClick }) {
   const conns = overview.connections || []
 
   return (
@@ -564,7 +582,11 @@ function ConnectionsTab({ overview }) {
               <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">暂无连接</td></tr>
             )}
             {conns.map((c) => (
-              <tr key={c.id} className="hover:bg-gray-50">
+              <tr
+                key={c.id}
+                className="cursor-pointer hover:bg-indigo-50"
+                onClick={() => onItemClick?.('connection', c.id, c.name)}
+              >
                 <td className="px-4 py-2 font-medium text-gray-800">{c.name}</td>
                 <td className="px-4 py-2 text-gray-600">{c.dbType}</td>
                 <td className="px-4 py-2">
@@ -591,7 +613,7 @@ function ConnectionsTab({ overview }) {
 
 // ==================== Gremlin 权限 ====================
 
-function GremlinTab({ overview }) {
+function GremlinTab({ overview, onItemClick }) {
   const g = overview.gremlin
   if (!g) return null
 
@@ -609,7 +631,11 @@ function GremlinTab({ overview }) {
         </div>
         <div className="space-y-2">
           {g.capabilities?.map((cap) => (
-            <div key={cap.key} className="flex items-center justify-between border-t border-gray-100 pt-2">
+            <div
+              key={cap.key}
+              className="flex cursor-pointer items-center justify-between rounded-md border-t border-gray-100 pt-2 transition-colors hover:bg-indigo-50"
+              onClick={() => onItemClick?.('gremlin', cap.key, cap.label)}
+            >
               <div>
                 <span className="text-sm text-gray-700">{cap.label}</span>
                 <span className="ml-2 text-xs text-gray-400">
@@ -629,7 +655,7 @@ function GremlinTab({ overview }) {
 
 // ==================== 危险操作资格 ====================
 
-function DangerousTab({ overview }) {
+function DangerousTab({ overview, onItemClick }) {
   const items = overview.dangerous || []
 
   return (
@@ -650,7 +676,11 @@ function DangerousTab({ overview }) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {items.map((d) => (
-              <tr key={d.code} className="hover:bg-gray-50">
+              <tr
+                key={d.code}
+                className="cursor-pointer hover:bg-indigo-50"
+                onClick={() => onItemClick?.('dangerous', d.code, d.label)}
+              >
                 <td className="px-4 py-2">
                   <div className="font-medium text-gray-800">{d.label}</div>
                   <div className="text-xs text-gray-500">{d.description}</div>
@@ -695,6 +725,187 @@ function ChecksTab({ overview }) {
           </div>
         ))
       )}
+    </div>
+  )
+}
+
+// ==================== 权限反查弹窗 ====================
+
+const TYPE_LABELS = {
+  menu: '菜单权限',
+  operation: '操作权限',
+  connection: '可见连接',
+  gremlin: 'Gremlin 权限',
+  dangerous: '危险操作资格',
+}
+
+function PermissionLookupModal({ query, onClose }) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    lookupPermission(query.type, query.code)
+      .then((res) => setData(res.data))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [query.type, query.code])
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-gray-800">
+            <Search size={18} className="text-indigo-500" /> 权限反查
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto px-6 py-4">
+          {loading && <div className="py-12 text-center text-sm text-gray-400">加载中...</div>}
+          {error && <div className="py-12 text-center text-sm text-red-500">{error}</div>}
+          {!loading && !error && data && <LookupContent data={data} />}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+function LookupContent({ data }) {
+  const q = data.query
+  const roles = data.roles || []
+  const users = data.users || []
+  const da = data.dangerousAnalysis
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-lg bg-gray-50 px-4 py-3">
+        <div className="grid grid-cols-3 gap-2 text-sm">
+          <div>
+            <span className="text-gray-400">权限类型</span>
+            <div className="font-medium text-gray-700">{TYPE_LABELS[q.type] || q.type}</div>
+          </div>
+          <div>
+            <span className="text-gray-400">权限编码</span>
+            <div className="font-mono text-xs text-gray-700">{q.code}</div>
+          </div>
+          <div>
+            <span className="text-gray-400">权限名称</span>
+            <div className="font-medium text-gray-700">{q.label}</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+          <ShieldCheck size={15} className="text-indigo-500" />
+          拥有该权限的角色
+          <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-600">{roles.length}</span>
+        </h3>
+        {roles.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 px-4 py-3 text-center text-sm text-gray-400">
+            暂无角色拥有此权限
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {roles.map((r) => (
+              <span key={r.key} className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm">
+                <ShieldCheck size={14} className="text-indigo-400" />
+                <span className="text-gray-700">{r.label}</span>
+                {r.isBuiltin && <span className="rounded bg-blue-50 px-1 text-[10px] text-blue-500">内置</span>}
+                {r.status === 0 && <span className="rounded bg-gray-100 px-1 text-[10px] text-gray-400">停用</span>}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+          <Users size={15} className="text-indigo-500" />
+          最终拥有该权限的用户
+          <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-600">{users.length}</span>
+        </h3>
+        {users.length === 0 ? (
+          <div className="rounded-lg border border-gray-200 px-4 py-3 text-center text-sm text-gray-400">
+            暂无用户拥有此权限
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {users.map((u) => (
+              <span key={u.id} className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm">
+                <span className="text-gray-700">{u.username}</span>
+                {u.nickname && <span className="text-xs text-gray-400">({u.nickname})</span>}
+                {u.isSuperAdmin && <span className="rounded bg-purple-50 px-1 text-[10px] text-purple-500">超管</span>}
+                {!u.isSuperAdmin && u.roleLabels?.length > 0 && (
+                  <span className="text-xs text-gray-400">· {u.roleLabels.join('、')}</span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {da && <DangerousAnalysisPanel analysis={da} />}
+    </div>
+  )
+}
+
+function DangerousAnalysisPanel({ analysis: da }) {
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+      <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-amber-800">
+        <AlertOctagon size={15} />
+        危险操作分析
+      </h3>
+      <div className="space-y-2 text-sm text-amber-800">
+        <div>
+          附加危险资格: <strong>{da.qualificationLabel}</strong>{' '}
+          <span className="font-mono text-xs">({da.qualificationCode})</span>
+        </div>
+        {da.relatedOperations?.length > 0 && (
+          <div>
+            关联基础操作:{' '}
+            {da.relatedOperations.map((op, i) => (
+              <span key={op.code}>
+                {i > 0 && '、'}
+                <strong>{op.label}</strong>{' '}
+                <span className="font-mono text-xs">({op.code})</span>
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="mt-3 grid grid-cols-3 gap-2 border-t border-amber-200 pt-3">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-amber-700">{da.usersWithBaseOpCount}</div>
+            <div className="text-xs text-amber-600">拥有基础操作权限</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-amber-700">{da.usersWithQualificationCount}</div>
+            <div className="text-xs text-amber-600">同时拥有危险资格</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600">{da.usersWhoCanExecuteCount}</div>
+            <div className="text-xs text-red-500">最终可执行</div>
+          </div>
+        </div>
+        {da.usersWhoCanExecute?.length > 0 && (
+          <div className="mt-2 border-t border-amber-200 pt-2">
+            <span className="text-xs text-amber-600">可执行用户: </span>
+            <span className="text-xs text-amber-800">
+              {da.usersWhoCanExecute.map((u) => u.username).join('、')}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
