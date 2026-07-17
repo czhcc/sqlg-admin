@@ -84,4 +84,19 @@ public class PermissionOverviewController {
     public Result<Map<String, Object>> roleOverview(@PathVariable Long id) {
         return Result.ok(service.getRolePermissionOverview(id));
     }
+
+    /**
+     * 反查某项权限分配给了哪些角色和用户。
+     *
+     * @param type 权限类型: menu / operation / connection / gremlin / dangerous
+     * @param code 权限编码
+     * @return 反查结果
+     */
+    @GetMapping("/lookup")
+    @RequirePermission(menu = "permission-overview", code = "permission:view", name = "查看权限总览")
+    public Result<Map<String, Object>> lookup(
+            @RequestParam String type,
+            @RequestParam String code) {
+        return Result.ok(service.lookupPermission(type, code));
+    }
 }

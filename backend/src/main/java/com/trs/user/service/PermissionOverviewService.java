@@ -258,6 +258,404 @@ public class PermissionOverviewService {
         return members;
     }
 
+    // ==================== 权限反查 ====================
+
+    /**
+     * 反查某项权限分配给了哪些角色和用户。
+     *
+     * @param type 权限类型: menu / operation / connection / gremlin / dangerous
+     * @param code 权限编码
+     * @return 反查结果,包含拥有该权限的角色列表、用户列表和危险操作分析(如适用)
+     */
+    public Map<String, Object> lookupPermission(String type, String code) {
+        List<Role> allRoles = roleMapper.selectAll(null, null);
+        List<User> allUsers = loadAllUsersIncludingAdmin();
+        List<Map<String, Object>> menuTree = permissionRegistry.getMenuTree();
+        List<GraphConnection> allConns = connectionMapper.selectAll(null);
+
+        List<Map<String, Object>> userEffPerms = new ArrayList<>();
+        for (User u : allUsers) {
+            userEffPerms.add(computeEffectiveForLookup(u));
+        }
+
+        List<Long> roleIds = allRoles.stream().map(Role::getId).toList();
+        List<Map<String, Object>> authRecords = roleIds.isEmpty()
+                ? List.of()
+                : roleMapper.selectConnectionAuthForRoles(roleIds);
+        Map<Long, Map<Long, String>> authByRole = buildAuthByRoleMap(authRecords);
+        Map<Long, Role> roleById = new LinkedHashMap<>();
+        for (Role r : allRoles) {
+            roleById.put(r.getId(), r);
+        }
+
+        LookupContext ctx = new LookupContext(allRoles, roleById, userEffPerms, menuTree, allConns, authByRole);
+
+        return switch (type) {
+            case "menu" -> lookupMenu(code, ctx);
+            case "operation" -> lookupOperation(code, ctx);
+            case "connection" -> lookupConnection(code, ctx);
+            case "gremlin" -> lookupGremlin(code, ctx);
+            case "dangerous" -> lookupDangerous(code, ctx);
+            default -> throw new IllegalArgumentException("未知权限类型: " + type);
+        };
+    }
+
+    private record LookupContext(
+            List<Role> allRoles,
+            Map<Long, Role> roleById,
+            List<Map<String, Object>> userEffPerms,
+            List<Map<String, Object>> menuTree,
+            List<GraphConnection> allConns,
+            Map<Long, Map<Long, String>> authByRole
+    ) {}
+
+    private Map<String, Object> lookupMenu(String code, LookupContext ctx) {
+        String label = getMenuLabel(ctx.menuTree(), code);
+
+        List<Map<String, Object>> roles = ctx.allRoles().stream()
+                .filter(r -> parseJsonList(r.getMenuPermissions()).contains(code))
+                .map(this::formatRoleForLookup)
+                .toList();
+
+        List<Map<String, Object>> users = ctx.userEffPerms().stream()
+                .filter(ue -> isSuperAdminEff(ue) || getEffSet(ue, "menus").contains(code))
+                .map(this::formatUserForLookup)
+                .toList();
+
+        return buildLookupResponse("menu", code, label, roles, users, null);
+    }
+
+    private Map<String, Object> lookupOperation(String code, LookupContext ctx) {
+        String label = getOperationLabel(ctx.menuTree(), code);
+
+        List<Map<String, Object>> roles = ctx.allRoles().stream()
+                .filter(r -> parseJsonList(r.getOperationPermissions()).contains(code))
+                .map(this::formatRoleForLookup)
+                .toList();
+
+        List<Map<String, Object>> users = ctx.userEffPerms().stream()
+                .filter(ue -> isSuperAdminEff(ue) || getEffSet(ue, "operations").contains(code))
+                .map(this::formatUserForLookup)
+                .toList();
+
+        Map<String, String> dangerousOpMap = PermissionCatalog.dangerousOpMap();
+        String requiredQual = dangerousOpMap.get(code);
+
+        Map<String, Object> dangerousAnalysis = null;
+        if (requiredQual != null) {
+            Map<String, Object> dq = findDangerousQual(requiredQual);
+            @SuppressWarnings("unchecked")
+            List<String> relatedOps = (List<String>) dq.get("operations");
+            dangerousAnalysis = buildDangerousAnalysis(
+                    requiredQual, (String) dq.get("label"), relatedOps, code, ctx);
+        }
+
+        return buildLookupResponse("operation", code, label, roles, users, dangerousAnalysis);
+    }
+
+    private Map<String, Object> lookupConnection(String code, LookupContext ctx) {
+        Long connId = Long.parseLong(code);
+        GraphConnection conn = ctx.allConns().stream()
+                .filter(c -> c.getId().equals(connId))
+                .findFirst().orElse(null);
+        String label = conn != null ? conn.getName() : code;
+
+        List<Map<String, Object>> roles = ctx.allRoles().stream()
+                .filter(r -> isConnVisibleForRole(r, connId, ctx.authByRole()))
+                .map(this::formatRoleForLookup)
+                .toList();
+
+        List<Map<String, Object>> users = ctx.userEffPerms().stream()
+                .filter(ue -> userCanSeeConn(ue, connId, ctx))
+                .map(this::formatUserForLookup)
+                .toList();
+
+        return buildLookupResponse("connection", code, label, roles, users, null);
+    }
+
+    private Map<String, Object> lookupGremlin(String code, LookupContext ctx) {
+        String label = gremlinCapabilityLabel(code);
+
+        List<Map<String, Object>> roles;
+        List<Map<String, Object>> users;
+
+        if ("console_access".equals(code)) {
+            roles = ctx.allRoles().stream()
+                    .filter(r -> parseJsonList(r.getMenuPermissions()).contains("gremlin"))
+                    .map(this::formatRoleForLookup)
+                    .toList();
+            users = ctx.userEffPerms().stream()
+                    .filter(ue -> isSuperAdminEff(ue) || getEffSet(ue, "menus").contains("gremlin"))
+                    .map(this::formatUserForLookup)
+                    .toList();
+        } else {
+            int threshold = gremlinCapabilityOrdinal(code);
+            roles = ctx.allRoles().stream()
+                    .filter(r -> gremlinLevelOrdinal(r.getGremlinPermission()) >= threshold)
+                    .map(this::formatRoleForLookup)
+                    .toList();
+            users = ctx.userEffPerms().stream()
+                    .filter(ue -> isSuperAdminEff(ue)
+                            || gremlinLevelOrdinal((String) ue.get("gremlinLevel")) >= threshold)
+                    .map(this::formatUserForLookup)
+                    .toList();
+        }
+
+        return buildLookupResponse("gremlin", code, label, roles, users, null);
+    }
+
+    private Map<String, Object> lookupDangerous(String code, LookupContext ctx) {
+        Map<String, Object> dq = findDangerousQual(code);
+        String label = (String) dq.get("label");
+        @SuppressWarnings("unchecked")
+        List<String> relatedOps = (List<String>) dq.get("operations");
+
+        List<Map<String, Object>> roles = ctx.allRoles().stream()
+                .filter(r -> parseJsonList(r.getDangerousPermissions()).contains(code))
+                .map(this::formatRoleForLookup)
+                .toList();
+
+        List<Map<String, Object>> users = ctx.userEffPerms().stream()
+                .filter(ue -> isSuperAdminEff(ue) || getEffSet(ue, "dangerous").contains(code))
+                .map(this::formatUserForLookup)
+                .toList();
+
+        Map<String, Object> dangerousAnalysis = buildDangerousAnalysis(code, label, relatedOps, null, ctx);
+
+        return buildLookupResponse("dangerous", code, label, roles, users, dangerousAnalysis);
+    }
+
+    private Map<String, Object> buildDangerousAnalysis(
+            String qualCode, String qualLabel, List<String> relatedOps,
+            String primaryOpCode, LookupContext ctx) {
+
+        List<Map<String, Object>> usersWithBaseOp;
+        List<Map<String, Object>> usersWithQual;
+        List<Map<String, Object>> usersWhoCanExecute;
+
+        if (primaryOpCode != null) {
+            usersWithBaseOp = ctx.userEffPerms().stream()
+                    .filter(ue -> isSuperAdminEff(ue) || getEffSet(ue, "operations").contains(primaryOpCode))
+                    .map(this::formatUserForLookup).toList();
+            usersWithQual = ctx.userEffPerms().stream()
+                    .filter(ue -> isSuperAdminEff(ue) || getEffSet(ue, "dangerous").contains(qualCode))
+                    .map(this::formatUserForLookup).toList();
+            usersWhoCanExecute = ctx.userEffPerms().stream()
+                    .filter(ue -> {
+                        if (isSuperAdminEff(ue)) return true;
+                        return getEffSet(ue, "operations").contains(primaryOpCode)
+                                && getEffSet(ue, "dangerous").contains(qualCode);
+                    })
+                    .map(this::formatUserForLookup).toList();
+        } else {
+            usersWithBaseOp = ctx.userEffPerms().stream()
+                    .filter(ue -> isSuperAdminEff(ue)
+                            || relatedOps.stream().anyMatch(getEffSet(ue, "operations")::contains))
+                    .map(this::formatUserForLookup).toList();
+            usersWithQual = ctx.userEffPerms().stream()
+                    .filter(ue -> isSuperAdminEff(ue) || getEffSet(ue, "dangerous").contains(qualCode))
+                    .map(this::formatUserForLookup).toList();
+            usersWhoCanExecute = ctx.userEffPerms().stream()
+                    .filter(ue -> {
+                        if (isSuperAdminEff(ue)) return true;
+                        Set<?> ops = getEffSet(ue, "operations");
+                        Set<?> dangerous = getEffSet(ue, "dangerous");
+                        return dangerous.contains(qualCode) && relatedOps.stream().anyMatch(ops::contains);
+                    })
+                    .map(this::formatUserForLookup).toList();
+        }
+
+        List<Map<String, String>> relatedOpsWithLabels = relatedOps.stream().map(op -> {
+            Map<String, String> m = new LinkedHashMap<>();
+            m.put("code", op);
+            m.put("label", getOperationLabel(ctx.menuTree(), op));
+            return m;
+        }).toList();
+
+        Map<String, Object> analysis = new LinkedHashMap<>();
+        analysis.put("qualificationCode", qualCode);
+        analysis.put("qualificationLabel", qualLabel);
+        analysis.put("relatedOperations", relatedOpsWithLabels);
+        analysis.put("usersWithBaseOpCount", usersWithBaseOp.size());
+        analysis.put("usersWithQualificationCount", usersWithQual.size());
+        analysis.put("usersWhoCanExecuteCount", usersWhoCanExecute.size());
+        analysis.put("usersWhoCanExecute", usersWhoCanExecute);
+        return analysis;
+    }
+
+    private Map<String, Object> buildLookupResponse(String type, String code, String label,
+                                                       List<Map<String, Object>> roles,
+                                                       List<Map<String, Object>> users,
+                                                       Map<String, Object> dangerousAnalysis) {
+        Map<String, Object> query = new LinkedHashMap<>();
+        query.put("type", type);
+        query.put("code", code);
+        query.put("label", label);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("query", query);
+        result.put("roles", roles);
+        result.put("users", users);
+        result.put("dangerousAnalysis", dangerousAnalysis);
+        return result;
+    }
+
+    private List<User> loadAllUsersIncludingAdmin() {
+        List<User> users = new ArrayList<>(userMapper.selectAllForOverview(null, null));
+        User admin = userMapper.selectByUsername("admin");
+        if (admin != null && users.stream().noneMatch(u -> u.getId().equals(admin.getId()))) {
+            users.add(0, admin);
+        }
+        return users;
+    }
+
+    private Map<String, Object> computeEffectiveForLookup(User u) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", u.getId());
+        m.put("username", u.getUsername());
+        m.put("nickname", u.getNickname());
+        m.put("status", u.getStatus());
+
+        if (isSuperAdmin(u)) {
+            m.put("isSuperAdmin", true);
+            m.put("roleLabels", List.of("超级管理员"));
+            return m;
+        }
+
+        List<Role> roles = loadUserRoles(u);
+        Set<String> menus = new LinkedHashSet<>();
+        Set<String> operations = new LinkedHashSet<>();
+        Set<String> dangerous = new LinkedHashSet<>();
+        Set<String> gremlinLevels = new LinkedHashSet<>();
+        List<Long> roleIds = new ArrayList<>();
+        List<String> roleLabels = new ArrayList<>();
+
+        for (Role r : roles) {
+            menus.addAll(parseJsonList(r.getMenuPermissions()));
+            operations.addAll(parseJsonList(r.getOperationPermissions()));
+            dangerous.addAll(parseJsonList(r.getDangerousPermissions()));
+            if (r.getGremlinPermission() != null) {
+                gremlinLevels.add(r.getGremlinPermission());
+            }
+            roleIds.add(r.getId());
+            roleLabels.add(r.getRoleName());
+        }
+
+        m.put("isSuperAdmin", false);
+        m.put("roleLabels", roleLabels);
+        m.put("menus", menus);
+        m.put("operations", operations);
+        m.put("dangerous", dangerous);
+        m.put("gremlinLevel", mergeGremlinLevel(gremlinLevels));
+        m.put("roleIds", roleIds);
+        return m;
+    }
+
+    private Map<String, Object> formatRoleForLookup(Role r) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("key", r.getRoleKey());
+        m.put("label", r.getRoleName());
+        m.put("isBuiltin", r.getIsBuiltin());
+        m.put("status", r.getStatus());
+        return m;
+    }
+
+    private Map<String, Object> formatUserForLookup(Map<String, Object> ue) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", ue.get("id"));
+        m.put("username", ue.get("username"));
+        m.put("nickname", ue.get("nickname"));
+        m.put("status", ue.get("status"));
+        m.put("isSuperAdmin", ue.get("isSuperAdmin"));
+        m.put("roleLabels", ue.get("roleLabels"));
+        return m;
+    }
+
+    private boolean isSuperAdminEff(Map<String, Object> ue) {
+        return Boolean.TRUE.equals(ue.get("isSuperAdmin"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> getEffSet(Map<String, Object> ue, String key) {
+        Object val = ue.get(key);
+        return val instanceof Set<?> ? (Set<String>) val : Set.of();
+    }
+
+    private boolean isConnVisibleForRole(Role r, Long connId, Map<Long, Map<Long, String>> authByRole) {
+        Map<Long, String> connMap = authByRole.get(r.getId());
+        String level = connMap != null ? connMap.get(connId) : null;
+        return level != null ? !"NONE".equals(level) : !"NONE".equals(r.getConnectionDefault());
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean userCanSeeConn(Map<String, Object> ue, Long connId, LookupContext ctx) {
+        if (isSuperAdminEff(ue)) return true;
+        List<Long> roleIds = (List<Long>) ue.get("roleIds");
+        if (roleIds == null || roleIds.isEmpty()) return false;
+        for (Long rid : roleIds) {
+            Role r = ctx.roleById().get(rid);
+            if (r != null && isConnVisibleForRole(r, connId, ctx.authByRole())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Map<Long, Map<Long, String>> buildAuthByRoleMap(List<Map<String, Object>> authRecords) {
+        Map<Long, Map<Long, String>> authByRole = new LinkedHashMap<>();
+        for (Map<String, Object> a : authRecords) {
+            Long rid = ((Number) a.get("roleId")).longValue();
+            Long connId = ((Number) a.get("connectionId")).longValue();
+            String level = (String) a.get("accessLevel");
+            authByRole.computeIfAbsent(rid, k -> new LinkedHashMap<>()).put(connId, level);
+        }
+        return authByRole;
+    }
+
+    private Map<String, Object> findDangerousQual(String code) {
+        return PermissionCatalog.dangerousOps().stream()
+                .filter(d -> code.equals(d.get("code")))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("未知危险操作资格: " + code));
+    }
+
+    @SuppressWarnings("unchecked")
+    private String getOperationLabel(List<Map<String, Object>> menuTree, String opCode) {
+        for (Map<String, Object> node : menuTree) {
+            if (node.containsKey("children")) {
+                String found = getOperationLabel((List<Map<String, Object>>) node.get("children"), opCode);
+                if (found != null) return found;
+            } else {
+                List<Map<String, String>> ops = (List<Map<String, String>>) node.get("operations");
+                if (ops != null) {
+                    for (Map<String, String> op : ops) {
+                        if (opCode.equals(op.get("code"))) return op.get("label");
+                    }
+                }
+            }
+        }
+        return opCode;
+    }
+
+    private String gremlinCapabilityLabel(String code) {
+        return switch (code) {
+            case "console_access" -> "Gremlin 控制台访问";
+            case "read_query" -> "只读查询";
+            case "data_write" -> "数据写入";
+            case "dangerous_gremlin" -> "危险 Gremlin";
+            default -> code;
+        };
+    }
+
+    private int gremlinCapabilityOrdinal(String code) {
+        return switch (code) {
+            case "read_query" -> 1;
+            case "data_write" -> 2;
+            case "dangerous_gremlin" -> 3;
+            default -> 0;
+        };
+    }
+
     // ==================== SUPER_ADMIN 特殊处理 ====================
 
     private Map<String, Object> buildSuperAdminOverview(User u) {
