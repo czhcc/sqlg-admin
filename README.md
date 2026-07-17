@@ -98,6 +98,13 @@ Sqlg 是基于 Apache TinkerPop 的图数据库实现，可以将图模型映射
 graph_app/
 ├── AGENTS.md                        # 完整项目文档(必读)
 ├── README.md                        # 本文件
+├── .dockerignore                    # Docker 构建上下文排除
+├── docker/                          # Docker 部署(见「Docker 容器部署」章节)
+│   ├── Dockerfile.backend
+│   ├── Dockerfile.frontend
+│   ├── nginx.conf
+│   ├── docker-compose.yml
+│   └── postgres/init.sql
 ├── backend/                         # Spring Boot 后端 (port 8090, ctx /api)
 │   ├── pom.xml
 │   └── src/main/
@@ -109,7 +116,9 @@ graph_app/
 │       │   ├── user/                # 用户 + 登录
 │       │   └── modules/             # 业务模块(connection/topology/vertexType/edgeType 已实现,其余 stub)
 │       └── resources/
-│           ├── application.yml
+│           ├── application.yml      # 公共配置 + 默认 profile=local
+│           ├── application-local.yml# 本地开发数据源(192.168.31.112)
+│           ├── application-prod.yml # 容器数据源(${DB_HOST} 环境变量)
 │           ├── sqlg.properties
 │           ├── mapper/*.xml
 │           └── db/migration/        # Flyway: V1__init_schema.sql
@@ -143,7 +152,7 @@ CREATE USER sqlg_mng WITH PASSWORD 'sqlg_mng';
 GRANT ALL PRIVILEGES ON DATABASE sqlgmngdb TO sqlg_mng;
 ```
 
-修改 `backend/src/main/resources/application.yml` 中的 `spring.datasource.*` 指向你的 PostgreSQL 实例。Flyway 会在首次启动时自动建表并插入初始 admin 用户。
+修改 `backend/src/main/resources/application-local.yml` 中的 `spring.datasource.*` 指向你的 PostgreSQL 实例。Flyway 会在首次启动时自动建表并插入初始 admin 用户。
 
 ### 2. 启动后端
 
@@ -180,15 +189,131 @@ npm run dev
 
 > **主机 IP 访问**: `vite.config.js` 已配置 `host: '0.0.0.0'` + `allowedHosts: true`,可用 `http://<主机IP>:5173` 直接访问。后端代理默认指向 `http://localhost:8090`,如需修改复制 `.env.example` 为 `.env.development`。
 
+---
+
+## Docker 容器部署
+
+如果不想本地安装 JDK / Maven / Node,可以用 Docker 一键拉起整套服务(PostgreSQL + 后端 + 前端)。
+
+### 前置要求
+
+- Docker 24+
+- Docker Compose v2(`docker compose` 子命令)
+
+### 目录结构
+
+```
+docker/
+├── Dockerfile.backend          # 后端镜像: maven 编译 → JRE 运行
+├── Dockerfile.frontend         # 前端镜像: npm 构建 → nginx 托管
+├── nginx.conf                  # nginx 配置: 静态资源 + /api 反代后端
+├── docker-compose.yml          # 编排: postgres + backend + frontend
+└── postgres/
+    └── init.sql                # PG 初始化脚本(创建 pgvector 扩展)
+```
+
+### 一键启动
+
+在 `docker/` 目录下执行:
+
+```bash
+cd docker
+docker compose up -d --build
+```
+
+首次构建会拉取基础镜像并编译前后端,耗时较长(约 5-10 分钟)。启动完成后:
+
+| 服务 | 容器 | 地址 | 说明 |
+|------|------|------|------|
+| 前端 | graph-mng-frontend | http://localhost | nginx 托管 SPA,`/api` 反代到后端 |
+| 后端 | graph-mng-backend | http://localhost:8090/api | Spring Boot,prod profile |
+| 数据库 | graph-mng-postgres | localhost:5432 | pgvector/pgvector:pg18,数据库名 `sqlgmngdb` |
+
+浏览器打开 `http://localhost`,使用 `admin / 123456` 登录。
+
+### Profile 说明
+
+后端通过 Spring Profile 区分运行环境:
+
+| Profile | 配置文件 | 数据源 | 激活方式 |
+|---------|----------|--------|----------|
+| `local`(默认) | `application-local.yml` | `192.168.31.112:5432`(局域网 PG) | 本地 `mvn spring-boot:run` 自动使用 |
+| `prod` | `application-prod.yml` | `${DB_HOST}` 等环境变量注入 | 容器内 `SPRING_PROFILES_ACTIVE=prod` |
+
+`application-prod.yml` 中的数据库连接通过 `${DB_HOST}` / `${DB_PORT}` / `${DB_NAME}` / `${DB_USER}` / `${DB_PASSWORD}` 占位符读取,值由 `docker-compose.yml` 的 `environment` 注入。
+
+### 自定义配置
+
+如需修改数据库账号密码或库名,编辑 `docker-compose.yml` 中 `postgres` 和 `backend` 两个服务的 `environment`,**两处必须保持一致**:
+
+```yaml
+services:
+  postgres:
+    environment:
+      POSTGRES_USER: sqlg_mng        # ← 同时改这里
+      POSTGRES_PASSWORD: sqlg_mng    # ←
+      POSTGRES_DB: sqlgmngdb         # ←
+  backend:
+    environment:
+      DB_USER: sqlg_mng              # ← 和上面 POSTGRES_USER 一致
+      DB_PASSWORD: sqlg_mng          # ← 和上面 POSTGRES_PASSWORD 一致
+      DB_NAME: sqlgmngdb             # ←
+```
+
+> 改密码后需删除旧数据卷重建:`docker compose down -v && docker compose up -d --build`
+
+### 常用命令
+
+```bash
+cd docker
+
+# 查看日志
+docker compose logs -f backend     # 后端日志
+docker compose logs -f postgres    # 数据库日志
+
+# 停止服务(保留数据)
+docker compose stop
+
+# 停止并删除容器(保留数据卷)
+docker compose down
+
+# 停止并删除容器 + 清空数据库(⚠️ 不可逆)
+docker compose down -v
+
+# 仅重新构建某个镜像
+docker compose build backend
+docker compose build frontend
+
+# 重新构建并重启某个服务
+docker compose up -d --build backend
+```
+
+### 数据持久化
+
+数据库数据存储在 Docker 命名卷 `pgdata` 中,`docker compose down` 不会删除,只有 `docker compose down -v` 才会清空。
+
+### 单独构建镜像(不启动)
+
+如果只想产出镜像(如推送到镜像仓库):
+
+```bash
+# 在项目根目录执行
+docker build -f docker/Dockerfile.backend  -t graph-mng-backend:latest  .
+docker build -f docker/Dockerfile.frontend -t graph-mng-frontend:latest .
+```
+
 ## 配置说明
 
-### 后端 (`application.yml` 关键项)
+### 后端 (`application.yml` + profile 关键项)
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
 | `server.port` | 8090 | 后端端口 |
 | `server.servlet.context-path` | /api | API 前缀 |
-| `spring.datasource.*` | 192.168.31.112/sqlgmngdb | 主数据源 (MyBatis 用) |
+| `spring.profiles.active` | local | 默认本地开发;容器内为 `prod` |
+| `spring.datasource.*` (local) | 192.168.31.112/sqlgmngdb | 本地数据源,见 `application-local.yml` |
+| `spring.datasource.*` (prod) | ${DB_HOST}/sqlgmngdb | 容器数据源,由环境变量注入,见 `application-prod.yml` |
+| `sqlg.jdbc.*` | 同主数据源 | sqlg 图数据源覆盖(指向同一 PG 实例) |
 | `spring.flyway.locations` | classpath:db/migration | Flyway 迁移脚本位置 |
 | `mybatis.mapper-locations` | classpath:mapper/*.xml | MyBatis XML 映射 |
 | `mybatis.configuration.map-underscore-to-camel-case` | true | 自动驼峰映射 |
