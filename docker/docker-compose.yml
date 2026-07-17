@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    container_name: graph-mng-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sqlg_mng
+      POSTGRES_PASSWORD: sqlg_mng
+      POSTGRES_DB: sqlgmngdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sqlg_mng -d sqlgmngdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    image: graph-mng-backend:latest
+    container_name: graph-mng-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: sqlgmngdb
+      DB_USER: sqlg_mng
+      DB_PASSWORD: sqlg_mng
+    ports:
+      - "8090:8090"
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    image: graph-mng-frontend:latest
+    container_name: graph-mng-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:
