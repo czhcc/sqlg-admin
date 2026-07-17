@@ -14,6 +14,14 @@ import org.umlg.sqlg.structure.SqlgGraph;
 
 import java.util.Properties;
 
+/**
+ * SqlgGraph 配置, 从 classpath 属性文件加载基础配置, 并允许通过 Spring 属性
+ * {@code sqlg.jdbc.url}/{@code sqlg.jdbc.username}/{@code sqlg.jdbc.password}
+ * 覆盖 jdbc 连接, 以适配不同运行环境 (本地 / 容器) 的数据源地址。
+ *
+ * @author czh
+ * @date 2026/0717
+ */
 @org.springframework.context.annotation.Configuration
 @ConditionalOnProperty(name = "sqlg.enabled", havingValue = "true", matchIfMissing = false)
 public class SqlgConfig {
@@ -22,6 +30,15 @@ public class SqlgConfig {
 
     @Value("${sqlg.properties-file:sqlg.properties}")
     private String propertiesFile;
+
+    @Value("${sqlg.jdbc.url:}")
+    private String overrideJdbcUrl;
+
+    @Value("${sqlg.jdbc.username:}")
+    private String overrideJdbcUser;
+
+    @Value("${sqlg.jdbc.password:}")
+    private String overrideJdbcPassword;
 
     private SqlgGraph sqlgGraph;
 
@@ -32,6 +49,7 @@ public class SqlgConfig {
             try (var in = new ClassPathResource(propertiesFile).getInputStream()) {
                 props.load(in);
             }
+            applyOverrides(props);
             var config = new BaseConfiguration();
             props.forEach((k, v) -> config.setProperty((String) k, v));
             log.info("Opening SqlgGraph with jdbc.url={}", props.getProperty("jdbc.url"));
@@ -39,6 +57,18 @@ public class SqlgConfig {
             log.info("SqlgGraph opened successfully");
         } catch (Exception e) {
             log.warn("SqlgGraph not initialized (will retry lazily): {}", e.getMessage());
+        }
+    }
+
+    private void applyOverrides(Properties props) {
+        if (overrideJdbcUrl != null && !overrideJdbcUrl.isBlank()) {
+            props.setProperty("jdbc.url", overrideJdbcUrl);
+        }
+        if (overrideJdbcUser != null && !overrideJdbcUser.isBlank()) {
+            props.setProperty("jdbc.username", overrideJdbcUser);
+        }
+        if (overrideJdbcPassword != null && !overrideJdbcPassword.isBlank()) {
+            props.setProperty("jdbc.password", overrideJdbcPassword);
         }
     }
 
