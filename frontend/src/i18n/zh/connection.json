@@ -1,0 +1,43 @@
+{
+  "title": "连接管理",
+  "subtitle": "管理图数据库连接配置",
+  "searchPlaceholder": "搜索名称/类型/备注",
+  "addConnection": "新增连接",
+  "editConnection": "编辑连接",
+  "empty": "暂无连接,点击右上角「新增连接」",
+  "distributed": "distributed = true",
+  "dbType": "数据库类型",
+  "jdbcUrl": "JDBC URL",
+  "connectionName": "连接名称",
+  "connectionNamePlaceholder": "如 prod-pg",
+  "jdbcPlaceholder": "jdbc:postgresql://host:5432/db",
+  "passwordEdit": "密码 (留空则不修改)",
+  "poolConfig": "连接池配置 (JSON)",
+  "col": {
+    "name": "名称",
+    "type": "类型",
+    "username": "用户名",
+    "distributed": "distributed",
+    "status": "状态",
+    "default": "默认",
+    "remark": "备注"
+  },
+  "action": {
+    "testConnection": "测试连接",
+    "setDefault": "设为默认",
+    "enable": "启用",
+    "disable": "停用"
+  },
+  "msg": {
+    "requiredFields": "连接名称、JDBC URL、用户名必填",
+    "updateSuccess": "更新成功",
+    "createSuccess": "新增成功",
+    "connectionOk": "连接成功: {{message}}",
+    "connectionFail": "连接失败: {{message}}",
+    "enabled": "已启用",
+    "disabled": "已停用",
+    "setDefaultOk": "已设为默认: {{name}}",
+    "confirmDelete": "确认删除连接「{{name}}」?",
+    "deleted": "已删除"
+  }
+}

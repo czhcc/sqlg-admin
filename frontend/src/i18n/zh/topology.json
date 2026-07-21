@@ -1,0 +1,35 @@
+{
+  "title": "Topology 浏览",
+  "subtitle": "查看图数据库的 Schema / 点边类型 / 属性 / 索引",
+  "searchPlaceholder": "选择连接",
+  "noSchema": "该连接没有任何 schema",
+  "schemaCount": "{{count}} schema(s)",
+  "vertexLabels": "Vertex Labels",
+  "edgeLabels": "Edge Labels",
+  "schemaLabel": "Schema: {{name}}",
+  "vertexCountBadge": "{{count}} 顶点",
+  "edgeCountBadge": "{{count}} 边",
+  "partitioned": "分区",
+  "propCount": "{{count}} prop",
+  "idCount": "{{count}} id",
+  "inEdges": "in {{count}}",
+  "outEdges": "out {{count}}",
+  "section": {
+    "properties": "属性",
+    "identifiers": "Identifiers",
+    "indexes": "索引",
+    "inEdges": "入边 (In Edges)",
+    "outEdges": "出边 (Out Edges)",
+    "outVertex": "起点 (Out Vertex)",
+    "inVertex": "终点 (In vertex)"
+  },
+  "emptyMini": {
+    "noProps": "无属性",
+    "noIndexes": "无索引",
+    "none": "无"
+  },
+  "msg": {
+    "rememberFail": "记住连接选择失败: {{message}}",
+    "refreshed": "已刷新"
+  }
+}

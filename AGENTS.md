@@ -196,6 +196,7 @@ app.jwt.secret / expiration-ms
 - **样式**: 仅用 Tailwind v4 utility class,**不要**新增 `tailwind.config.js`、不要写自定义 CSS(除非全局重置)
 - **图标**: 优先 `lucide-react`,按需 import
 - **表单弹窗**: 用 `fixed inset-0` 模态层,参考 `Connection.jsx` 实现
+- **国际化 (i18n)**: 所有用户可见的文本(按钮、标题、表头、提示、占位符、确认框、Toast 消息等)**必须**通过 `react-i18next` 的 `t()` 函数渲染,**禁止**在 JSX 中硬编码中文字符串。翻译文件按页面分命名空间存放在 `src/i18n/{zh,en}/`,公共文案统一放 `common` 命名空间。新增页面时必须同步创建对应的翻译 JSON。后端返回的 label(如权限名称、角色名称)如需翻译,使用 `permissions` 命名空间按 code 做映射。
 
 ## 7. 启动方式
 

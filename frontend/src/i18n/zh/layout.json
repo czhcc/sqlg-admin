@@ -1,0 +1,52 @@
+{
+  "menu": {
+    "connection": "连接管理",
+    "topology": "Topology 浏览",
+    "vertexType": "点类型管理",
+    "edgeType": "边类型管理",
+    "propertyManagement": "属性管理",
+    "vertexData": "点数据管理",
+    "edgeData": "边数据管理",
+    "graphExplore": "图关系展开",
+    "gremlin": "Gremlin 控制台",
+    "importExport": "导入导出",
+    "operationLog": "操作日志",
+    "userManagement": "用户管理",
+    "roleManagement": "角色管理",
+    "permissionOverview": "权限总览",
+    "loginLog": "登录日志"
+  },
+  "group": {
+    "userPermission": "用户与权限",
+    "auditLog": "审计日志"
+  },
+  "user": {
+    "profile": "个人信息",
+    "changePassword": "修改密码",
+    "logout": "退出登录",
+    "language": "语言切换"
+  },
+  "profile": {
+    "title": "个人信息",
+    "username": "用户名",
+    "nickname": "显示名称",
+    "email": "邮箱",
+    "phone": "手机号",
+    "remark": "备注",
+    "saveSuccess": "保存成功"
+  },
+  "password": {
+    "title": "修改密码",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认新密码",
+    "currentPlaceholder": "请输入当前密码",
+    "newPlaceholder": "至少 6 位",
+    "confirmPlaceholder": "再次输入新密码",
+    "confirmButton": "确认修改",
+    "requiredCurrent": "请输入当前密码",
+    "minLength": "新密码至少 6 位",
+    "mismatch": "两次输入的新密码不一致",
+    "success": "密码修改成功"
+  }
+}

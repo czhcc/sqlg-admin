@@ -1,0 +1,35 @@
+{
+  "title": "Topology Browser",
+  "subtitle": "View Schema / Vertex & Edge labels / Properties / Indexes",
+  "searchPlaceholder": "Select connection",
+  "noSchema": "This connection has no schema",
+  "schemaCount": "{{count}} schema(s)",
+  "vertexLabels": "Vertex Labels",
+  "edgeLabels": "Edge Labels",
+  "schemaLabel": "Schema: {{name}}",
+  "vertexCountBadge": "{{count}} vertices",
+  "edgeCountBadge": "{{count}} edges",
+  "partitioned": "Partitioned",
+  "propCount": "{{count}} prop",
+  "idCount": "{{count}} id",
+  "inEdges": "in {{count}}",
+  "outEdges": "out {{count}}",
+  "section": {
+    "properties": "Properties",
+    "identifiers": "Identifiers",
+    "indexes": "Indexes",
+    "inEdges": "In Edges",
+    "outEdges": "Out Edges",
+    "outVertex": "Out Vertex",
+    "inVertex": "In Vertex"
+  },
+  "emptyMini": {
+    "noProps": "No properties",
+    "noIndexes": "No indexes",
+    "none": "None"
+  },
+  "msg": {
+    "rememberFail": "Failed to remember connection: {{message}}",
+    "refreshed": "Refreshed"
+  }
+}

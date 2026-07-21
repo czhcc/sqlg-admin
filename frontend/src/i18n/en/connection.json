@@ -1,0 +1,43 @@
+{
+  "title": "Connections",
+  "subtitle": "Manage graph database connection configurations",
+  "searchPlaceholder": "Search name / type / remark",
+  "addConnection": "Add Connection",
+  "editConnection": "Edit Connection",
+  "empty": "No connections yet. Click \"Add Connection\" at the top right.",
+  "distributed": "distributed = true",
+  "dbType": "Database Type",
+  "jdbcUrl": "JDBC URL",
+  "connectionName": "Connection Name",
+  "connectionNamePlaceholder": "e.g. prod-pg",
+  "jdbcPlaceholder": "jdbc:postgresql://host:5432/db",
+  "passwordEdit": "Password (leave blank to keep)",
+  "poolConfig": "Pool Config (JSON)",
+  "col": {
+    "name": "Name",
+    "type": "Type",
+    "username": "Username",
+    "distributed": "distributed",
+    "status": "Status",
+    "default": "Default",
+    "remark": "Remark"
+  },
+  "action": {
+    "testConnection": "Test Connection",
+    "setDefault": "Set as Default",
+    "enable": "Enable",
+    "disable": "Disable"
+  },
+  "msg": {
+    "requiredFields": "Name, JDBC URL and Username are required",
+    "updateSuccess": "Updated successfully",
+    "createSuccess": "Created successfully",
+    "connectionOk": "Connected: {{message}}",
+    "connectionFail": "Connection failed: {{message}}",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "setDefaultOk": "Set as default: {{name}}",
+    "confirmDelete": "Delete connection \"{{name}}\"?",
+    "deleted": "Deleted"
+  }
+}

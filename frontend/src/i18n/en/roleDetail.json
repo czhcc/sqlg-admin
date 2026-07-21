@@ -1,0 +1,59 @@
+{
+  "title": "Role Detail",
+  "subtitle": "View and edit role configuration",
+  "back": "Back",
+  "save": "Save",
+  "cancel": "Cancel",
+  "loading": "Loading...",
+  "builtin": "Built-in",
+  "builtinHint": "Role key cannot be modified",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "detailTitle": "Role Detail: {{name}}",
+  "tab": {
+    "basic": "Basic Info",
+    "members": "Members",
+    "menus": "Menu Permissions",
+    "operations": "Operation Permissions",
+    "connections": "Connections",
+    "gremlin": "Gremlin Permissions",
+    "dangerous": "Dangerous Qualifications"
+  },
+  "basic": {
+    "roleKey": "Role Key",
+    "roleName": "Role Name",
+    "description": "Description",
+    "status": "Status"
+  },
+  "members": {
+    "count": "{{count}} users",
+    "addUser": "Add User",
+    "selectToAdd": "Select users to add",
+    "noCandidates": "No users available to add",
+    "confirmAdd": "Confirm",
+    "removed": "Removed",
+    "selectFirst": "Please select users",
+    "added": "Added {{count}} users",
+    "empty": "No members",
+    "colUsername": "Username",
+    "colNickname": "Display Name",
+    "colStatus": "Status",
+    "remove": "Remove"
+  },
+  "connections": {
+    "visibleCount": "{{visible}} / {{total}} connections visible",
+    "hint": "Checked connections will be visible to users with this role",
+    "empty": "No connections",
+    "colName": "Connection",
+    "colType": "Type",
+    "colStatus": "Status",
+    "colVisible": "Visible"
+  },
+  "dangerous": {
+    "warnQualNoOps": "\"{{label}}\" qualification is configured, but the role has no related operation permissions. This qualification won't take effect.",
+    "warnOpsNoQual": "Operation permissions {{ops}} are configured, but \"{{label}}\" qualification is missing. The role cannot execute these operations."
+  },
+  "msg": {
+    "saveSuccess": "Saved successfully"
+  }
+}

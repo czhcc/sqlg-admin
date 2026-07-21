@@ -1,0 +1,80 @@
+{
+  "menu": {
+    "connection": "连接管理",
+    "vertex-type": "点类型管理",
+    "edge-type": "边类型管理",
+    "property-management": "属性管理",
+    "vertex-data": "点数据管理",
+    "edge-data": "边数据管理",
+    "graph-explore": "图关系展开",
+    "gremlin": "Gremlin 控制台",
+    "import-export": "导入导出",
+    "user-permission": "用户与权限",
+    "permission-overview": "权限总览",
+    "user-management": "用户管理",
+    "role-management": "角色管理",
+    "login-log": "登录日志",
+    "operation-log": "操作日志"
+  },
+  "op": {
+    "connection__create": "新增连接",
+    "connection__delete": "删除连接",
+    "connection__test": "测试连接",
+    "connection__update": "设为默认连接",
+    "vertex_data__clear": "清空点数据",
+    "vertex_type__create": "新增点类型",
+    "vertex_type__delete": "删除点类型",
+    "vertex_type__update": "编辑点类型",
+    "edge_data__clear": "清空边数据",
+    "edge_type__create": "新增边类型",
+    "edge_type__delete": "删除边类型",
+    "property__create": "新增属性",
+    "property__delete": "删除属性",
+    "property__index": "索引管理",
+    "property__update": "编辑属性",
+    "vertex_data__batch_delete": "批量删除点",
+    "vertex_data__create": "新增点",
+    "vertex_data__delete": "删除点",
+    "vertex_data__update": "编辑点",
+    "edge_data__batch_delete": "批量删除边",
+    "edge_data__create": "新增边",
+    "edge_data__delete": "删除边",
+    "edge_data__update": "编辑边",
+    "gremlin__execute": "执行 Gremlin 查询",
+    "io__import": "导入边数据",
+    "io__topology_import": "导入 Topology",
+    "permission__view": "查看权限总览"
+  },
+  "dangerous": {
+    "dangerous__batch_delete": "数据批量删除",
+    "dangerous__data_clear": "数据清空",
+    "dangerous__topology_delete": "Topology 删除",
+    "dangerous__gremlin_execute": "危险 Gremlin",
+    "dangerous__import_overwrite": "覆盖导入"
+  },
+  "dangerousDesc": {
+    "dangerous__batch_delete": "允许执行已授权的批量删除点、批量删除边操作",
+    "dangerous__data_clear": "允许执行已授权的清空点数据、清空边数据操作",
+    "dangerous__topology_delete": "允许执行已授权的删除 Schema、VertexLabel、EdgeLabel、属性和索引操作",
+    "dangerous__gremlin_execute": "允许执行已授权的 drop、批量删除等危险 Gremlin",
+    "dangerous__import_overwrite": "允许执行覆盖已有数据或 Topology 的导入操作"
+  },
+  "role": {
+    "DB_ADMIN": "图库管理员",
+    "DEVELOPER": "开发人员",
+    "DATA_MAINTAINER": "数据维护人员",
+    "READONLY_USER": "只读查询人员",
+    "OPERATOR": "运维人员"
+  },
+  "gremlinCap": {
+    "console_access": "Gremlin 控制台访问",
+    "read_query": "只读查询",
+    "data_write": "数据写入",
+    "dangerous_ops": "危险操作"
+  },
+  "gremlinLevel": {
+    "READ_ONLY": "只读",
+    "WRITE": "数据写入",
+    "DANGEROUS": "危险"
+  }
+}

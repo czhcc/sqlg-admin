@@ -1,0 +1,82 @@
+{
+  "title": "User Detail",
+  "subtitle": "View and edit user information",
+  "back": "Back",
+  "save": "Save",
+  "cancel": "Cancel",
+  "loading": "Loading...",
+  "newUser": "New User",
+  "detailTitle": "User Detail: {{name}}",
+  "saveFirstHint": "Save the user first to view this tab",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "success": "Success",
+  "failed": "Failed",
+  "none": "None",
+  "all": "All",
+  "prevPage": "Previous",
+  "nextPage": "Next",
+  "totalCount": "{{count}} total",
+  "emptyRecords": "No records",
+  "tab": {
+    "basic": "Basic Info",
+    "roles": "Roles",
+    "permissions": "Permissions",
+    "connections": "Connections",
+    "loginLogs": "Login Logs",
+    "operationLogs": "Operation Logs"
+  },
+  "field": {
+    "username": "Username",
+    "password": "Password",
+    "nickname": "Display Name",
+    "email": "Email",
+    "phone": "Phone",
+    "status": "Status",
+    "remark": "Remark"
+  },
+  "roles": {
+    "assignTitle": "Assign Roles",
+    "saveRoles": "Save Roles",
+    "resetPassword": "Reset Password",
+    "resetBtn": "Reset",
+    "newPasswordPlaceholder": "Enter new password (min 6 chars)",
+    "passwordReset": "Password reset",
+    "passwordMinLength": "Password must be at least 6 characters",
+    "saveUserFirst": "Please save the user in Basic Info first"
+  },
+  "perms": {
+    "currentRoles": "Current Roles",
+    "unassigned": "Unassigned",
+    "menuPerms": "Menu Permissions",
+    "allMenus": "All Menus",
+    "operationPerms": "Operation Permissions",
+    "allOps": "All Operations",
+    "gremlinPerms": "Gremlin Permission",
+    "dangerousQuals": "Dangerous Qualifications",
+    "allowed": "Allowed"
+  },
+  "conn": {
+    "accessibleCount": "Accessible connections",
+    "mergedAccess": "Merged access level",
+    "colScope": "Scope",
+    "colAccess": "Access Level",
+    "colSource": "Source Role"
+  },
+  "loginLog": {
+    "colTime": "Login Time",
+    "colIp": "IP",
+    "colResult": "Result",
+    "colUa": "User-Agent"
+  },
+  "opLog": {
+    "colTime": "Time",
+    "colModule": "Module",
+    "colOp": "Operation",
+    "colStatus": "Status"
+  },
+  "msg": {
+    "saveSuccess": "Saved successfully",
+    "usernamePasswordRequired": "Username and password are required"
+  }
+}

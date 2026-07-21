@@ -1,0 +1,80 @@
+{
+  "menu": {
+    "connection": "Connections",
+    "vertex-type": "Vertex Types",
+    "edge-type": "Edge Types",
+    "property-management": "Properties",
+    "vertex-data": "Vertex Data",
+    "edge-data": "Edge Data",
+    "graph-explore": "Graph Explorer",
+    "gremlin": "Gremlin Console",
+    "import-export": "Import / Export",
+    "user-permission": "Users & Permissions",
+    "permission-overview": "Permissions",
+    "user-management": "Users",
+    "role-management": "Roles",
+    "login-log": "Login Log",
+    "operation-log": "Operation Log"
+  },
+  "op": {
+    "connection__create": "Create Connection",
+    "connection__delete": "Delete Connection",
+    "connection__test": "Test Connection",
+    "connection__update": "Set Default Connection",
+    "vertex_data__clear": "Clear Vertex Data",
+    "vertex_type__create": "Create Vertex Type",
+    "vertex_type__delete": "Delete Vertex Type",
+    "vertex_type__update": "Edit Vertex Type",
+    "edge_data__clear": "Clear Edge Data",
+    "edge_type__create": "Create Edge Type",
+    "edge_type__delete": "Delete Edge Type",
+    "property__create": "Create Property",
+    "property__delete": "Delete Property",
+    "property__index": "Index Management",
+    "property__update": "Edit Property",
+    "vertex_data__batch_delete": "Batch Delete Vertices",
+    "vertex_data__create": "Create Vertex",
+    "vertex_data__delete": "Delete Vertex",
+    "vertex_data__update": "Edit Vertex",
+    "edge_data__batch_delete": "Batch Delete Edges",
+    "edge_data__create": "Create Edge",
+    "edge_data__delete": "Delete Edge",
+    "edge_data__update": "Edit Edge",
+    "gremlin__execute": "Execute Gremlin Query",
+    "io__import": "Import Data",
+    "io__topology_import": "Import Topology",
+    "permission__view": "View Permissions"
+  },
+  "dangerous": {
+    "dangerous__batch_delete": "Batch Data Deletion",
+    "dangerous__data_clear": "Data Clearing",
+    "dangerous__topology_delete": "Topology Deletion",
+    "dangerous__gremlin_execute": "Dangerous Gremlin",
+    "dangerous__import_overwrite": "Overwrite Import"
+  },
+  "dangerousDesc": {
+    "dangerous__batch_delete": "Allows authorized batch deletion of vertices and edges",
+    "dangerous__data_clear": "Allows authorized clearing of vertex and edge data",
+    "dangerous__topology_delete": "Allows authorized deletion of Schema, VertexLabel, EdgeLabel, properties and indexes",
+    "dangerous__gremlin_execute": "Allows authorized dangerous Gremlin queries like drop, batch delete",
+    "dangerous__import_overwrite": "Allows import that overwrites existing data or Topology"
+  },
+  "role": {
+    "DB_ADMIN": "DB Admin",
+    "DEVELOPER": "Developer",
+    "DATA_MAINTAINER": "Data Maintainer",
+    "READONLY_USER": "Read-only User",
+    "OPERATOR": "Operator"
+  },
+  "gremlinCap": {
+    "console_access": "Gremlin Console Access",
+    "read_query": "Read-only Query",
+    "data_write": "Data Write",
+    "dangerous_ops": "Dangerous Operations"
+  },
+  "gremlinLevel": {
+    "READ_ONLY": "Read-only",
+    "WRITE": "Write",
+    "DANGEROUS": "Dangerous"
+  }
+}

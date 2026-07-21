@@ -1,0 +1,1 @@
+{"title":"登录日志","subtitle":"追踪用户登录行为 · 安全审计","searchPlaceholder":"搜索用户名/IP","resultAll":"全部","resultSuccess":"成功","resultFailed":"失败","col":{"loginTime":"登录时间","username":"用户名","ip":"IP","result":"结果","failReason":"失败原因","userAgent":"User-Agent"},"empty":"暂无记录"}

@@ -1,0 +1,52 @@
+{
+  "menu": {
+    "connection": "Connections",
+    "topology": "Topology",
+    "vertexType": "Vertex Types",
+    "edgeType": "Edge Types",
+    "propertyManagement": "Properties",
+    "vertexData": "Vertex Data",
+    "edgeData": "Edge Data",
+    "graphExplore": "Graph Explorer",
+    "gremlin": "Gremlin Console",
+    "importExport": "Import / Export",
+    "operationLog": "Operation Log",
+    "userManagement": "Users",
+    "roleManagement": "Roles",
+    "permissionOverview": "Permissions",
+    "loginLog": "Login Log"
+  },
+  "group": {
+    "userPermission": "Users & Permissions",
+    "auditLog": "Audit Logs"
+  },
+  "user": {
+    "profile": "Profile",
+    "changePassword": "Change Password",
+    "logout": "Logout",
+    "language": "Language"
+  },
+  "profile": {
+    "title": "Profile",
+    "username": "Username",
+    "nickname": "Display Name",
+    "email": "Email",
+    "phone": "Phone",
+    "remark": "Remark",
+    "saveSuccess": "Saved successfully"
+  },
+  "password": {
+    "title": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "currentPlaceholder": "Enter current password",
+    "newPlaceholder": "At least 6 characters",
+    "confirmPlaceholder": "Re-enter new password",
+    "confirmButton": "Change Password",
+    "requiredCurrent": "Please enter current password",
+    "minLength": "New password must be at least 6 characters",
+    "mismatch": "Passwords do not match",
+    "success": "Password changed successfully"
+  }
+}

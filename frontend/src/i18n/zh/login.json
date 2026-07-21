@@ -1,0 +1,12 @@
+{
+  "subtitle": "Graph Database Management",
+  "username": "用户名",
+  "usernamePlaceholder": "请输入用户名",
+  "password": "密码",
+  "passwordPlaceholder": "请输入密码",
+  "loginButton": "登 录",
+  "loggingIn": "登录中...",
+  "loginFailed": "登录失败",
+  "initialAccount": "初始账号: admin / 123456",
+  "welcomeBack": "欢迎回来"
+}

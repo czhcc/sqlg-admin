@@ -1,0 +1,12 @@
+{
+  "subtitle": "Graph Database Management",
+  "username": "Username",
+  "usernamePlaceholder": "Enter username",
+  "password": "Password",
+  "passwordPlaceholder": "Enter password",
+  "loginButton": "Login",
+  "loggingIn": "Logging in...",
+  "loginFailed": "Login failed",
+  "initialAccount": "Default: admin / 123456",
+  "welcomeBack": "Welcome back"
+}
