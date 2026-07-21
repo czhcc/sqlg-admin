@@ -13,13 +13,14 @@ import {
   Database, Star, ChevronDown, Network, Search, X,
   RefreshCw, Layers, Maximize, Trash2, Zap,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const LAYOUTS = [
-  { value: 'force', label: '力导向 (Force)' },
-  { value: 'dagre', label: '层级 (Dagre)' },
-  { value: 'radial', label: '辐射 (Radial)' },
-  { value: 'circular', label: '环形 (Circular)' },
-  { value: 'grid', label: '网格 (Grid)' },
+  { value: 'force', labelKey: 'layoutForce' },
+  { value: 'dagre', labelKey: 'layoutDagre' },
+  { value: 'radial', labelKey: 'layoutRadial' },
+  { value: 'circular', labelKey: 'layoutCircular' },
+  { value: 'grid', labelKey: 'layoutGrid' },
 ]
 
 const PALETTE = [
@@ -28,6 +29,7 @@ const PALETTE = [
 ]
 
 export default function GraphExplore() {
+  const { t } = useTranslation('graphExplore')
   const [connections, setConnections] = useState([])
   const [selectedConnId, setSelectedConnId] = useState(null)
   const [connDropdown, setConnDropdown] = useState(false)
@@ -242,9 +244,9 @@ export default function GraphExplore() {
         }).catch(() => {})
       }
 
-      showToast('success', `展开成功: 新增 ${newNodes.length} 个节点, ${newEdges.length} 条边`)
+      showToast('success', t('msg.expandOk', { nodes: newNodes.length, edges: newEdges.length }))
       if (data.truncated) {
-        showToast('error', '邻居数量已达上限,部分关系未展示')
+        showToast('error', t('msg.expandTruncated'))
       }
     } catch (e) {
       showToast('error', e.message)
@@ -282,7 +284,7 @@ export default function GraphExplore() {
     } else {
       const filtered = newNodes.filter((n) => !existingIds.has(n.id))
       if (filtered.length === 0) {
-        showToast('error', '选中的点已全部在图中')
+        showToast('error', t('msg.alreadyOnGraph'))
         return
       }
       graph.addData({ nodes: filtered, edges: [] })
@@ -298,7 +300,7 @@ export default function GraphExplore() {
     const graph = graphRef.current
     if (!graph) return
     if (graph.getNodeData().length === 0) return
-    if (!window.confirm('确认清空当前画布上的所有节点和边?')) return
+    if (!window.confirm(t('msg.confirmClearCanvas'))) return
     graph.setData({ nodes: [], edges: [] })
     graph.render()
     nodeColorMapRef.current = {}
@@ -314,7 +316,7 @@ export default function GraphExplore() {
     try {
       await refreshConnection(selectedConnId)
       await loadSchemas(selectedConnId)
-      showToast('success', '已刷新')
+      showToast('success', t('msg.refreshed'))
     } catch (e) { showToast('error', e.message) }
   }
 
@@ -335,20 +337,20 @@ export default function GraphExplore() {
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-            <Network size={20} className="text-indigo-500" /> 图关系展开
+            <Network size={20} className="text-indigo-500" /> {t('title')}
           </h1>
-          <p className="mt-0.5 text-sm text-gray-500">可视化展开顶点关系网络 · 双击节点展开邻居</p>
+          <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Dropdown
-            label={selectedConn ? selectedConn.name : '选择连接'}
+            label={selectedConn ? selectedConn.name : t('selectConnection')}
             icon={<Database size={15} className="text-indigo-500" />}
             open={connDropdown}
             onToggle={() => setConnDropdown((v) => !v)}
             onClose={() => setConnDropdown(false)}
             width="w-64"
           >
-            {connections.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">暂无可用连接</div>}
+            {connections.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">{t('noConnection')}</div>}
             {connections.map((c) => (
               <button key={c.id}
                 onClick={() => {
@@ -372,14 +374,14 @@ export default function GraphExplore() {
           </Dropdown>
 
           <Dropdown
-            label={selectedSchema || '选择 Schema'}
+            label={selectedSchema || t('selectSchema')}
             icon={<Layers size={15} className="text-purple-500" />}
             open={schemaDropdown}
             onToggle={() => setSchemaDropdown((v) => !v)}
             onClose={() => setSchemaDropdown(false)}
             width="w-48"
           >
-            {schemas.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">暂无 Schema</div>}
+            {schemas.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">{t('noSchema')}</div>}
             {schemas.map((s) => (
               <button key={s.name}
                 onClick={() => { setSelectedSchema(s.name); setSchemaDropdown(false) }}
@@ -397,39 +399,39 @@ export default function GraphExplore() {
 
           <button onClick={onRefresh} disabled={!selectedConnId}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-            <RefreshCw size={15} /> 刷新
+            <RefreshCw size={15} /> {t('refresh')}
           </button>
 
           <button onClick={() => setQueryModal(true)} disabled={!selectedConnId || !selectedSchema}
             className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-            <Search size={15} /> 点查询
+            <Search size={15} /> {t('vertexQuery')}
           </button>
         </div>
       </header>
 
       <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-6 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400">布局:</span>
+          <span className="text-xs text-gray-400">{t('layout')}:</span>
           <select value={layout} onChange={(e) => setLayout(e.target.value)}
             className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-indigo-500">
-            {LAYOUTS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
+            {LAYOUTS.map((l) => <option key={l.value} value={l.value}>{t(l.labelKey)}</option>)}
           </select>
         </div>
         <div className="h-4 w-px bg-gray-300" />
         <button onClick={onFitView}
           className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-600 hover:bg-gray-50">
-          <Maximize size={13} /> 适应画布
+          <Maximize size={13} /> {t('fitCanvas')}
         </button>
         <button onClick={onClearGraph}
           className="flex items-center gap-1 rounded-md border border-red-300 bg-white px-2 py-1 text-xs text-red-600 hover:bg-red-50">
-          <Trash2 size={13} /> 清空画布
+          <Trash2 size={13} /> {t('clearCanvas')}
         </button>
         <div className="ml-auto flex items-center gap-3 text-xs text-gray-500">
           <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-indigo-500" /> {graphStats.nodes} 节点
+            <span className="h-2 w-2 rounded-full bg-indigo-500" /> {t('nodeCount', { count: graphStats.nodes })}
           </span>
           <span className="flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-pink-400" /> {graphStats.edges} 边
+            <span className="h-2 w-2 rounded-full bg-pink-400" /> {t('edgeCount', { count: graphStats.edges })}
           </span>
         </div>
       </div>
@@ -438,22 +440,22 @@ export default function GraphExplore() {
         <div ref={containerRef} className="h-full w-full" />
         {!selectedConnId && (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
-            请从右上角选择一个图数据库连接
+            {t('pleaseSelectConn')}
           </div>
         )}
         {selectedConnId && graphStats.nodes === 0 && !expanding && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="rounded-lg bg-white/90 px-6 py-4 text-center shadow-md">
               <Network size={32} className="mx-auto mb-2 text-gray-300" />
-              <p className="text-sm text-gray-400">点击右上角「点查询」按钮</p>
-              <p className="text-xs text-gray-400">查询并选择顶点上图</p>
+              <p className="text-sm text-gray-400">{t('clickToQuery')}</p>
+              <p className="text-xs text-gray-400">{t('clickToQueryHint')}</p>
             </div>
           </div>
         )}
         {expanding && (
           <div className="absolute right-4 top-4 flex items-center gap-2 rounded-lg bg-white/95 px-4 py-2 shadow-lg">
             <RefreshCw size={14} className="animate-spin text-indigo-500" />
-            <span className="text-xs text-gray-600">展开中...</span>
+            <span className="text-xs text-gray-600">{t('expanding')}</span>
           </div>
         )}
         <div className="absolute bottom-4 left-4 flex flex-col gap-1">
@@ -490,6 +492,7 @@ export default function GraphExplore() {
 }
 
 function VertexQueryModal({ connectionId, schema, vertexLabels, onClose, onAddToGraph }) {
+  const { t } = useTranslation('graphExplore')
   const [selectedLabel, setSelectedLabel] = useState('')
   const [properties, setProperties] = useState([])
   const [propName, setPropName] = useState('')
@@ -560,7 +563,7 @@ function VertexQueryModal({ connectionId, schema, vertexLabels, onClose, onAddTo
       <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <h2 className="flex items-center gap-2 text-base font-semibold text-gray-800">
-            <Search size={18} className="text-indigo-500" /> 点查询
+            <Search size={18} className="text-indigo-500" /> {t('vertexQuery')}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
@@ -571,30 +574,30 @@ function VertexQueryModal({ connectionId, schema, vertexLabels, onClose, onAddTo
               <label className="mb-1 block text-xs font-medium text-gray-500">VertexLabel</label>
               <select value={selectedLabel} onChange={(e) => onLabelChange(e.target.value)}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
-                <option value="">选择点类型...</option>
+                <option value="">{t('selectVertexType')}</option>
                 {vertexLabels.map((vl) => (
                   <option key={vl.name} value={vl.name}>{vl.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">查询字段</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">{t('queryField')}</label>
               <select value={propName} onChange={(e) => setPropName(e.target.value)}
                 disabled={!selectedLabel}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:bg-gray-100">
-                <option value="">全部属性</option>
+                <option value="">{t('allProps')}</option>
                 {properties.map((p) => (
                   <option key={p.name} value={p.name}>{p.name} ({p.type})</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">查询值</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">{t('queryValue')}</label>
               <div className="flex gap-1">
                 <input value={propValue} onChange={(e) => setPropValue(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Enter') doSearch() }}
                   disabled={!selectedLabel}
-                  placeholder="输入属性值..."
+                  placeholder={t("propValuePlaceholder")}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:bg-gray-100" />
                 <button onClick={doSearch} disabled={!selectedLabel || loading}
                   className="flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
@@ -607,15 +610,15 @@ function VertexQueryModal({ connectionId, schema, vertexLabels, onClose, onAddTo
 
         <div className="flex-1 overflow-hidden">
           {loading && (
-            <div className="flex h-48 items-center justify-center text-sm text-gray-400">查询中...</div>
+            <div className="flex h-48 items-center justify-center text-sm text-gray-400">{t('searching')}</div>
           )}
           {!loading && !searched && (
             <div className="flex h-48 items-center justify-center text-sm text-gray-400">
-              选择 VertexLabel 后点击查询
+              {t('selectToSearch')}
             </div>
           )}
           {!loading && searched && results.length === 0 && (
-            <div className="flex h-48 items-center justify-center text-sm text-gray-400">无匹配结果</div>
+            <div className="flex h-48 items-center justify-center text-sm text-gray-400">{t('noResult')}</div>
           )}
           {!loading && results.length > 0 && (
             <div className="h-full overflow-auto">
@@ -630,7 +633,7 @@ function VertexQueryModal({ connectionId, schema, vertexLabels, onClose, onAddTo
                     </th>
                     <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3">Label</th>
-                    <th className="px-4 py-3">属性摘要</th>
+                    <th className="px-4 py-3">{t('propSummary')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -653,17 +656,17 @@ function VertexQueryModal({ connectionId, schema, vertexLabels, onClose, onAddTo
 
         <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-3">
           <span className="text-xs text-gray-500">
-            {results.length > 0 && `共 ${results.length} 条结果`}
-            {selectedIds.size > 0 && ` · 已选 ${selectedIds.size} 条`}
+            {results.length > 0 && t('resultCount', { count: results.length })}
+            {selectedIds.size > 0 && t('selectedCount', { count: selectedIds.size })}
           </span>
           <div className="flex items-center gap-2">
             <button onClick={onClose}
               className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-              取消
+              {t('common:cancel')}
             </button>
             <button onClick={onAddGraph} disabled={selectedIds.size === 0}
               className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-              <Zap size={14} /> 上图 ({selectedIds.size})
+              <Zap size={14} /> {t('addToGraph', { count: selectedIds.size })}
             </button>
           </div>
         </div>

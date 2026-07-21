@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import {
   listEdgeDataConnections, setActiveConnection, getTree, refreshTree,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 
 export default function EdgeData() {
+  const { t } = useTranslation('edgeData')
   const { hasOp } = useAuth()
   const [connections, setConnections] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -102,7 +104,7 @@ export default function EdgeData() {
       await refreshTree(selectedId)
       await loadTree(selectedId)
       if (selectedLabel) await loadData()
-      showToast('success', '已刷新')
+      showToast('success', t('msg.refreshed'))
     } catch (e) { showToast('error', e.message) }
   }
 
@@ -127,7 +129,7 @@ export default function EdgeData() {
   const onViewDetail = async (row) => {
     try {
       const res = await getEdgeDetail(selectedId, row.id)
-      setDetailModal({ type: 'detail', title: `边详情 ${row.label} #${truncateId(row.id)}`, data: res.data })
+      setDetailModal({ type: 'detail', title: t('edgeDetailTitle', { label: row.label, id: truncateId(row.id) }), data: res.data })
     } catch (e) { showToast('error', e.message) }
   }
 
@@ -135,12 +137,12 @@ export default function EdgeData() {
     if (!selectedLabel) return
     try {
       const res = await getEdgeGremlinExamples(selectedLabel.schema, selectedLabel.label)
-      setDetailModal({ type: 'examples', title: `${selectedLabel.label} — Gremlin 示例`, data: res.data, lang: 'gremlin' })
+      setDetailModal({ type: 'examples', title: t('gremlinTitle', { label: selectedLabel.label }), data: res.data, lang: 'gremlin' })
     } catch (e) { showToast('error', e.message) }
   }
 
   const openCreate = async () => {
-    if (!selectedLabel) { showToast('error', '请先选择 EdgeLabel'); return }
+    if (!selectedLabel) { showToast('error', t('msg.selectEdgeFirst')); return }
     try {
       const [propRes, vlRes] = await Promise.all([
         getEdgeLabelProperties(selectedId, selectedLabel.schema, selectedLabel.label),
@@ -187,10 +189,10 @@ export default function EdgeData() {
       }
       if (formModal.mode === 'create') {
         await createEdge(selectedId, payload)
-        showToast('success', '边创建成功')
+        showToast('success', t('msg.edgeCreated'))
       } else {
         await updateEdge(selectedId, formModal.edgeId, payload)
-        showToast('success', '边更新成功')
+        showToast('success', t('msg.edgeUpdated'))
       }
       setFormModal(null)
       loadData()
@@ -199,17 +201,17 @@ export default function EdgeData() {
   }
 
   const onDelete = async (row) => {
-    if (!window.confirm(`确认删除边「${row.label} #${truncateId(row.id)}」?\n\n删除边不会删除出点和入点。`)) return
-    try { await deleteEdge(selectedId, row.id); showToast('success', '已删除'); loadData() }
+    if (!window.confirm(t('msg.confirmDeleteEdge', { label: row.label, id: truncateId(row.id) }))) return
+    try { await deleteEdge(selectedId, row.id); showToast('success', t('common:deleteSuccess')); loadData() }
     catch (e) { showToast('error', e.message) }
   }
 
   const onBatchDelete = async () => {
-    if (selectedIds.size === 0) { showToast('error', '请先勾选要删除的边'); return }
-    if (!window.confirm(`确认批量删除 ${selectedIds.size} 条边?\n\n此操作不可恢复!`)) return
+    if (selectedIds.size === 0) { showToast('error', t('msg.selectToDelete')); return }
+    if (!window.confirm(t('msg.confirmBatchDelete', { count: selectedIds.size }))) return
     try {
       const res = await batchDeleteEdges(selectedId, [...selectedIds])
-      showToast('success', `已删除 ${res.data?.deleted || 0} 条边`)
+      showToast('success', t('msg.batchDeleted', { count: res.data?.deleted || 0 }))
       loadData()
     } catch (e) { showToast('error', e.message) }
   }
@@ -217,14 +219,12 @@ export default function EdgeData() {
   const onClear = async () => {
     if (!selectedLabel) return
     const input = window.prompt(
-      `确认清空「${selectedLabel.schema}.${selectedLabel.label}」下的全部边数据?\n\n` +
-      `该操作只删除边数据,不会删除边类型和底层表。\n\n` +
-      `请输入 label 名称「${selectedLabel.label}」以确认:`
+      t('msg.confirmClear', { schema: selectedLabel.schema, label: selectedLabel.label })
     )
-    if (input !== selectedLabel.label) { if (input !== null) showToast('error', '输入不匹配'); return }
+    if (input !== selectedLabel.label) { if (input !== null) showToast('error', t('msg.inputMismatch')); return }
     try {
       const res = await clearEdges(selectedId, selectedLabel.schema, selectedLabel.label)
-      showToast('success', `已清空 ${res.data?.deleted || 0} 条边`)
+      showToast('success', t('msg.cleared', { count: res.data?.deleted || 0 }))
       loadData()
     } catch (e) { showToast('error', e.message) }
   }
@@ -252,7 +252,7 @@ export default function EdgeData() {
       a.download = res.data.filename
       a.click()
       URL.revokeObjectURL(url)
-      showToast('success', `已导出 ${res.data.rowCount} 条 (${format.toUpperCase()})`)
+      showToast('success', t('msg.exported', { count: res.data.rowCount, format: format.toUpperCase() }))
     } catch (e) {
       showToast('error', e.message)
     } finally {
@@ -290,9 +290,9 @@ export default function EdgeData() {
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-            <GitFork size={20} className="text-pink-500" /> 边数据管理
+            <GitFork size={20} className="text-pink-500" /> {t('title')}
           </h1>
-          <p className="mt-0.5 text-sm text-gray-500">查询、浏览和维护 Edge 实例数据</p>
+          <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -300,7 +300,7 @@ export default function EdgeData() {
               className="flex min-w-[200px] items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
               <span className="flex items-center gap-2 truncate">
                 <Database size={15} className="text-pink-500" />
-                <span className="truncate font-medium">{selected ? selected.name : '选择连接'}</span>
+                <span className="truncate font-medium">{selected ? selected.name : t('common:selectConnection')}</span>
                 {selected?.isDefault && <Star size={13} className="fill-amber-400 text-amber-400" />}
               </span>
               <ChevronDown size={15} className="text-gray-400" />
@@ -309,7 +309,7 @@ export default function EdgeData() {
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
                 <div className="absolute right-0 z-20 mt-1 max-h-72 w-64 overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                  {connections.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">暂无可用连接</div>}
+                  {connections.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">{t('common:noConnection')}</div>}
                   {connections.map((c) => (
                     <button key={c.id} onClick={() => onSelect(c.id)}
                       className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-pink-50 ${c.id === selectedId ? 'bg-pink-50 text-pink-700' : 'text-gray-700'}`}>
@@ -328,7 +328,7 @@ export default function EdgeData() {
           </div>
           <button onClick={onRefresh} disabled={!selectedId || treeLoading}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-            <RefreshCw size={15} className={treeLoading ? 'animate-spin' : ''} /> 刷新
+            <RefreshCw size={15} className={treeLoading ? 'animate-spin' : ''} /> {t('common:refresh')}
           </button>
         </div>
       </header>
@@ -339,13 +339,13 @@ export default function EdgeData() {
             <div className="relative">
               <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input value={treeSearch} onChange={(e) => setTreeSearch(e.target.value)}
-                placeholder="过滤 Schema / Label..."
+                placeholder={t("filterPlaceholder")}
                 className="w-full rounded-md border border-gray-300 py-1.5 pl-8 pr-3 text-sm outline-none focus:border-pink-500" />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-2">
-            {!selectedId && <div className="flex h-full items-center justify-center text-sm text-gray-400">请选择连接</div>}
-            {selectedId && treeLoading && !tree && <div className="flex h-full items-center justify-center text-sm text-gray-400">加载中...</div>}
+            {!selectedId && <div className="flex h-full items-center justify-center text-sm text-gray-400">{t('pleaseSelectConn')}</div>}
+            {selectedId && treeLoading && !tree && <div className="flex h-full items-center justify-center text-sm text-gray-400">{t('common:loading')}</div>}
             {filteredSchemas.map((schema) => (
               <div key={schema.name} className="mb-1">
                 <div className="flex items-center gap-1.5 rounded px-2 py-1 text-sm">
@@ -376,7 +376,7 @@ export default function EdgeData() {
         <main className="flex-1 overflow-auto bg-gray-50 p-6">
           {!selectedLabel ? (
             <div className="flex h-full items-center justify-center text-sm text-gray-400">
-              请从左侧选择一个 EdgeLabel
+              {t('selectEdgeLabel')}
             </div>
           ) : (
             <div className="flex h-full flex-col">
@@ -386,7 +386,7 @@ export default function EdgeData() {
                     <Minus size={20} className="text-pink-500" />
                   </div>
                   <div>
-                    <div className="text-sm text-gray-400">当前对象</div>
+                    <div className="text-sm text-gray-400">{t('common:currentObject')}</div>
                     <div className="text-base font-semibold text-gray-800">
                       EdgeLabel <span className="text-pink-600">{selectedLabel.schema}.{selectedLabel.label}</span>
                     </div>
@@ -396,23 +396,23 @@ export default function EdgeData() {
                   {selectedIds.size > 0 && hasOp('edge_data:batch_delete') && (
                     <button onClick={onBatchDelete}
                       className="flex items-center gap-1 rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
-                      <Trash2 size={14} /> 批量删除 ({selectedIds.size})
+                      <Trash2 size={14} /> {t('common:batchDelete')} ({selectedIds.size})
                     </button>
                   )}
                   <div className="relative">
                     <button onClick={() => setExportPopover((v) => !v)} disabled={exporting}
                       className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-                      <Download size={14} /> {exporting ? '导出中...' : '导出'}
+                      <Download size={14} /> {exporting ? t('common:exporting') : t('common:export')}
                     </button>
                     {exportPopover && (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setExportPopover(false)} />
                         <div className="absolute right-0 z-20 mt-1 w-36 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                          <div className="px-3 py-1 text-xs text-gray-400">选择导出格式</div>
+                          <div className="px-3 py-1 text-xs text-gray-400">{t('common:selectExportFormat')}</div>
                           {[
-                            { fmt: 'csv', label: 'CSV', desc: '逗号分隔' },
-                            { fmt: 'json', label: 'JSON', desc: 'JSON 数组' },
-                            { fmt: 'excel', label: 'Excel', desc: '.xlsx 文件' },
+                            { fmt: 'csv', label: 'CSV', desc: t('common:formatCsvDesc') },
+                            { fmt: 'json', label: 'JSON', desc: t('common:formatJsonDesc') },
+                            { fmt: 'excel', label: 'Excel', desc: t('common:formatExcelDesc') },
                           ].map((opt) => (
                             <button key={opt.fmt} onClick={() => onExport(opt.fmt)}
                               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-pink-50">
@@ -429,31 +429,31 @@ export default function EdgeData() {
                   </div>
                   <button onClick={onViewGremlin}
                     className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-                    <TerminalSquare size={14} /> Gremlin 示例
+                    <TerminalSquare size={14} /> {t('common:gremlinExamples')}
                   </button>
                   {hasOp('edge_data:clear') && (
                     <button onClick={onClear}
                       className="flex items-center gap-1 rounded-md border border-amber-300 px-3 py-1.5 text-sm text-amber-600 hover:bg-amber-50">
-                      <Eraser size={14} /> 清空数据
+                      <Eraser size={14} /> {t('common:clearData')}
                     </button>
                   )}
                   {hasOp('edge_data:create') && (
                     <button onClick={openCreate}
                       className="flex items-center gap-1 rounded-md bg-pink-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-pink-700">
-                      <Plus size={15} /> 新增边
+                      <Plus size={15} /> {t('common:addEdge')}
                     </button>
                   )}
                 </div>
               </div>
 
               <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="text-xs text-gray-400">过滤:</span>
+                <span className="text-xs text-gray-400">{t('common:filter')}:</span>
                 <input value={filters.outVertexLabel || ''} onChange={(e) => onFilterChange('outVertexLabel', e.target.value)}
-                  placeholder="出点 Label" onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); loadData() } }}
+                  placeholder={t("common:outVertexLabel")} onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); loadData() } }}
                   className="w-32 rounded border border-gray-300 px-2 py-1 text-xs outline-none focus:border-pink-500" />
                 <ArrowRight size={12} className="text-gray-400" />
                 <input value={filters.inVertexLabel || ''} onChange={(e) => onFilterChange('inVertexLabel', e.target.value)}
-                  placeholder="入点 Label" onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); loadData() } }}
+                  placeholder={t("common:inVertexLabel")} onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); loadData() } }}
                   className="w-32 rounded border border-gray-300 px-2 py-1 text-xs outline-none focus:border-pink-500" />
                 <span className="text-gray-300">|</span>
                 {propColumns.map((col) => (
@@ -463,12 +463,12 @@ export default function EdgeData() {
                 ))}
                 <button onClick={() => { setPage(1); loadData() }}
                   className="flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600 hover:bg-gray-200">
-                  <Search size={12} /> 查询
+                  <Search size={12} /> {t('common:query')}
                 </button>
                 {(Object.keys(filters).length > 0) && (
                   <button onClick={() => { setFilters({}); setPage(1) }}
                     className="rounded px-2 py-1 text-xs text-gray-400 hover:text-gray-600">
-                    清除
+                    {t('common:clear')}
                   </button>
                 )}
               </div>
@@ -484,16 +484,16 @@ export default function EdgeData() {
                         </th>
                         <th className="px-3 py-3">ID</th>
                         <th className="px-3 py-3">Label</th>
-                        <th className="px-3 py-3">出点</th>
+                        <th className="px-3 py-3">{t('col.outVertex')}</th>
                         <th className="px-3 py-3 w-8"></th>
-                        <th className="px-3 py-3">入点</th>
-                        <th className="px-3 py-3">属性摘要</th>
-                        <th className="px-3 py-3 text-right">操作</th>
+                        <th className="px-3 py-3">{t('col.inVertex')}</th>
+                        <th className="px-3 py-3">{t('col.propSummary')}</th>
+                        <th className="px-3 py-3 text-right">{t('common:actions')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {loading && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">加载中...</td></tr>}
-                      {!loading && rows.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">暂无数据</td></tr>}
+                      {loading && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">{t('common:loading')}</td></tr>}
+                      {!loading && rows.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">{t('common:noData')}</td></tr>}
                       {!loading && rows.map((row) => (
                         <tr key={row.id} className="hover:bg-gray-50">
                           <td className="px-3 py-3">
@@ -517,9 +517,9 @@ export default function EdgeData() {
                           <td className="px-3 py-3 text-xs text-gray-400">{row.propertySummary}</td>
                           <td className="px-3 py-3">
                             <div className="flex items-center justify-end gap-1">
-                              <ActionBtn title="查看详情" onClick={() => onViewDetail(row)}><Eye size={14} /></ActionBtn>
-                              {hasOp('edge_data:update') && <ActionBtn title="编辑" onClick={() => openEdit(row)}><Pencil size={14} /></ActionBtn>}
-                              {hasOp('edge_data:delete') && <ActionBtn title="删除" danger onClick={() => onDelete(row)}><Trash2 size={14} /></ActionBtn>}
+                              <ActionBtn title={t("common:viewDetail")} onClick={() => onViewDetail(row)}><Eye size={14} /></ActionBtn>
+                              {hasOp('edge_data:update') && <ActionBtn title={t("common:edit")} onClick={() => openEdit(row)}><Pencil size={14} /></ActionBtn>}
+                              {hasOp('edge_data:delete') && <ActionBtn title={t("common:delete")} danger onClick={() => onDelete(row)}><Trash2 size={14} /></ActionBtn>}
                             </div>
                           </td>
                         </tr>
@@ -530,17 +530,17 @@ export default function EdgeData() {
               </div>
 
               <div className="mt-3 flex items-center justify-between text-sm">
-                <span className="text-gray-500">共 {total} 条,第 {page}/{totalPages} 页</span>
+                <span className="text-gray-500">{t('common:total', { count: total })} · {t('common:pageOf', { current: page, total: totalPages })}</span>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setPage(1)} disabled={page <= 1}
-                    className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40">首页</button>
+                    className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40">{t('common:firstPage')}</button>
                   <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}
-                    className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40">上一页</button>
+                    className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40">{t('common:prevPage')}</button>
                   <span className="px-2 text-xs text-gray-500">{page} / {totalPages}</span>
                   <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-                    className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40">下一页</button>
+                    className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40">{t('common:nextPage')}</button>
                   <button onClick={() => setPage(totalPages)} disabled={page >= totalPages}
-                    className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40">末页</button>
+                    className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-40">{t('common:lastPage')}</button>
                 </div>
               </div>
             </div>
@@ -596,6 +596,7 @@ function DetailModal({ data, onClose }) {
 }
 
 function EdgeDetailView({ detail }) {
+  const { t } = useTranslation('edgeData')
   const props = detail.properties || {}
   const propEntries = Object.entries(props)
   return (
@@ -607,19 +608,19 @@ function EdgeDetailView({ detail }) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <VertexBriefCard title="出点 (Out Vertex)" v={detail.outVertex} color="blue" />
-        <VertexBriefCard title="入点 (In Vertex)" v={detail.inVertex} color="green" />
+        <VertexBriefCard title={t("common:outVertexCard")} v={detail.outVertex} color="blue" />
+        <VertexBriefCard title={t("common:inVertexCard")} v={detail.inVertex} color="green" />
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-700">边属性 ({propEntries.length})</h3>
+        <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('common:edgeProps', { count: propEntries.length })}</h3>
         <div className="overflow-hidden rounded-lg border border-gray-200">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-              <tr><th className="px-3 py-2">属性名</th><th className="px-3 py-2">值</th></tr>
+              <tr><th className="px-3 py-2">Property</th><th className="px-3 py-2">Value</th></tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {propEntries.length === 0 && <tr><td colSpan={2} className="px-3 py-4 text-center text-gray-400">无属性</td></tr>}
+              {propEntries.length === 0 && <tr><td colSpan={2} className="px-3 py-4 text-center text-gray-400">{t('common:noProperties')}</td></tr>}
               {propEntries.map(([k, v]) => (
                 <tr key={k}>
                   <td className="px-3 py-2 font-medium text-gray-700">{k}</td>
@@ -641,10 +642,11 @@ function EdgeDetailView({ detail }) {
 }
 
 function VertexBriefCard({ title, v, color }) {
+  const { t } = useTranslation('edgeData')
   if (!v) return (
     <div className="rounded-lg border border-gray-200 p-3">
       <h4 className="mb-2 text-xs font-semibold uppercase text-gray-400">{title}</h4>
-      <div className="text-sm text-gray-400">无</div>
+      <div className="text-sm text-gray-400">{t('common:none')}</div>
     </div>
   )
   const props = v.properties || {}
@@ -672,6 +674,7 @@ function VertexBriefCard({ title, v, color }) {
 }
 
 function ExamplesView({ examples, lang }) {
+  const { t } = useTranslation('edgeData')
   const [copied, setCopied] = useState(null)
   const copy = (code, idx) => {
     navigator.clipboard.writeText(code).then(() => { setCopied(idx); setTimeout(() => setCopied(null), 1500) })
@@ -683,7 +686,7 @@ function ExamplesView({ examples, lang }) {
           <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
             <span className="text-sm font-medium text-gray-700">{ex.title}</span>
             <button onClick={() => copy(ex.code, i)} className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-50">
-              {copied === i ? '已复制' : '复制'}
+              {copied === i ? t('common:copied') : t('common:copy')}
             </button>
           </div>
           <pre className="overflow-x-auto px-3 py-2 text-sm"><code className={lang === 'gremlin' ? 'text-indigo-700' : 'text-blue-700'}>{ex.code}</code></pre>
@@ -694,6 +697,7 @@ function ExamplesView({ examples, lang }) {
 }
 
 function EdgeFormModal({ formModal, selectedLabel, selectedId, saving, setFormModal, onSubmit }) {
+  const { t } = useTranslation('edgeData')
   const { mode, properties, form, outVertexLabels, inVertexLabels } = formModal
   const setField = (name, val) => {
     form.properties[name] = val
@@ -703,27 +707,27 @@ function EdgeFormModal({ formModal, selectedLabel, selectedId, saving, setFormMo
       <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <h2 className="text-base font-semibold text-gray-800">
-            {mode === 'create' ? '新增边' : '编辑边'}
+            {mode === 'create' ? t('common:createEdge') : t('common:editEdge')}
           </h2>
           <button onClick={() => setFormModal(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
         </div>
 
         <div className="max-h-[65vh] overflow-y-auto px-6 py-4">
           <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5">
-            <span className="text-xs text-gray-400">目标 EdgeLabel: </span>
+            <span className="text-xs text-gray-400">{t('common:targetEdgeLabel')}: </span>
             <span className="text-sm font-medium text-gray-700">{selectedLabel?.schema}.{selectedLabel?.label}</span>
           </div>
 
           {mode === 'create' && (
             <div className="mb-4 grid grid-cols-2 gap-3">
               <VertexPicker
-                label="出点 (Out Vertex)"
+                label={t("common:outVertexCard")}
                 vertexLabels={outVertexLabels}
                 onSelect={(id) => { form.outVertexId = id }}
                 connectionId={selectedId}
               />
               <VertexPicker
-                label="入点 (In Vertex)"
+                label={t("common:inVertexCard")}
                 vertexLabels={inVertexLabels}
                 onSelect={(id) => { form.inVertexId = id }}
                 connectionId={selectedId}
@@ -734,17 +738,17 @@ function EdgeFormModal({ formModal, selectedLabel, selectedId, saving, setFormMo
           {mode === 'edit' && (
             <div className="mb-4 grid grid-cols-2 gap-3">
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                <div className="text-xs text-gray-400">出点 ID</div>
+                <div className="text-xs text-gray-400">{t('edgeForm.outVertexId')}</div>
                 <div className="font-mono text-xs text-gray-700">{truncateId(form.outVertexId)}</div>
               </div>
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                <div className="text-xs text-gray-400">入点 ID</div>
+                <div className="text-xs text-gray-400">{t('edgeForm.inVertexId')}</div>
                 <div className="font-mono text-xs text-gray-700">{truncateId(form.inVertexId)}</div>
               </div>
             </div>
           )}
 
-          {properties.length === 0 && <div className="py-4 text-center text-sm text-gray-400">该 EdgeLabel 没有属性定义</div>}
+          {properties.length === 0 && <div className="py-4 text-center text-sm text-gray-400">{t('edgeForm.noProps', { type: 'EdgeLabel' })}</div>}
           <div className="space-y-3">
             {properties.map((prop) => (
               <div key={prop.name}>
@@ -775,10 +779,10 @@ function EdgeFormModal({ formModal, selectedLabel, selectedId, saving, setFormMo
 
         <div className="flex items-center justify-end gap-2 border-t border-gray-200 bg-gray-50 px-6 py-3">
           <button onClick={() => setFormModal(null)}
-            className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">取消</button>
+            className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">{t('common:cancel')}</button>
           <button onClick={onSubmit} disabled={saving}
             className="rounded-md bg-pink-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-50">
-            {saving ? '保存中...' : '保存'}
+            {saving ? t('common:saving') : t('common:save')}
           </button>
         </div>
       </div>
@@ -787,6 +791,7 @@ function EdgeFormModal({ formModal, selectedLabel, selectedId, saving, setFormMo
 }
 
 function VertexPicker({ label, vertexLabels, onSelect, connectionId }) {
+  const { t } = useTranslation('edgeData')
   const [chosenVl, setChosenVl] = useState(null)
   const [search, setSearch] = useState('')
   const [results, setResults] = useState([])
@@ -819,7 +824,7 @@ function VertexPicker({ label, vertexLabels, onSelect, connectionId }) {
         }}
         className="mb-2 w-full rounded border border-gray-300 px-2 py-1 text-xs outline-none focus:border-pink-500"
       >
-        <option value="">选择点类型...</option>
+        <option value="">{t('vertexPicker.selectType')}</option>
         {vertexLabels.map((vl) => (
           <option key={vl.fullName} value={vl.label}>{vl.schema}.{vl.label}</option>
         ))}
@@ -829,7 +834,7 @@ function VertexPicker({ label, vertexLabels, onSelect, connectionId }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') doSearch() }}
-          placeholder="搜索点..."
+          placeholder={t('vertexPicker.searchPlaceholder')}
           disabled={!chosenVl}
           className="w-full rounded border border-gray-300 px-2 py-1 text-xs outline-none focus:border-pink-500 disabled:bg-gray-100"
         />
@@ -843,14 +848,14 @@ function VertexPicker({ label, vertexLabels, onSelect, connectionId }) {
       </div>
       {picked && (
         <div className="mb-2 rounded bg-pink-50 px-2 py-1 text-xs text-pink-700">
-          已选: <span className="font-medium">{picked.label}</span>
+          {t('vertexPicker.selected')} <span className="font-medium">{picked.label}</span>
           <span className="ml-1 font-mono text-[10px]">{truncateId(picked.id)}</span>
         </div>
       )}
       <div className="max-h-32 overflow-y-auto">
-        {loading && <div className="py-2 text-center text-xs text-gray-400">搜索中...</div>}
-        {!loading && chosenVl && results.length === 0 && <div className="py-2 text-center text-xs text-gray-400">输入关键字搜索</div>}
-        {!loading && !chosenVl && <div className="py-2 text-center text-xs text-gray-400">请先选择点类型</div>}
+        {loading && <div className="py-2 text-center text-xs text-gray-400">{t('vertexPicker.searching')}</div>}
+        {!loading && chosenVl && results.length === 0 && <div className="py-2 text-center text-xs text-gray-400">{t('vertexPicker.noResult')}</div>}
+        {!loading && !chosenVl && <div className="py-2 text-center text-xs text-gray-400">{t('vertexPicker.selectTypeFirst')}</div>}
         {!loading && results.map((r) => (
           <button
             key={r.id}

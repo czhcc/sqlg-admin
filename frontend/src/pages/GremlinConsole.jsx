@@ -16,31 +16,33 @@ import {
   Table as TableIcon, Share2, GitBranch, FileJson, AlertTriangle,
   Shield, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, Search,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const MODES = [
-  { value: 'READONLY', label: '只读', icon: ShieldCheck, color: 'text-green-600', desc: '禁止 drop/addV/addE/property/sideEffect/io/tx' },
-  { value: 'READWRITE', label: '读写', icon: Shield, color: 'text-amber-600', desc: '允许写操作,禁止 io/tx 操作' },
-  { value: 'ADMIN', label: '管理员', icon: ShieldAlert, color: 'text-red-600', desc: '无限制' },
+  { value: 'READONLY', labelKey: 'modeReadonly', icon: ShieldCheck, color: 'text-green-600', descKey: 'modeReadonlyDesc' },
+  { value: 'READWRITE', labelKey: 'modeReadwrite', icon: Shield, color: 'text-amber-600', descKey: 'modeReadwriteDesc' },
+  { value: 'ADMIN', labelKey: 'modeAdmin', icon: ShieldAlert, color: 'text-red-600', descKey: 'modeAdminDesc' },
 ]
 
 const RESULT_TABS = [
-  { value: 'table', label: '表格', icon: TableIcon },
-  { value: 'json', label: 'JSON', icon: FileJson },
-  { value: 'graph', label: '图形', icon: Share2 },
-  { value: 'path', label: '路径', icon: GitBranch },
-  { value: 'raw', label: '原始对象', icon: Code2 },
+  { value: 'table', labelKey: 'resultTabTable', icon: TableIcon },
+  { value: 'json', labelKey: 'resultTabJson', icon: FileJson },
+  { value: 'graph', labelKey: 'resultTabGraph', icon: Share2 },
+  { value: 'path', labelKey: 'resultTabPath', icon: GitBranch },
+  { value: 'raw', labelKey: 'resultTabRaw', icon: Code2 },
 ]
 
 const SAMPLE_QUERIES = [
-  { title: '查询所有 Person (limit 10)', query: "g.V().hasLabel('Person').limit(10).valueMap(true)", mode: 'READONLY' },
-  { title: '统计顶点总数', query: "g.V().count()", mode: 'READONLY' },
-  { title: '查询顶点及其邻居', query: "g.V().hasLabel('Person').limit(5).both().valueMap(true)", mode: 'READONLY' },
-  { title: '查询边数据', query: "g.E().limit(10).valueMap(true)", mode: 'READONLY' },
-  { title: '路径查询', query: "g.V().hasLabel('Person').limit(1).out().path()", mode: 'READONLY' },
-  { title: '按属性查询', query: "g.V().has('object_id','person_001').valueMap(true)", mode: 'READONLY' },
+  { title: 'Query all Person (limit 10)', query: "g.V().hasLabel('Person').limit(10).valueMap(true)", mode: 'READONLY' },
+  { title: 'Count all vertices', query: "g.V().count()", mode: 'READONLY' },
+  { title: 'Query vertex and its neighbors', query: "g.V().hasLabel('Person').limit(5).both().valueMap(true)", mode: 'READONLY' },
+  { title: 'Query edge data', query: "g.E().limit(10).valueMap(true)", mode: 'READONLY' },
+  { title: 'Path query', query: "g.V().hasLabel('Person').limit(1).out().path()", mode: 'READONLY' },
+  { title: 'Query by property', query: "g.V().has('object_id','person_001').valueMap(true)", mode: 'READONLY' },
 ]
 
 export default function GremlinConsole() {
+  const { t, i18n } = useTranslation('gremlin')
   const [connections, setConnections] = useState([])
   const [selectedConnId, setSelectedConnId] = useState(null)
   const [connDropdown, setConnDropdown] = useState(false)
@@ -144,8 +146,8 @@ export default function GremlinConsole() {
 
   const onExecute = async () => {
     const q = getSelectedQuery().trim()
-    if (!q) { showToast('error', '请输入或选择 Gremlin 查询'); return }
-    if (!selectedConnId) { showToast('error', '请先选择连接'); return }
+    if (!q) { showToast('error', t('msg.queryRequired')); return }
+    if (!selectedConnId) { showToast('error', t('msg.connRequired')); return }
 
     setExecuting(true)
     setResult(null)
@@ -153,9 +155,9 @@ export default function GremlinConsole() {
       const res = await executeGremlin(selectedConnId, { query: q, mode })
       setResult(res.data)
       if (res.data.success) {
-        showToast('success', `查询成功: ${res.data.resultCount} 条结果, 耗时 ${res.data.costMs}ms`)
+        showToast('success', t('msg.querySuccess', { count: res.data.resultCount, ms: res.data.costMs }))
       } else {
-        showToast('error', res.data.error || '查询失败')
+        showToast('error', res.data.error || t('msg.queryFailed'))
       }
       loadHistory()
     } catch (e) {
@@ -186,7 +188,7 @@ export default function GremlinConsole() {
     } else {
       setQuery(formatted)
     }
-    showToast('success', '已格式化')
+    showToast('success', t('msg.formatted'))
   }
 
   const onUseHistory = (h) => {
@@ -209,21 +211,21 @@ export default function GremlinConsole() {
 
   const onAddFavorite = async () => {
     const q = getSelectedQuery().trim()
-    if (!q) { showToast('error', '请先输入查询'); return }
-    const title = window.prompt('收藏标题:', q.substring(0, 50))
+    if (!q) { showToast('error', t('msg.titleRequired')); return }
+    const title = window.prompt(t('msg.favTitlePrompt'), q.substring(0, 50))
     if (!title) return
     try {
       await addFavorite({ title, queryText: q, mode })
-      showToast('success', '收藏成功')
+      showToast('success', t('msg.favSuccess'))
       loadFavorites()
     } catch (e) { showToast('error', e.message) }
   }
 
   const onDeleteFavorite = async (id) => {
-    if (!window.confirm('确认删除此收藏?')) return
+    if (!window.confirm(t('msg.confirmDeleteFav'))) return
     try {
       await deleteFavorite(id)
-      showToast('success', '已删除')
+      showToast('success', t('msg.deleted'))
       loadFavorites()
     } catch (e) { showToast('error', e.message) }
   }
@@ -236,10 +238,10 @@ export default function GremlinConsole() {
   }
 
   const onClearHistory = async () => {
-    if (!window.confirm('确认清空所有查询历史?')) return
+    if (!window.confirm(t('msg.confirmClearHistory'))) return
     try {
       await clearHistory(selectedConnId)
-      showToast('success', '已清空')
+      showToast('success', t('msg.cleared'))
       loadHistory()
     } catch (e) { showToast('error', e.message) }
   }
@@ -248,7 +250,7 @@ export default function GremlinConsole() {
     if (!selectedConnId) return
     try {
       await refreshConnection(selectedConnId)
-      showToast('success', '已刷新缓存')
+      showToast('success', t('msg.cacheRefreshed'))
     } catch (e) { showToast('error', e.message) }
   }
 
@@ -260,9 +262,9 @@ export default function GremlinConsole() {
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-            <TerminalSquare size={20} className="text-indigo-500" /> Gremlin 控制台
+            <TerminalSquare size={20} className="text-indigo-500" /> {t('title')}
           </h1>
-          <p className="mt-0.5 text-sm text-gray-500">在线执行 Gremlin 查询 · 选中片段可单独执行</p>
+          <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -270,7 +272,7 @@ export default function GremlinConsole() {
               className="flex min-w-[200px] items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
               <span className="flex items-center gap-2 truncate">
                 <Database size={15} className="text-indigo-500" />
-                <span className="truncate font-medium">{selectedConn ? selectedConn.name : '选择连接'}</span>
+                <span className="truncate font-medium">{selectedConn ? selectedConn.name : t('selectConnection')}</span>
                 {selectedConn?.isDefault && <Star size={13} className="fill-amber-400 text-amber-400" />}
               </span>
               <ChevronDown size={15} className="text-gray-400" />
@@ -279,7 +281,7 @@ export default function GremlinConsole() {
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setConnDropdown(false)} />
                 <div className="absolute right-0 z-20 mt-1 max-h-72 w-64 overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                  {connections.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">暂无可用连接</div>}
+                  {connections.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">{t('noConnection')}</div>}
                   {connections.map((c) => (
                     <button key={c.id} onClick={() => { setSelectedConnId(c.id); setConnDropdown(false); setActiveConnection(c.id).catch(() => {}) }}
                       className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-indigo-50 ${c.id === selectedConnId ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700'}`}>
@@ -294,27 +296,27 @@ export default function GremlinConsole() {
 
           <div className="flex items-center gap-1 rounded-md border border-gray-300 bg-white px-1 py-0.5">
             {MODES.map((m) => (
-              <button key={m.value} onClick={() => setMode(m.value)} title={m.desc}
+              <button key={m.value} onClick={() => setMode(m.value)} title={t(m.descKey)}
                 className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors
                   ${mode === m.value ? `${m.color} bg-gray-100` : 'text-gray-400 hover:text-gray-600'}`}>
-                <m.icon size={13} /> {m.label}
+                <m.icon size={13} /> {t(m.labelKey)}
               </button>
             ))}
           </div>
 
           <button onClick={onRefresh} disabled={!selectedConnId}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-            <RefreshCw size={15} /> 刷新
+            <RefreshCw size={15} /> {t('refresh')}
           </button>
         </div>
       </header>
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-4 pt-2">
-          <TabButton active={activeTab === 'editor'} onClick={() => setActiveTab('editor')} icon={Code2} label="编辑器" />
-          <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={Clock} label="历史" badge={history.length} />
-          <TabButton active={activeTab === 'favorites'} onClick={() => setActiveTab('favorites')} icon={Bookmark} label="收藏" badge={favorites.length} />
-          <TabButton active={activeTab === 'samples'} onClick={() => setActiveTab('samples')} icon={Search} label="示例" />
+          <TabButton active={activeTab === 'editor'} onClick={() => setActiveTab('editor')} icon={Code2} label={t("tabEditor")} />
+          <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={Clock} label={t("tabHistory")} badge={history.length} />
+          <TabButton active={activeTab === 'favorites'} onClick={() => setActiveTab('favorites')} icon={Bookmark} label={t("tabFavorites")} badge={favorites.length} />
+          <TabButton active={activeTab === 'samples'} onClick={() => setActiveTab('samples')} icon={Search} label={t("tabSamples")} />
         </div>
 
         <div className="flex-1 overflow-hidden">
@@ -325,28 +327,28 @@ export default function GremlinConsole() {
                   <div className="mb-2 flex items-center gap-2 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <currentMode.icon size={13} className={currentMode.color} />
-                      <span className={currentMode.color}>{currentMode.label}模式</span>
+                      <span className={currentMode.color}>{t(currentMode.labelKey)}{t('modeSuffix')}</span>
                     </span>
                     <span>·</span>
-                    <span>选中代码片段可单独执行,不选则执行全部</span>
+                    <span>{t('selectHint')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={onExecute} disabled={executing || !selectedConnId}
                       className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
                       {executing ? <RefreshCw size={15} className="animate-spin" /> : <Play size={15} />}
-                      {executing ? '执行中...' : '执行查询'}
+                      {executing ? t('executing') : t('execute')}
                     </button>
                     <button onClick={onFormat}
                       className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-                      <Code2 size={14} /> 格式化
+                      <Code2 size={14} /> {t('format')}
                     </button>
                     <button onClick={onAddFavorite}
                       className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-                      <BookmarkPlus size={14} /> 收藏
+                      <BookmarkPlus size={14} /> {t('favorite')}
                     </button>
                     <button onClick={() => setQuery('')}
                       className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-                      <Trash2 size={14} /> 清空
+                      <Trash2 size={14} /> {t('clear')}
                     </button>
                   </div>
                 </div>
@@ -368,7 +370,7 @@ export default function GremlinConsole() {
                     ]}
                     height="100%"
                     className="h-full text-sm"
-                    placeholder="输入 Gremlin 查询... 例如: g.V().hasLabel('Person').limit(10).valueMap(true)"
+                    placeholder={t("placeholder")}
                   />
                 </div>
               </div>
@@ -416,12 +418,13 @@ export default function GremlinConsole() {
 }
 
 function ResultPanel({ result, tab, setTab, executing }) {
+  const { t } = useTranslation('gremlin')
   if (executing && !result) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
         <div className="text-center">
           <RefreshCw size={28} className="mx-auto mb-2 animate-spin text-indigo-400" />
-          <p>执行中...</p>
+          <p>{t('executing')}</p>
         </div>
       </div>
     )
@@ -432,7 +435,7 @@ function ResultPanel({ result, tab, setTab, executing }) {
       <div className="flex h-full items-center justify-center text-sm text-gray-400">
         <div className="text-center">
           <Eye size={32} className="mx-auto mb-2 text-gray-300" />
-          <p>执行查询后在此查看结果</p>
+          <p>{t('resultPlaceholder')}</p>
         </div>
       </div>
     )
@@ -444,10 +447,10 @@ function ResultPanel({ result, tab, setTab, executing }) {
         <div className="max-w-2xl rounded-lg border border-red-200 bg-red-50 p-6">
           <div className="mb-3 flex items-center gap-2 text-red-700">
             <XCircle size={20} />
-            <span className="font-semibold">查询失败</span>
+            <span className="font-semibold">{t('queryFailed')}</span>
           </div>
           <pre className="overflow-auto whitespace-pre-wrap text-sm text-red-600">{result.error}</pre>
-          <div className="mt-3 text-xs text-gray-400">耗时: {result.costMs}ms</div>
+          <div className="mt-3 text-xs text-gray-400">{t('cost', { ms: result.costMs })}</div>
         </div>
       </div>
     )
@@ -461,21 +464,21 @@ function ResultPanel({ result, tab, setTab, executing }) {
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50 px-4 py-2">
         <div className="flex items-center gap-1">
-          {RESULT_TABS.map((t) => {
-            const disabled = (t.value === 'graph' && !hasVertexEdge) || (t.value === 'path' && !hasPath)
+          {RESULT_TABS.map((rt) => {
+            const disabled = (rt.value === 'graph' && !hasVertexEdge) || (rt.value === 'path' && !hasPath)
             return (
-              <button key={t.value} onClick={() => !disabled && setTab(t.value)} disabled={disabled}
+              <button key={rt.value} onClick={() => !disabled && setTab(rt.value)} disabled={disabled}
                 className={`flex items-center gap-1 rounded px-3 py-1 text-xs font-medium transition-colors
-                  ${tab === t.value ? 'bg-indigo-100 text-indigo-700' : disabled ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-100'}`}>
-                <t.icon size={13} /> {t.label}
+                  ${tab === rt.value ? 'bg-indigo-100 text-indigo-700' : disabled ? 'text-gray-300' : 'text-gray-500 hover:bg-gray-100'}`}>
+                <rt.icon size={13} /> {t(rt.labelKey)}
               </button>
             )
           })}
         </div>
         <div className="flex items-center gap-3 text-xs text-gray-500">
-          <span className="flex items-center gap-1"><CheckCircle2 size={13} className="text-green-500" /> 成功</span>
-          <span>耗时 {result.costMs}ms</span>
-          <span>返回 {result.resultCount} 条</span>
+          <span className="flex items-center gap-1"><CheckCircle2 size={13} className="text-green-500" /> {t('success')}</span>
+          <span>{t('cost', { ms: result.costMs })}</span>
+          <span>{t('returned', { count: result.resultCount })}</span>
         </div>
       </div>
 
@@ -491,7 +494,8 @@ function ResultPanel({ result, tab, setTab, executing }) {
 }
 
 function ResultTable({ results }) {
-  if (results.length === 0) return <Empty text="无结果数据" />
+  const { t } = useTranslation('gremlin')
+  if (results.length === 0) return <Empty text={t("noResultData")} />
   const columns = extractColumns(results)
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
@@ -594,13 +598,14 @@ function ResultGraph({ results }) {
 }
 
 function ResultPath({ results }) {
+  const { t } = useTranslation('gremlin')
   const paths = results.filter((r) => r?.type === 'path')
-  if (paths.length === 0) return <Empty text="无路径数据" />
+  if (paths.length === 0) return <Empty text={t("noPathData")} />
   return (
     <div className="space-y-3">
       {paths.map((p, i) => (
         <div key={i} className="rounded-lg border border-gray-200 p-3">
-          <div className="mb-2 text-xs font-medium text-gray-500">路径 {i + 1}</div>
+          <div className="mb-2 text-xs font-medium text-gray-500">{t('pathLabel', { index: i + 1 })}</div>
           <div className="flex flex-wrap items-center gap-1">
             {(p.objects || []).map((obj, j) => (
               <div key={j} className="flex items-center gap-1">
@@ -631,13 +636,14 @@ function ResultRaw({ results }) {
 }
 
 function HistoryPanel({ history, onUse, onDelete, onClear }) {
-  if (history.length === 0) return <Empty text="暂无查询历史" icon={Clock} />
+  const { t } = useTranslation('gremlin')
+  if (history.length === 0) return <Empty text={t("noHistory")} icon={Clock} />
   return (
     <div className="p-4">
       <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm text-gray-500">共 {history.length} 条历史</span>
+        <span className="text-sm text-gray-500">{t('historyCount', { count: history.length })}</span>
         <button onClick={onClear} className="flex items-center gap-1 rounded-md border border-red-300 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
-          <Trash2 size={12} /> 清空历史
+          <Trash2 size={12} /> {t('clearHistory')}
         </button>
       </div>
       <div className="space-y-2">
@@ -647,19 +653,19 @@ function HistoryPanel({ history, onUse, onDelete, onClear }) {
               <div className="min-w-0 flex-1" onClick={() => onUse(h)}>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <span className={`rounded px-1.5 py-0.5 font-medium ${h.success ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                    {h.success ? '成功' : '失败'}
+                    {h.success ? t('success') : t('queryFailed')}
                   </span>
                   <span className="rounded bg-gray-100 px-1.5 py-0.5">{h.mode}</span>
                   <span>{h.costMs}ms</span>
-                  {h.resultCount != null && <span>· {h.resultCount} 条</span>}
-                  <span>· {formatTime(h.createTime)}</span>
+                  {h.resultCount != null && <span>· {t('returned', { count: h.resultCount })}</span>}
+                  <span>· {formatTime(h.createTime, i18n.language?.startsWith('en') ? 'en-US' : 'zh-CN')}</span>
                 </div>
                 <pre className="mt-1 overflow-hidden whitespace-pre-wrap break-all text-xs text-gray-700"><code>{h.queryText}</code></pre>
                 {h.errorMessage && <div className="mt-1 text-xs text-red-400 truncate">{h.errorMessage}</div>}
               </div>
               <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100">
-                <button onClick={() => onUse(h)} title="使用此查询" className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-indigo-50 hover:text-indigo-600"><Play size={13} /></button>
-                <button onClick={() => onDelete(h.id)} title="删除" className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={13} /></button>
+                <button onClick={() => onUse(h)} title={t("useThisQuery")} className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-indigo-50 hover:text-indigo-600"><Play size={13} /></button>
+                <button onClick={() => onDelete(h.id)} title={t("delete")} className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={13} /></button>
               </div>
             </div>
           </div>
@@ -670,10 +676,11 @@ function HistoryPanel({ history, onUse, onDelete, onClear }) {
 }
 
 function FavoritesPanel({ favorites, onUse, onDelete }) {
-  if (favorites.length === 0) return <Empty text="暂无收藏查询" icon={Bookmark} />
+  const { t } = useTranslation('gremlin')
+  if (favorites.length === 0) return <Empty text={t("noFavorites")} icon={Bookmark} />
   return (
     <div className="p-4">
-      <div className="mb-3 text-sm text-gray-500">共 {favorites.length} 条收藏</div>
+      <div className="mb-3 text-sm text-gray-500">{t('favoritesCount', { count: favorites.length })}</div>
       <div className="space-y-2">
         {favorites.map((f) => (
           <div key={f.id} className="group rounded-lg border border-gray-200 p-3 hover:border-amber-300">
@@ -688,8 +695,8 @@ function FavoritesPanel({ favorites, onUse, onDelete }) {
                 <pre className="mt-1 overflow-hidden whitespace-pre-wrap break-all text-xs text-gray-700"><code>{f.queryText}</code></pre>
               </div>
               <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100">
-                <button onClick={() => onUse(f)} title="使用此查询" className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-amber-50 hover:text-amber-600"><Play size={13} /></button>
-                <button onClick={() => onDelete(f.id)} title="删除" className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={13} /></button>
+                <button onClick={() => onUse(f)} title={t("useThisQuery")} className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-amber-50 hover:text-amber-600"><Play size={13} /></button>
+                <button onClick={() => onDelete(f.id)} title={t("delete")} className="flex h-6 w-6 items-center justify-center rounded text-gray-400 hover:bg-red-50 hover:text-red-600"><Trash2 size={13} /></button>
               </div>
             </div>
           </div>
@@ -700,9 +707,10 @@ function FavoritesPanel({ favorites, onUse, onDelete }) {
 }
 
 function SamplesPanel({ onUse }) {
+  const { t } = useTranslation('gremlin')
   return (
     <div className="p-4">
-      <div className="mb-3 text-sm text-gray-500">常用 Gremlin 查询示例</div>
+      <div className="mb-3 text-sm text-gray-500">{t('sampleTitle')}</div>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {SAMPLE_QUERIES.map((s, i) => (
           <button key={i} onClick={() => onUse(s)}
@@ -777,10 +785,10 @@ function formatCell(val) {
   return String(val)
 }
 
-function formatTime(time) {
+function formatTime(time, locale) {
   if (!time) return ''
   const d = new Date(time)
-  return d.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString(locale || 'zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
 function truncateStr(s, max) { return s.length <= max ? s : s.substring(0, max) + '...' }
