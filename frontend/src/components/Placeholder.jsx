@@ -1,4 +1,7 @@
+import { useTranslation } from 'react-i18next'
+
 function Placeholder({ title, description }) {
+  const { t } = useTranslation('common')
   return (
     <div className="flex h-full flex-col">
       <header className="border-b border-gray-200 bg-white px-6 py-4">
@@ -12,7 +15,7 @@ function Placeholder({ title, description }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <p className="text-sm text-gray-400">功能开发中</p>
+          <p className="text-sm text-gray-400">{t('comingSoon')}</p>
         </div>
       </div>
     </div>

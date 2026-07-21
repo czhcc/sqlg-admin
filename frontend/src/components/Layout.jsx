@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import { updateProfile, changePassword } from '../api/auth'
+import LanguageSwitcher from './LanguageSwitcher'
 import {
   Database,
   Share2,
@@ -27,34 +29,35 @@ import {
   ChevronRight,
   X,
   Save,
+  Globe,
 } from 'lucide-react'
 
-const menuItems = [
-  { to: '/connection', label: '连接管理', icon: Database },
-  { to: '/topology', label: 'Topology 浏览', icon: Share2 },
-  { to: '/vertex-type', label: '点类型管理', icon: CircleDot },
-  { to: '/edge-type', label: '边类型管理', icon: Minus },
-  { to: '/property-management', label: '属性管理', icon: Tags },
-  { to: '/vertex-data', label: '点数据管理', icon: Table },
-  { to: '/edge-data', label: '边数据管理', icon: GitFork },
-  { to: '/graph-explore', label: '图关系展开', icon: Network },
-  { to: '/gremlin', label: 'Gremlin 控制台', icon: TerminalSquare },
-  { to: '/import-export', label: '导入导出', icon: ArrowLeftRight },
+const menuConfig = [
+  { to: '/connection', key: 'connection', icon: Database },
+  { to: '/topology', key: 'topology', icon: Share2 },
+  { to: '/vertex-type', key: 'vertexType', icon: CircleDot },
+  { to: '/edge-type', key: 'edgeType', icon: Minus },
+  { to: '/property-management', key: 'propertyManagement', icon: Tags },
+  { to: '/vertex-data', key: 'vertexData', icon: Table },
+  { to: '/edge-data', key: 'edgeData', icon: GitFork },
+  { to: '/graph-explore', key: 'graphExplore', icon: Network },
+  { to: '/gremlin', key: 'gremlin', icon: TerminalSquare },
+  { to: '/import-export', key: 'importExport', icon: ArrowLeftRight },
   {
-    group: '用户与权限',
+    groupKey: 'userPermission',
     icon: Users,
     children: [
-      { to: '/user-management', label: '用户管理', icon: User },
-      { to: '/role-management', label: '角色管理', icon: ShieldCheck },
-      { to: '/permission-overview', label: '权限总览', icon: KeyRound },
+      { to: '/user-management', key: 'userManagement', icon: User },
+      { to: '/role-management', key: 'roleManagement', icon: ShieldCheck },
+      { to: '/permission-overview', key: 'permissionOverview', icon: KeyRound },
     ],
   },
   {
-    group: '审计日志',
+    groupKey: 'auditLog',
     icon: ClipboardList,
     children: [
-      { to: '/login-log', label: '登录日志', icon: LogIn },
-      { to: '/operation-log', label: '操作日志', icon: ScrollText },
+      { to: '/login-log', key: 'loginLog', icon: LogIn },
+      { to: '/operation-log', key: 'operationLog', icon: ScrollText },
     ],
   },
 ]
@@ -63,6 +66,7 @@ const childActive = (children, pathname) =>
   children.some((c) => pathname === c.to || pathname.startsWith(c.to + '/'))
 
 export default function Layout({ children }) {
+  const { t } = useTranslation('layout')
   const { user, logout, hasMenu } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -74,8 +78,8 @@ export default function Layout({ children }) {
 
   const menuToKey = (to) => to.replace(/^\//, '')
 
-  const visibleItems = menuItems.filter((item) => {
-    if (item.group) {
+  const visibleItems = menuConfig.filter((item) => {
+    if (item.groupKey) {
       const visibleChildren = item.children.filter((c) => hasMenu(menuToKey(c.to)))
       return visibleChildren.length > 0
     }
@@ -91,9 +95,8 @@ export default function Layout({ children }) {
     })
   }
 
-  // 包含当前路由的分组始终展开,其余按用户折叠状态
   const isExpanded = (item) =>
-    childActive(item.children, location.pathname) || !collapsed.has(item.group)
+    childActive(item.children, location.pathname) || !collapsed.has(item.groupKey)
 
   useEffect(() => {
     const handler = (e) => {
@@ -114,21 +117,21 @@ export default function Layout({ children }) {
       <aside className="flex w-60 flex-shrink-0 flex-col bg-slate-800 text-slate-300">
         <div className="flex h-14 items-center gap-2 border-b border-slate-700 px-4">
           <Boxes size={22} className="text-indigo-400" />
-          <span className="text-base font-semibold text-white">图数据库管理平台</span>
+          <span className="text-base font-semibold text-white">{t('common:appName')}</span>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-2">
           {visibleItems.map((item) => {
-            if (item.group) {
+            if (item.groupKey) {
               const visibleChildren = item.children.filter((c) => hasMenu(menuToKey(c.to)))
               const expanded = isExpanded(item)
               const active = childActive(visibleChildren, location.pathname)
               const GroupIcon = item.icon
               return (
-                <div key={item.group}>
+                <div key={item.groupKey}>
                   <button
                     type="button"
-                    onClick={() => toggleGroup(item.group)}
+                    onClick={() => toggleGroup(item.groupKey)}
                     className={`flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                       active
                         ? 'text-white'
@@ -136,11 +139,11 @@ export default function Layout({ children }) {
                     }`}
                   >
                     <GroupIcon size={18} className={active ? 'text-indigo-400' : ''} />
-                    <span className="flex-1 text-left">{item.group}</span>
+                    <span className="flex-1 text-left">{t(`group.${item.groupKey}`)}</span>
                     {expanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                   </button>
                   {expanded &&
-                    visibleChildren.map(({ to, label, icon: Icon }) => (
+                    visibleChildren.map(({ to, key, icon: Icon }) => (
                       <NavLink
                         key={to}
                         to={to}
@@ -153,14 +156,14 @@ export default function Layout({ children }) {
                         }
                       >
                         <Icon size={16} />
-                        <span>{label}</span>
+                        <span>{t(`menu.${key}`)}</span>
                       </NavLink>
                     ))}
                 </div>
               )
             }
 
-            const { to, label, icon: Icon } = item
+            const { to, key, icon: Icon } = item
             return (
               <NavLink
                 key={to}
@@ -174,7 +177,7 @@ export default function Layout({ children }) {
                 }
               >
                 <Icon size={18} />
-                <span>{label}</span>
+                <span>{t(`menu.${key}`)}</span>
               </NavLink>
             )
           })}
@@ -196,24 +199,30 @@ export default function Layout({ children }) {
 
           {userMenuOpen && (
             <div className="absolute bottom-full left-3 right-3 mb-1 rounded-lg border border-slate-600 bg-slate-800 py-1 shadow-2xl">
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300">
+                <Globe size={15} className="text-slate-400" />
+                <span className="flex-1">{t('user.language')}</span>
+                <LanguageSwitcher variant="dark" />
+              </div>
+              <div className="my-1 border-t border-slate-700" />
               <button
                 onClick={() => { setUserMenuOpen(false); setProfileModal(true) }}
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
               >
-                <User size={15} /> 个人信息
+                <User size={15} /> {t('user.profile')}
               </button>
               <button
                 onClick={() => { setUserMenuOpen(false); setPasswordModal(true) }}
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
               >
-                <KeyRound size={15} /> 修改密码
+                <KeyRound size={15} /> {t('user.changePassword')}
               </button>
               <div className="my-1 border-t border-slate-700" />
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-red-600 hover:text-white"
               >
-                <LogOut size={15} /> 退出登录
+                <LogOut size={15} /> {t('user.logout')}
               </button>
             </div>
           )}
@@ -235,6 +244,7 @@ export default function Layout({ children }) {
 const inputCls = 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100'
 
 function ProfileModal({ user, onClose }) {
+  const { t } = useTranslation('layout')
   const [form, setForm] = useState({
     nickname: user?.nickname || '',
     email: user?.email || '',
@@ -251,7 +261,7 @@ function ProfileModal({ user, onClose }) {
     setSaving(true)
     try {
       await updateProfile(form)
-      showToast('success', '保存成功')
+      showToast('success', t('profile.saveSuccess'))
       setTimeout(onClose, 800)
     } catch (err) {
       showToast('error', err.message)
@@ -264,33 +274,33 @@ function ProfileModal({ user, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <form onSubmit={submit} className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-base font-semibold text-gray-800">个人信息</h2>
+          <h2 className="text-base font-semibold text-gray-800">{t('profile.title')}</h2>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
           </button>
         </div>
         <div className="max-h-[70vh] space-y-4 px-6 py-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">用户名</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t('profile.username')}</label>
             <input className={`${inputCls} bg-gray-50`} value={user?.username || ''} disabled />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">显示名称</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t('profile.nickname')}</label>
             <input className={inputCls} value={form.nickname}
               onChange={(e) => setForm({ ...form, nickname: e.target.value })} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">邮箱</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t('profile.email')}</label>
             <input className={inputCls} value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">手机号</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t('profile.phone')}</label>
             <input className={inputCls} value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">备注</label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t('profile.remark')}</label>
             <textarea className={inputCls} rows={2} value={form.remark}
               onChange={(e) => setForm({ ...form, remark: e.target.value })} />
           </div>
@@ -298,11 +308,11 @@ function ProfileModal({ user, onClose }) {
         <div className="flex justify-end gap-2 border-t border-gray-200 bg-gray-50 px-6 py-3">
           <button type="button" onClick={onClose}
             className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-            取消
+            {t('common:cancel')}
           </button>
           <button type="submit" disabled={saving}
             className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-            <Save size={15} /> {saving ? '保存中...' : '保存'}
+            <Save size={15} /> {saving ? t('common:saving') : t('common:save')}
           </button>
         </div>
       </form>
@@ -318,6 +328,7 @@ function ProfileModal({ user, onClose }) {
 }
 
 function PasswordModal({ onClose }) {
+  const { t } = useTranslation('layout')
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
@@ -326,16 +337,16 @@ function PasswordModal({ onClose }) {
 
   const submit = async (e) => {
     e.preventDefault()
-    if (!form.currentPassword) { showToast('error', '请输入当前密码'); return }
-    if (!form.newPassword || form.newPassword.length < 6) { showToast('error', '新密码至少 6 位'); return }
-    if (form.newPassword !== form.confirmPassword) { showToast('error', '两次输入的新密码不一致'); return }
+    if (!form.currentPassword) { showToast('error', t('password.requiredCurrent')); return }
+    if (!form.newPassword || form.newPassword.length < 6) { showToast('error', t('password.minLength')); return }
+    if (form.newPassword !== form.confirmPassword) { showToast('error', t('password.mismatch')); return }
     setSaving(true)
     try {
       await changePassword({
         currentPassword: form.currentPassword,
         newPassword: form.newPassword,
       })
-      showToast('success', '密码修改成功')
+      showToast('success', t('password.success'))
       setTimeout(onClose, 800)
     } catch (err) {
       showToast('error', err.message)
@@ -348,39 +359,39 @@ function PasswordModal({ onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <form onSubmit={submit} className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-base font-semibold text-gray-800">修改密码</h2>
+          <h2 className="text-base font-semibold text-gray-800">{t('password.title')}</h2>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
           </button>
         </div>
         <div className="space-y-4 px-6 py-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">当前密码 <span className="text-red-500">*</span></label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t('password.currentPassword')} <span className="text-red-500">*</span></label>
             <input className={inputCls} type="password" value={form.currentPassword}
               onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
-              placeholder="请输入当前密码" autoFocus />
+              placeholder={t('password.currentPlaceholder')} autoFocus />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">新密码 <span className="text-red-500">*</span></label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t('password.newPassword')} <span className="text-red-500">*</span></label>
             <input className={inputCls} type="password" value={form.newPassword}
               onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
-              placeholder="至少 6 位" />
+              placeholder={t('password.newPlaceholder')} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">确认新密码 <span className="text-red-500">*</span></label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">{t('password.confirmPassword')} <span className="text-red-500">*</span></label>
             <input className={inputCls} type="password" value={form.confirmPassword}
               onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-              placeholder="再次输入新密码" />
+              placeholder={t('password.confirmPlaceholder')} />
           </div>
         </div>
         <div className="flex justify-end gap-2 border-t border-gray-200 bg-gray-50 px-6 py-3">
           <button type="button" onClick={onClose}
             className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-            取消
+            {t('common:cancel')}
           </button>
           <button type="submit" disabled={saving}
             className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-            <Save size={15} /> {saving ? '保存中...' : '确认修改'}
+            <Save size={15} /> {saving ? t('common:saving') : t('password.confirmButton')}
           </button>
         </div>
       </form>
