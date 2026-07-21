@@ -10,8 +10,10 @@ import {
   Download, Upload, Network, FileJson, FileSpreadsheet,
   CheckCircle2, AlertTriangle, X, Eye, Code2, FileText,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export default function ImportExport() {
+  const { t } = useTranslation('importExport')
   const [connections, setConnections] = useState([])
   const [selectedConnId, setSelectedConnId] = useState(null)
   const [connDropdown, setConnDropdown] = useState(false)
@@ -53,7 +55,7 @@ export default function ImportExport() {
     try {
       await refreshConnection(selectedConnId)
       await loadSchemas(selectedConnId)
-      showToast('success', '已刷新')
+      showToast('success', t('msg.refreshed'))
     } catch (e) { showToast('error', e.message) }
   }
 
@@ -89,9 +91,9 @@ export default function ImportExport() {
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-            <ArrowLeftRight size={20} className="text-indigo-500" /> 导入导出
+            <ArrowLeftRight size={20} className="text-indigo-500" /> {t('title')}
           </h1>
-          <p className="mt-0.5 text-sm text-gray-500">导入/导出点边数据和 Topology 结构</p>
+          <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -99,7 +101,7 @@ export default function ImportExport() {
               className="flex min-w-[200px] items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
               <span className="flex items-center gap-2 truncate">
                 <Database size={15} className="text-indigo-500" />
-                <span className="truncate font-medium">{selectedConn ? selectedConn.name : '选择连接'}</span>
+                <span className="truncate font-medium">{selectedConn ? selectedConn.name : t('selectConnection')}</span>
                 {selectedConn?.isDefault && <Star size={13} className="fill-amber-400 text-amber-400" />}
               </span>
               <ChevronDown size={15} className="text-gray-400" />
@@ -108,7 +110,7 @@ export default function ImportExport() {
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setConnDropdown(false)} />
                 <div className="absolute right-0 z-20 mt-1 max-h-72 w-64 overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
-                  {connections.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">暂无可用连接</div>}
+                  {connections.length === 0 && <div className="px-3 py-2 text-sm text-gray-400">{t('noConnection')}</div>}
                   {connections.map((c) => (
                     <button key={c.id} onClick={() => { setSelectedConnId(c.id); setConnDropdown(false); setActiveConnection(c.id).catch(() => {}) }}
                       className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-sm hover:bg-indigo-50 ${c.id === selectedConnId ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700'}`}>
@@ -122,20 +124,20 @@ export default function ImportExport() {
           </div>
           <button onClick={onRefresh} disabled={!selectedConnId}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-            <RefreshCw size={15} /> 刷新
+            <RefreshCw size={15} /> {t('refresh')}
           </button>
         </div>
       </header>
 
       <div className="flex items-center gap-1 border-b border-gray-200 bg-gray-50 px-4 pt-2">
-        <TabButton active={activeTab === 'export'} onClick={() => setActiveTab('export')} icon={Download} label="数据导出" />
-        <TabButton active={activeTab === 'import'} onClick={() => setActiveTab('import')} icon={Upload} label="数据导入" />
+        <TabButton active={activeTab === 'export'} onClick={() => setActiveTab('export')} icon={Download} label={t('tabExport')} />
+        <TabButton active={activeTab === 'import'} onClick={() => setActiveTab('import')} icon={Upload} label={t('tabImport')} />
         <TabButton active={activeTab === 'topology'} onClick={() => setActiveTab('topology')} icon={Network} label="Topology" />
       </div>
 
       <div className="flex-1 overflow-auto p-6">
         {!selectedConnId ? (
-          <div className="flex h-full items-center justify-center text-sm text-gray-400">请从右上角选择一个图数据库连接</div>
+          <div className="flex h-full items-center justify-center text-sm text-gray-400">{t('common:pleaseSelectConnection')}</div>
         ) : activeTab === 'export' ? (
           <ExportPanel vertexLabels={vertexLabels} edgeLabels={edgeLabels} connectionId={selectedConnId} onDownload={downloadFile} showToast={showToast} />
         ) : activeTab === 'import' ? (
@@ -155,21 +157,22 @@ export default function ImportExport() {
 }
 
 function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showToast }) {
+  const { t } = useTranslation('importExport')
   const [selectedLabel, setSelectedLabel] = useState(null)
   const [labelType, setLabelType] = useState('vertex')
   const [format, setFormat] = useState('csv')
   const [exporting, setExporting] = useState(false)
 
   const onExport = async () => {
-    if (!selectedLabel) { showToast('error', '请选择目标'); return }
+    if (!selectedLabel) { showToast('error', t('msg.noConnectionSelected')); return }
     setExporting(true)
     try {
       const res = labelType === 'vertex'
         ? await exportVertices(connectionId, selectedLabel.schemaName, selectedLabel.name, format)
         : await exportEdges(connectionId, selectedLabel.schemaName, selectedLabel.name, format)
       onDownload(res.data.content, res.data.filename, res.data.binary)
-      showToast('success', `已导出 ${res.data.rowCount} 条 (${format.toUpperCase()})`)
-      if (res.data.truncated) showToast('error', '数据量超过上限,仅导出部分')
+      showToast('success', t('msg.exportSuccess', { count: res.data.rowCount }))
+      if (res.data.truncated) showToast('error', t('msg.exportFail'))
     } catch (e) { showToast('error', e.message) }
     finally { setExporting(false) }
   }
@@ -178,21 +181,21 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <SectionCard title="选择导出目标" icon={Download}>
+      <SectionCard title={t('exportTypeVertex')} icon={Download}>
         <div className="mb-4 flex items-center gap-2">
           <button onClick={() => { setLabelType('vertex'); setSelectedLabel(null) }}
             className={`rounded-md px-3 py-1.5 text-sm font-medium ${labelType === 'vertex' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-            点类型 ({vertexLabels.length})
+            {t('common:vertexLabel')} ({vertexLabels.length})
           </button>
           <button onClick={() => { setLabelType('edge'); setSelectedLabel(null) }}
             className={`rounded-md px-3 py-1.5 text-sm font-medium ${labelType === 'edge' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-            边类型 ({edgeLabels.length})
+            {t('common:edgeLabel')} ({edgeLabels.length})
           </button>
         </div>
 
         <div className="mb-4 max-h-60 overflow-auto rounded-lg border border-gray-200">
           {currentLabels.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-gray-400">暂无{labelType === 'vertex' ? '点' : '边'}类型</div>
+            <div className="px-4 py-8 text-center text-sm text-gray-400">{t('common:noData')}</div>
           ) : currentLabels.map((l) => (
             <button key={`${l.schemaName}.${l.name}`} onClick={() => setSelectedLabel(l)}
               className={`flex w-full items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-50
@@ -210,12 +213,12 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
 
         {selectedLabel && (
           <div className="mb-4 rounded-lg bg-indigo-50 px-4 py-2 text-sm text-indigo-700">
-            已选: {selectedLabel.schemaName}.{selectedLabel.name}
+            {t('common:default')}: {selectedLabel.schemaName}.{selectedLabel.name}
           </div>
         )}
 
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">格式:</span>
+          <span className="text-sm text-gray-500">{t('exportFormat')}:</span>
           <div className="flex items-center gap-2">
             {[{ v: 'csv', l: 'CSV', icon: FileSpreadsheet }, { v: 'json', l: 'JSON', icon: FileJson }].map((f) => (
               <button key={f.v} onClick={() => setFormat(f.v)}
@@ -231,7 +234,7 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
         <button onClick={onExport} disabled={!selectedLabel || exporting}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
           {exporting ? <RefreshCw size={15} className="animate-spin" /> : <Download size={15} />}
-          {exporting ? '导出中...' : '执行导出'}
+          {exporting ? t('exporting') : t('exportBtn')}
         </button>
       </div>
     </div>
@@ -239,6 +242,7 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
 }
 
 function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
+  const { t } = useTranslation('importExport')
   const [importType, setImportType] = useState('vertex')
   const [selectedLabel, setSelectedLabel] = useState(null)
   const [format, setFormat] = useState('csv')
@@ -279,7 +283,7 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
   }
 
   const onPreview = async () => {
-    if (!fileContent) { showToast('error', '请先上传或粘贴数据'); return }
+    if (!fileContent) { showToast('error', t('msg.noFileSelected')); return }
     setPreviewing(true)
     try {
       const res = await previewImport(connectionId, { content: fileContent, format, type: importType })
@@ -298,8 +302,8 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
   }
 
   const onImport = async () => {
-    if (!fileContent || !selectedLabel) { showToast('error', '请先完成预览和配置'); return }
-    if (importType === 'edge' && (!outVertexField || !inVertexField)) { showToast('error', '请指定出入点匹配字段'); return }
+    if (!fileContent || !selectedLabel) { showToast('error', t('msg.noFileSelected')); return }
+    if (importType === 'edge' && (!outVertexField || !inVertexField)) { showToast('error', t('msg.noFileSelected')); return }
     setImporting(true)
     setImportResult(null)
     try {
@@ -313,43 +317,43 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
             outVertexLabel, inVertexLabel, outVertexField, inVertexField, fieldMapping,
           })
       setImportResult(res.data)
-      if (res.data.errors > 0) showToast('error', `导入完成: ${res.data.imported || 0} 成功, ${res.data.errors} 失败`)
-      else showToast('success', `导入成功: ${res.data.imported || res.data.imported || 0} 条`)
+      if (res.data.errors > 0) showToast('error', t('msg.importResultSuccess', { success: res.data.imported || 0, failed: res.data.errors }))
+      else showToast('success', t('msg.importSuccess'))
     } catch (e) { showToast('error', e.message) }
     finally { setImporting(false) }
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <SectionCard title="导入配置" icon={Upload}>
+      <SectionCard title={t('tabImport')} icon={Upload}>
         <div className="mb-4 flex items-center gap-2">
           <button onClick={() => { setImportType('vertex'); setSelectedLabel(null); setPreview(null); setImportResult(null) }}
             className={`rounded-md px-3 py-1.5 text-sm font-medium ${importType === 'vertex' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-            导入点 (Vertex)
+            {t('importTypeVertex')}
           </button>
           <button onClick={() => { setImportType('edge'); setSelectedLabel(null); setPreview(null); setImportResult(null) }}
             className={`rounded-md px-3 py-1.5 text-sm font-medium ${importType === 'edge' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'}`}>
-            导入边 (Edge)
+            {t('importTypeEdge')}
           </button>
         </div>
 
         <div className="mb-4 grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">目标 Label</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t('common:label')}</label>
             <select value={selectedLabel ? `${selectedLabel.schemaName}.${selectedLabel.name}` : ''}
               onChange={(e) => {
                 const label = currentLabels.find((l) => `${l.schemaName}.${l.name}` === e.target.value)
                 setSelectedLabel(label || null); setPreview(null); setImportResult(null)
               }}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-indigo-500">
-              <option value="">选择...</option>
+              <option value="">{t('common:selectConnection')}</option>
               {currentLabels.map((l) => (
                 <option key={`${l.schemaName}.${l.name}`} value={`${l.schemaName}.${l.name}`}>{l.schemaName}.{l.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs font-medium text-gray-500">文件格式</label>
+            <label className="mb-1 block text-xs font-medium text-gray-500">{t('importFormat')}</label>
             <div className="flex items-center gap-2">
               {[{ v: 'csv', l: 'CSV' }, { v: 'json', l: 'JSON' }].map((f) => (
                 <button key={f.v} onClick={() => { setFormat(f.v); setPreview(null) }}
@@ -364,24 +368,24 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
         {importType === 'edge' && (
           <div className="mb-4 grid grid-cols-2 gap-4 rounded-lg border border-gray-200 p-3">
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">出点 (Out Vertex) 类型</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">{t('exportTypeVertex')}</label>
               <input value={outVertexLabel} onChange={(e) => setOutVertexLabel(e.target.value)}
-                placeholder="如 Person" className="w-full rounded border border-gray-300 px-2 py-1 text-sm" />
+                placeholder="Person" className="w-full rounded border border-gray-300 px-2 py-1 text-sm" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">出点匹配字段</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">{t('sourceField')}</label>
               <input value={outVertexField} onChange={(e) => setOutVertexField(e.target.value)}
-                placeholder="如 object_id" className="w-full rounded border border-gray-300 px-2 py-1 text-sm" />
+                placeholder="object_id" className="w-full rounded border border-gray-300 px-2 py-1 text-sm" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">入点 (In Vertex) 类型</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">{t('exportTypeEdge')}</label>
               <input value={inVertexLabel} onChange={(e) => setInVertexLabel(e.target.value)}
-                placeholder="如 Person" className="w-full rounded border border-gray-300 px-2 py-1 text-sm" />
+                placeholder="Person" className="w-full rounded border border-gray-300 px-2 py-1 text-sm" />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-gray-500">入点匹配字段</label>
+              <label className="mb-1 block text-xs font-medium text-gray-500">In Match Field</label>
               <input value={inVertexField} onChange={(e) => setInVertexField(e.target.value)}
-                placeholder="如 object_id" className="w-full rounded border border-gray-300 px-2 py-1 text-sm" />
+                placeholder="object_id" className="w-full rounded border border-gray-300 px-2 py-1 text-sm" />
             </div>
           </div>
         )}
@@ -390,42 +394,42 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
           <div className="mb-4 flex items-center gap-2">
             <input type="checkbox" id="overwrite" checked={overwrite} onChange={(e) => setOverwrite(e.target.checked)}
               className="accent-indigo-600" />
-            <label htmlFor="overwrite" className="text-sm text-gray-600">覆盖已有点 (按 identifier 匹配)</label>
+            <label htmlFor="overwrite" className="text-sm text-gray-600">{t('overwriteUpsert')}</label>
           </div>
         )}
       </SectionCard>
 
-      <SectionCard title="数据源" icon={FileText}>
+      <SectionCard title={t("dataSource")} icon={FileText}>
         <div className="mb-3 flex items-center gap-2">
           <input type="file" accept={format === 'csv' ? '.csv' : '.json'}
             onChange={onFileUpload}
             className="hidden" id="file-upload" />
           <button onClick={() => document.getElementById('file-upload').click()}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-            <Upload size={14} /> 选择文件
+            <Upload size={14} /> {t('selectFile')}
           </button>
           {fileName && <span className="text-xs text-gray-500">{fileName}</span>}
         </div>
         <textarea value={fileContent} onChange={onPaste}
-          placeholder={`粘贴或上传 ${format.toUpperCase()} 数据...\n\nCSV 示例:\nname,age,object_id\nAlice,30,person_001\n\nJSON 示例:\n[{"name":"Alice","age":30,"object_id":"person_001"}]`}
+          placeholder={`Paste or upload ${format.toUpperCase()} data...\n\nCSV example:\nname,age,object_id\nAlice,30,person_001\n\nJSON example:\n[{"name":"Alice","age":30,"object_id":"person_001"}]`}
           className="h-40 w-full rounded-lg border border-gray-300 p-3 font-mono text-xs outline-none focus:border-indigo-500" />
         <div className="mt-3 flex items-center gap-2">
           <button onClick={onPreview} disabled={!fileContent || previewing}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-            {previewing ? <RefreshCw size={14} className="animate-spin" /> : <Eye size={14} />} 预览
+            {previewing ? <RefreshCw size={14} className="animate-spin" /> : <Eye size={14} />} {t('previewBtn')}
           </button>
         </div>
       </SectionCard>
 
       {preview && (
-        <SectionCard title="预览结果" icon={Eye}>
+        <SectionCard title={t("previewResult")} icon={Eye}>
           <div className="mb-3 flex items-center gap-4 text-xs text-gray-500">
-            <span>解析到 {preview.totalRows} 行数据</span>
-            <span className="text-red-500">{preview.errorCount} 个错误</span>
+            <span>Parsed {preview.totalRows} rows</span>
+            <span className="text-red-500">{preview.errorCount} errors</span>
           </div>
           {preview.columns && preview.columns.length > 0 && (
             <div className="mb-3">
-              <div className="mb-1 text-xs font-medium text-gray-400">检测到的列:</div>
+              <div className="mb-1 text-xs font-medium text-gray-400">Detected columns:</div>
               <div className="flex flex-wrap gap-1">
                 {preview.columns.map((col) => (
                   <span key={col} className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{col}</span>
@@ -457,7 +461,7 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
 
           {importType === 'vertex' && selectedLabel && preview.columns && (
             <div className="mt-4">
-              <div className="mb-2 text-sm font-medium text-gray-600">字段映射</div>
+              <div className="mb-2 text-sm font-medium text-gray-600">{t('fieldMapping')}</div>
               <div className="space-y-1">
                 {preview.columns.map((col) => (
                   <div key={col} className="flex items-center gap-2">
@@ -466,7 +470,7 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
                     <select value={fieldMapping[col] || ''}
                       onChange={(e) => setFieldMapping((prev) => ({ ...prev, [col]: e.target.value }))}
                       className="flex-1 rounded border border-gray-300 px-2 py-1 text-xs">
-                      <option value="">(忽略)</option>
+                      <option value="">(ignore)</option>
                       {(selectedLabel.properties || []).map((p) => (
                         <option key={p.name} value={p.name}>{p.name} ({p.type})</option>
                       ))}
@@ -478,7 +482,7 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
           )}
           {importType === 'edge' && preview.columns && (
             <div className="mt-4">
-              <div className="mb-2 text-sm font-medium text-gray-600">边属性映射</div>
+              <div className="mb-2 text-sm font-medium text-gray-600">Edge Property Mapping</div>
               <div className="space-y-1">
                 {preview.columns.map((col) => (
                   <div key={col} className="flex items-center gap-2">
@@ -487,9 +491,9 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
                     <select value={fieldMapping[col] || ''}
                       onChange={(e) => setFieldMapping((prev) => ({ ...prev, [col]: e.target.value }))}
                       className="flex-1 rounded border border-gray-300 px-2 py-1 text-xs">
-                      <option value="">(忽略)</option>
-                      <option value={outVertexField}>{outVertexField || '(出点字段)'}</option>
-                      <option value={inVertexField}>{inVertexField || '(入点字段)'}</option>
+                      <option value="">(ignore)</option>
+                      <option value={outVertexField}>{outVertexField || '(out field)'}</option>
+                      <option value={inVertexField}>{inVertexField || '(in field)'}</option>
                       {(selectedLabel?.properties || []).map((p) => (
                         <option key={p.name} value={p.name}>{p.name} ({p.type})</option>
                       ))}
@@ -503,16 +507,16 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
       )}
 
       {importResult && (
-        <SectionCard title="导入结果" icon={importResult.errors > 0 ? AlertTriangle : CheckCircle2}>
+        <SectionCard title={t("importResult")} icon={importResult.errors > 0 ? AlertTriangle : CheckCircle2}>
           <div className="flex flex-wrap gap-4 text-sm">
-            <StatCard label="总行数" value={importResult.totalRows} color="gray" />
-            {importResult.imported != null && <StatCard label="新增" value={importResult.imported} color="green" />}
-            {importResult.updated != null && <StatCard label="更新" value={importResult.updated} color="blue" />}
-            <StatCard label="失败" value={importResult.errors} color="red" />
+            <StatCard label={t("totalRows")} value={importResult.totalRows} color="gray" />
+            {importResult.imported != null && <StatCard label={t("created")} value={importResult.imported} color="green" />}
+            {importResult.updated != null && <StatCard label={t("updated")} value={importResult.updated} color="blue" />}
+            <StatCard label="Failed" value={importResult.errors} color="red" />
           </div>
           {importResult.errorMessages && importResult.errorMessages.length > 0 && (
             <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3">
-              <div className="mb-1 text-xs font-medium text-red-600">错误详情:</div>
+              <div className="mb-1 text-xs font-medium text-red-600">Error details:</div>
               {importResult.errorMessages.map((msg, i) => <div key={i} className="text-xs text-red-500">{msg}</div>)}
             </div>
           )}
@@ -523,7 +527,7 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
         <button onClick={onImport} disabled={!selectedLabel || !fileContent || importing}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
           {importing ? <RefreshCw size={15} className="animate-spin" /> : <Upload size={15} />}
-          {importing ? '导入中...' : '执行导入'}
+          {importing ? t('importing') : t('importBtn')}
         </button>
       </div>
     </div>
@@ -531,6 +535,7 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
 }
 
 function TopologyPanel({ connectionId, onDownload, showToast }) {
+  const { t } = useTranslation('importExport')
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [topoContent, setTopoContent] = useState('')
@@ -542,7 +547,7 @@ function TopologyPanel({ connectionId, onDownload, showToast }) {
     try {
       const res = await exportTopology(connectionId)
       onDownload(res.data.content, res.data.filename, false)
-      showToast('success', `已导出 Topology (${res.data.rowCount} schemas)`)
+      showToast('success', t('msg.topologyExportSuccess'))
     } catch (e) { showToast('error', e.message) }
     finally { setExporting(false) }
   }
@@ -560,49 +565,49 @@ function TopologyPanel({ connectionId, onDownload, showToast }) {
   }
 
   const onImportTopology = async () => {
-    if (!topoContent) { showToast('error', '请先选择 Topology JSON 文件'); return }
-    if (!window.confirm('确认导入 Topology? 将在目标连接中创建缺失的 Schema/Label/属性。')) return
+    if (!topoContent) { showToast('error', t('msg.noFileSelected')); return }
+    if (!window.confirm(t('confirmTopologyImport'))) return
     setImporting(true)
     setImportResult(null)
     try {
       const res = await importTopology(connectionId, { content: topoContent })
       setImportResult(res.data)
       const ok = res.data.errorCount || 0
-      if (ok > 0) showToast('error', `导入完成: ${res.data.vertexLabelsCreated} 点类型, ${res.data.edgeLabelsCreated} 边类型, ${ok} 个错误`)
-      else showToast('success', `导入成功: ${res.data.vertexLabelsCreated} 点类型, ${res.data.edgeLabelsCreated} 边类型, ${res.data.skipped} 跳过`)
+      if (ok > 0) showToast('error', t('msg.importResultSuccess', { success: res.data.vertexLabelsCreated + res.data.edgeLabelsCreated, failed: ok }))
+      else showToast('success', t('msg.topologyImportSuccess'))
     } catch (e) { showToast('error', e.message) }
     finally { setImporting(false) }
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <SectionCard title="Topology 导出" icon={Download}>
+      <SectionCard title={t("topologyExport")} icon={Download}>
         <p className="mb-4 text-sm text-gray-500">
-          将当前连接的 Sqlg Topology 结构(Schema / VertexLabel / EdgeLabel / 属性 / 标识符)导出为 JSON 文件。
-          可用于环境间迁移、备份或文档化。
+          Export the Sqlg Topology (Schema / VertexLabel / EdgeLabel / Properties / Identifiers) as a JSON file.
+          Useful for environment migration, backup, or documentation.
         </p>
         <button onClick={onExportTopology} disabled={exporting}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
           {exporting ? <RefreshCw size={15} className="animate-spin" /> : <Download size={15} />}
-          {exporting ? '导出中...' : '导出 Topology JSON'}
+          {exporting ? t('exporting') : t('topologyExportBtn')}
         </button>
       </SectionCard>
 
-      <SectionCard title="Topology 导入 (从 JSON)" icon={Upload}>
+      <SectionCard title={t("topologyImport")} icon={Upload}>
         <p className="mb-4 text-sm text-gray-500">
-          从导出的 Topology JSON 文件创建或恢复 Topology 结构。适用于环境间迁移、CI/CD 自动化部署等场景。
+          Create or restore Topology from an exported JSON file. Useful for environment migration, CI/CD deployment.
         </p>
         <div className="mb-4 flex items-center gap-2">
           <input type="file" accept=".json" onChange={onFileUpload} className="hidden" id="topo-file-upload" />
           <button onClick={() => document.getElementById('topo-file-upload').click()}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-            <Upload size={14} /> 选择 JSON 文件
+            <Upload size={14} /> Select JSON file
           </button>
           {topoFileName && <span className="text-xs text-gray-500">{topoFileName}</span>}
         </div>
         {topoContent && (
           <div className="mb-4 max-h-48 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3">
-            <pre className="text-xs text-gray-600"><code>{topoContent.substring(0, 2000)}{topoContent.length > 2000 ? '\n...(截断)' : ''}</code></pre>
+            <pre className="text-xs text-gray-600"><code>{topoContent.substring(0, 2000)}{topoContent.length > 2000 ? '\n...(truncated)' : ''}</code></pre>
           </div>
         )}
 
@@ -610,14 +615,14 @@ function TopologyPanel({ connectionId, onDownload, showToast }) {
           <div className="mb-4 rounded-lg border border-gray-200 p-4">
             <div className="mb-3 flex flex-wrap gap-4">
               <StatCard label="Schema" value={importResult.schemasCreated} color="blue" />
-              <StatCard label="新增点类型" value={importResult.vertexLabelsCreated} color="green" />
-              <StatCard label="新增边类型" value={importResult.edgeLabelsCreated} color="green" />
-              <StatCard label="跳过(已存在)" value={importResult.skipped} color="gray" />
-              <StatCard label="错误" value={importResult.errorCount} color="red" />
+              <StatCard label={t("createdVertexLabel")} value={importResult.vertexLabelsCreated} color="green" />
+              <StatCard label={t("createdEdgeLabel")} value={importResult.edgeLabelsCreated} color="green" />
+              <StatCard label="Skipped (exists)" value={importResult.skipped} color="gray" />
+              <StatCard label="errors" value={importResult.errorCount} color="red" />
             </div>
             {importResult.errors && importResult.errors.length > 0 && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-2">
-                <div className="mb-1 text-xs font-medium text-red-600">错误详情:</div>
+                <div className="mb-1 text-xs font-medium text-red-600">Error details:</div>
                 {importResult.errors.map((err, i) => <div key={i} className="text-xs text-red-500">{err}</div>)}
               </div>
             )}
@@ -627,7 +632,7 @@ function TopologyPanel({ connectionId, onDownload, showToast }) {
         <button onClick={onImportTopology} disabled={!topoContent || importing}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
           {importing ? <RefreshCw size={15} className="animate-spin" /> : <Upload size={15} />}
-          {importing ? '导入中...' : '执行导入'}
+          {importing ? t('importing') : t('importBtn')}
         </button>
       </SectionCard>
     </div>
