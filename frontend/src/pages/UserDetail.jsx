@@ -9,17 +9,19 @@ import {
   ArrowLeft, Users, ShieldCheck, GitFork, LogIn, ScrollText, Save, X,
   Check, KeyRound,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const TABS = [
-  { key: 'basic', label: '基本信息', icon: Users },
-  { key: 'roles', label: '角色分配', icon: ShieldCheck },
-  { key: 'permissions', label: '有效权限', icon: ShieldCheck },
-  { key: 'connections', label: '连接权限', icon: GitFork },
-  { key: 'login-logs', label: '登录记录', icon: LogIn },
-  { key: 'operation-logs', label: '操作记录', icon: ScrollText },
+  { key: 'basic', labelKey: 'tab.basic', icon: Users },
+  { key: 'roles', labelKey: 'tab.roles', icon: ShieldCheck },
+  { key: 'permissions', labelKey: 'tab.permissions', icon: ShieldCheck },
+  { key: 'connections', labelKey: 'tab.connections', icon: GitFork },
+  { key: 'login-logs', labelKey: 'tab.loginLogs', icon: LogIn },
+  { key: 'operation-logs', labelKey: 'tab.operationLogs', icon: ScrollText },
 ]
 
 export default function UserDetail() {
+  const { t, i18n } = useTranslation('userDetail')
   const { id } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -51,7 +53,7 @@ export default function UserDetail() {
 
   useEffect(() => { loadDetail(); loadRoles() }, [loadDetail, loadRoles])
 
-  if (!detail) return <div className="flex h-full items-center justify-center text-gray-400">加载中...</div>
+  if (!detail) return <div className="flex h-full items-center justify-center text-gray-400">{t('loading')}</div>
 
   const readOnlyForNew = isNew && !['basic', 'roles'].includes(activeTab)
 
@@ -60,11 +62,11 @@ export default function UserDetail() {
       <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-6 py-3">
         <button onClick={() => navigate('/user-management')}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-          <ArrowLeft size={18} /> 返回
+          <ArrowLeft size={18} /> {t('back')}
         </button>
         <div className="h-4 w-px bg-gray-200" />
         <h1 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-          {isNew ? '新增用户' : `用户详情: ${detail.username}`}
+          {isNew ? t('newUser') : t('detailTitle', { name: detail.username })}
         </h1>
       </header>
 
@@ -85,7 +87,7 @@ export default function UserDetail() {
                       : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                <tab.icon size={16} /> {tab.label}
+                <tab.icon size={16} /> {t(tab.labelKey)}
               </button>
             )
           })}
@@ -93,10 +95,10 @@ export default function UserDetail() {
 
         <div className="flex-1 overflow-auto p-6">
           {activeTab === 'basic' && (
-            <BasicTab detail={detail} isNew={isNew} userId={id} onSaved={() => { loadDetail(); showToast('success', '保存成功') }} showToast={showToast} />
+            <BasicTab detail={detail} isNew={isNew} userId={id} onSaved={() => { loadDetail(); showToast('success', t('msg.saveSuccess')) }} showToast={showToast} />
           )}
           {activeTab === 'roles' && !readOnlyForNew && (
-            <RolesTab detail={detail} roles={roles} userId={id} isNew={isNew} onSaved={() => { loadDetail(); showToast('success', '保存成功') }} showToast={showToast} />
+            <RolesTab detail={detail} roles={roles} userId={id} isNew={isNew} onSaved={() => { loadDetail(); showToast('success', t('msg.saveSuccess')) }} showToast={showToast} />
           )}
           {activeTab === 'permissions' && !isNew && <PermissionsTab userId={id} />}
           {activeTab === 'connections' && !isNew && <ConnectionsTab userId={id} />}
@@ -104,7 +106,7 @@ export default function UserDetail() {
           {activeTab === 'operation-logs' && !isNew && <OperationLogsTab userId={id} />}
           {readOnlyForNew && (
             <div className="flex h-full items-center justify-center text-sm text-gray-400">
-              保存用户后可查看此标签页
+              {t('saveFirstHint')}
             </div>
           )}
         </div>
@@ -124,6 +126,7 @@ export default function UserDetail() {
 const inputCls = 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100'
 
 function BasicTab({ detail, isNew, userId, onSaved, showToast }) {
+  const { t } = useTranslation('userDetail')
   const [form, setForm] = useState({
     username: detail.username || '',
     password: '',
@@ -137,7 +140,7 @@ function BasicTab({ detail, isNew, userId, onSaved, showToast }) {
 
   const submit = async () => {
     if (isNew) {
-      if (!form.username || !form.password) { showToast('error', '用户名和密码必填'); return }
+      if (!form.username || !form.password) { showToast('error', t('msg.usernamePasswordRequired')); return }
     }
     setSaving(true)
     try {
@@ -161,42 +164,42 @@ function BasicTab({ detail, isNew, userId, onSaved, showToast }) {
       <div className="grid grid-cols-2 gap-4">
         {isNew && (
           <>
-            <Field label="用户名" required>
+            <Field label={t('field.username')} required>
               <input className={inputCls} value={form.username}
                 onChange={(e) => setForm({ ...form, username: e.target.value })} />
             </Field>
-            <Field label="密码" required>
+            <Field label={t('field.password')} required>
               <input className={inputCls} type="password" value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })} />
             </Field>
           </>
         )}
         {!isNew && (
-          <Field label="用户名">
+          <Field label={t('field.username')}>
             <input className={`${inputCls} bg-gray-50`} value={detail.username} disabled />
           </Field>
         )}
-        <Field label="显示名称">
+        <Field label={t('field.nickname')}>
           <input className={inputCls} value={form.nickname}
             onChange={(e) => setForm({ ...form, nickname: e.target.value })} />
         </Field>
-        <Field label="邮箱">
+        <Field label={t('field.email')}>
           <input className={inputCls} value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })} />
         </Field>
-        <Field label="手机号">
+        <Field label={t('field.phone')}>
           <input className={inputCls} value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         </Field>
-        <Field label="状态">
+        <Field label={t('field.status')}>
           <select className={inputCls} value={form.status}
             onChange={(e) => setForm({ ...form, status: Number(e.target.value) })}>
-            <option value={1}>启用</option>
-            <option value={0}>停用</option>
+            <option value={1}>{t('common:enable')}</option>
+            <option value={0}>{t('common:disable')}</option>
           </select>
         </Field>
         <div className="col-span-2">
-          <Field label="备注">
+          <Field label={t('field.remark')}>
             <textarea className={inputCls} rows={3} value={form.remark}
               onChange={(e) => setForm({ ...form, remark: e.target.value })} />
           </Field>
@@ -206,11 +209,11 @@ function BasicTab({ detail, isNew, userId, onSaved, showToast }) {
       <div className="mt-6 flex justify-end gap-2">
         <button onClick={() => window.history.back()}
           className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-          取消
+          {t('cancel')}
         </button>
         <button onClick={submit} disabled={saving}
           className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-          <Save size={15} /> {saving ? '保存中...' : '保存'}
+          <Save size={15} /> {saving ? t('common:saving') : t('save')}
         </button>
       </div>
     </div>
@@ -232,7 +235,7 @@ function RolesTab({ detail, roles, userId, isNew, onSaved, showToast }) {
 
   const saveRoles = async () => {
     if (isNew) {
-      showToast('info', '请先在「基本信息」保存用户')
+      showToast('info', t('roles.saveUserFirst'))
       return
     }
     setSaving(true)
@@ -244,18 +247,18 @@ function RolesTab({ detail, roles, userId, isNew, onSaved, showToast }) {
   }
 
   const doResetPassword = async () => {
-    if (!newPassword || newPassword.length < 6) { showToast('error', '密码至少 6 位'); return }
+    if (!newPassword || newPassword.length < 6) { showToast('error', t('roles.passwordMinLength')); return }
     try {
       await resetPassword(userId, newPassword)
       setNewPassword('')
-      showToast('success', '密码已重置')
+      showToast('success', t('roles.passwordReset'))
     } catch (e) { showToast('error', e.message) }
   }
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-gray-700">分配角色</h3>
+        <h3 className="mb-3 text-sm font-semibold text-gray-700">{t('roles.assignTitle')}</h3>
         <div className="space-y-2">
           {roles.map((role) => {
             const key = role.roleKey || role.key
@@ -281,20 +284,20 @@ function RolesTab({ detail, roles, userId, isNew, onSaved, showToast }) {
         <div className="mt-4 flex justify-end">
           <button onClick={saveRoles} disabled={saving || isNew}
             className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-            <Save size={15} /> 保存角色
+            <Save size={15} /> {t('roles.saveRoles')}
           </button>
         </div>
       </div>
 
       {!isNew && (
         <div className="border-t border-gray-200 pt-6">
-          <h3 className="mb-3 text-sm font-semibold text-gray-700">重置密码</h3>
+          <h3 className="mb-3 text-sm font-semibold text-gray-700">{t('roles.resetPassword')}</h3>
           <div className="flex items-center gap-2">
             <input className={inputCls} type="password" value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)} placeholder="输入新密码 (至少 6 位)" />
+              onChange={(e) => setNewPassword(e.target.value)} placeholder={t("roles.newPasswordPlaceholder")} />
             <button onClick={doResetPassword}
               className="flex items-center gap-1 whitespace-nowrap rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-700 hover:bg-amber-100">
-              <KeyRound size={15} /> 重置
+              <KeyRound size={15} /> {t('roles.resetBtn')}
             </button>
           </div>
         </div>
@@ -306,43 +309,44 @@ function RolesTab({ detail, roles, userId, isNew, onSaved, showToast }) {
 // ==================== 有效权限 (只读) ====================
 
 function PermissionsTab({ userId }) {
+  const { t } = useTranslation('userDetail')
   const [perms, setPerms] = useState(null)
 
   useEffect(() => {
     getPermissions(userId).then((res) => setPerms(res.data)).catch(() => {})
   }, [userId])
 
-  if (!perms) return <div className="text-center text-gray-400">加载中...</div>
+  if (!perms) return <div className="text-center text-gray-400">{t('loading')}</div>
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <PermSection title="当前角色">
+      <PermSection title={t("perms.currentRoles")}>
         {perms.roles?.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {perms.roles.map((r) => (
               <span key={r.key} className="rounded bg-indigo-50 px-2 py-0.5 text-sm text-indigo-700">{r.label}</span>
             ))}
           </div>
-        ) : <span className="text-sm text-gray-400">未分配角色</span>}
+        ) : <span className="text-sm text-gray-400">{t('perms.unassigned')}</span>}
       </PermSection>
 
-      <PermSection title="菜单权限">
+      <PermSection title={t("perms.menuPerms")}>
         <div className="flex flex-wrap gap-1">
           {perms.menus?.length > 0 ? perms.menus.map((m) => (
-            <span key={m} className="rounded bg-green-50 px-2 py-0.5 text-sm text-green-700">{m === '*' ? '全部菜单' : m}</span>
-          )) : <span className="text-sm text-gray-400">无</span>}
+            <span key={m} className="rounded bg-green-50 px-2 py-0.5 text-sm text-green-700">{m === '*' ? t('perms.allMenus') : m}</span>
+          )) : <span className="text-sm text-gray-400">{t('none')}</span>}
         </div>
       </PermSection>
 
-      <PermSection title="操作权限">
+      <PermSection title={t("perms.operationPerms")}>
         <div className="flex flex-wrap gap-1">
           {perms.operations?.length > 0 ? perms.operations.map((op) => (
-            <span key={op} className="rounded bg-blue-50 px-2 py-0.5 text-sm text-blue-700">{op === '*' ? '全部操作' : op}</span>
-          )) : <span className="text-sm text-gray-400">无</span>}
+            <span key={op} className="rounded bg-blue-50 px-2 py-0.5 text-sm text-blue-700">{op === '*' ? t('perms.allOps') : op}</span>
+          )) : <span className="text-sm text-gray-400">{t('none')}</span>}
         </div>
       </PermSection>
 
-      <PermSection title="Gremlin 权限">
+      <PermSection title={t("perms.gremlinPerms")}>
         <span className={`rounded px-2 py-0.5 text-sm ${
           perms.gremlin === 'ADMIN' ? 'bg-purple-50 text-purple-700' :
           perms.gremlin === 'READ_WRITE' ? 'bg-blue-50 text-blue-700' :
@@ -351,10 +355,10 @@ function PermissionsTab({ userId }) {
         }`}>{perms.gremlin || 'NONE'}</span>
       </PermSection>
 
-      <PermSection title="危险操作资格">
+      <PermSection title={t("perms.dangerousQuals")}>
         {perms.allowDangerousOps
-          ? <span className="rounded bg-red-50 px-2 py-0.5 text-sm text-red-700">允许</span>
-          : <span className="rounded bg-gray-100 px-2 py-0.5 text-sm text-gray-500">无</span>}
+          ? <span className="rounded bg-red-50 px-2 py-0.5 text-sm text-red-700">{t('perms.allowed')}</span>
+          : <span className="rounded bg-gray-100 px-2 py-0.5 text-sm text-gray-500">{t('none')}</span>}
       </PermSection>
     </div>
   )
@@ -363,26 +367,27 @@ function PermissionsTab({ userId }) {
 // ==================== 连接权限 (只读) ====================
 
 function ConnectionsTab({ userId }) {
+  const { t } = useTranslation('userDetail')
   const [data, setData] = useState(null)
 
   useEffect(() => {
     getConnectionPermissions(userId).then((res) => setData(res.data)).catch(() => {})
   }, [userId])
 
-  if (!data) return <div className="text-center text-gray-400">加载中...</div>
+  if (!data) return <div className="text-center text-gray-400">{t('loading')}</div>
 
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-4 rounded-lg bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
-        可访问连接数量: <strong>{data.accessibleCount ?? 0}</strong> · 合并访问级别: <strong>{data.mergedAccess || 'NONE'}</strong>
+        {t('conn.accessibleCount')}: <strong>{data.accessibleCount ?? 0}</strong> · · {t('conn.mergedAccess')}: <strong>{data.mergedAccess || 'NONE'}</strong>
       </div>
       <div className="overflow-hidden rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2">连接范围</th>
-              <th className="px-4 py-2">访问级别</th>
-              <th className="px-4 py-2">来源角色</th>
+              <th className="px-4 py-2">{t('conn.colScope')}</th>
+              <th className="px-4 py-2">{t('conn.colAccess')}</th>
+              <th className="px-4 py-2">{t('conn.colSource')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -397,7 +402,7 @@ function ConnectionsTab({ userId }) {
                 <td className="px-4 py-2 text-gray-600">{p.roleLabel}</td>
               </tr>
             )) : (
-              <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-400">未分配角色</td></tr>
+              <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-400">{t('perms.unassigned')}</td></tr>
             )}
           </tbody>
         </table>
@@ -409,6 +414,7 @@ function ConnectionsTab({ userId }) {
 // ==================== 登录记录 ====================
 
 function LoginLogsTab({ userId }) {
+  const { t, i18n } = useTranslation('userDetail')
   const [rows, setRows] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -435,23 +441,23 @@ function LoginLogsTab({ userId }) {
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2">登录时间</th>
-              <th className="px-4 py-2">IP</th>
-              <th className="px-4 py-2">结果</th>
-              <th className="px-4 py-2">User-Agent</th>
+              <th className="px-4 py-2">{t('loginLog.colTime')}</th>
+              <th className="px-4 py-2">{t('loginLog.colIp')}</th>
+              <th className="px-4 py-2">{t('loginLog.colResult')}</th>
+              <th className="px-4 py-2">{t('loginLog.colUa')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {loading && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">暂无记录</td></tr>}
+            {loading && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t('loading')}</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t('emptyRecords')}</td></tr>}
             {!loading && rows.map((r) => (
               <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2 text-xs text-gray-600 whitespace-nowrap">{formatTime(r.loginTime)}</td>
+                <td className="px-4 py-2 text-xs text-gray-600 whitespace-nowrap">{formatTime(r.loginTime, i18n.language?.startsWith('en') ? 'en-US' : 'zh-CN')}</td>
                 <td className="px-4 py-2 text-xs text-gray-600">{r.clientIp || '—'}</td>
                 <td className="px-4 py-2">
                   {r.resultStatus === 'SUCCESS'
-                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">成功</span>
-                    : <span className="rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-700">失败 {r.failReason ? `(${r.failReason})` : ''}</span>}
+                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">{t('success')}</span>
+                    : <span className="rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-700">{t('failed')} {r.failReason ? `(${r.failReason})` : ''}</span>}
                 </td>
                 <td className="max-w-xs truncate px-4 py-2 text-xs text-gray-500" title={r.userAgent}>{r.userAgent || '—'}</td>
               </tr>
@@ -461,13 +467,13 @@ function LoginLogsTab({ userId }) {
       </div>
       {total > size && (
         <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-          <span>共 {total} 条</span>
+          <span>{t('totalCount', { count: total })}</span>
           <div className="flex gap-1">
             <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}
-              className="rounded border px-2 py-0.5 hover:bg-gray-50 disabled:opacity-40">上一页</button>
+              className="rounded border px-2 py-0.5 hover:bg-gray-50 disabled:opacity-40">{t('prevPage')}</button>
             <span className="px-1">{page}/{totalPages}</span>
             <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-              className="rounded border px-2 py-0.5 hover:bg-gray-50 disabled:opacity-40">下一页</button>
+              className="rounded border px-2 py-0.5 hover:bg-gray-50 disabled:opacity-40">{t('nextPage')}</button>
           </div>
         </div>
       )}
@@ -478,6 +484,7 @@ function LoginLogsTab({ userId }) {
 // ==================== 操作记录 ====================
 
 function OperationLogsTab({ userId }) {
+  const { t, i18n } = useTranslation('userDetail')
   const [rows, setRows] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -504,18 +511,18 @@ function OperationLogsTab({ userId }) {
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2">时间</th>
-              <th className="px-4 py-2">模块</th>
-              <th className="px-4 py-2">操作</th>
-              <th className="px-4 py-2">状态</th>
+              <th className="px-4 py-2">{t('opLog.colTime')}</th>
+              <th className="px-4 py-2">{t('opLog.colModule')}</th>
+              <th className="px-4 py-2">{t('opLog.colOp')}</th>
+              <th className="px-4 py-2">{t('opLog.colStatus')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {loading && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>}
-            {!loading && rows.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">暂无记录</td></tr>}
+            {loading && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t('loading')}</td></tr>}
+            {!loading && rows.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t('emptyRecords')}</td></tr>}
             {!loading && rows.map((r) => (
               <tr key={r.id} className="hover:bg-gray-50">
-                <td className="px-4 py-2 text-xs text-gray-600 whitespace-nowrap">{formatTime(r.createTime)}</td>
+                <td className="px-4 py-2 text-xs text-gray-600 whitespace-nowrap">{formatTime(r.createTime, i18n.language?.startsWith('en') ? 'en-US' : 'zh-CN')}</td>
                 <td className="px-4 py-2 text-xs text-gray-700">{r.module || '—'}</td>
                 <td className="px-4 py-2 text-xs text-gray-700">
                   <div className="flex items-center gap-1">
@@ -537,13 +544,13 @@ function OperationLogsTab({ userId }) {
       </div>
       {total > size && (
         <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-          <span>共 {total} 条</span>
+          <span>{t('totalCount', { count: total })}</span>
           <div className="flex gap-1">
             <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}
-              className="rounded border px-2 py-0.5 hover:bg-gray-50 disabled:opacity-40">上一页</button>
+              className="rounded border px-2 py-0.5 hover:bg-gray-50 disabled:opacity-40">{t('prevPage')}</button>
             <span className="px-1">{page}/{totalPages}</span>
             <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
-              className="rounded border px-2 py-0.5 hover:bg-gray-50 disabled:opacity-40">下一页</button>
+              className="rounded border px-2 py-0.5 hover:bg-gray-50 disabled:opacity-40">{t('nextPage')}</button>
           </div>
         </div>
       )}
@@ -573,8 +580,8 @@ function PermSection({ title, children }) {
   )
 }
 
-function formatTime(time) {
+function formatTime(time, locale) {
   if (!time) return '—'
   const d = new Date(time)
-  return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return d.toLocaleString(locale || 'zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }

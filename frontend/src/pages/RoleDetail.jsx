@@ -13,18 +13,20 @@ import {
   TerminalSquare, AlertTriangle, Save, Check, X, Plus, Trash2,
   ChevronDown, ChevronRight,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const TABS = [
-  { key: 'basic', label: '基本信息', icon: Settings },
-  { key: 'members', label: '用户成员', icon: Users },
-  { key: 'menus', label: '菜单权限', icon: List },
-  { key: 'operations', label: '操作权限', icon: ShieldCheck },
-  { key: 'connections', label: '可见连接', icon: GitFork },
-  { key: 'gremlin', label: 'Gremlin 权限', icon: TerminalSquare },
-  { key: 'dangerous', label: '危险操作资格', icon: AlertTriangle },
+  { key: 'basic', labelKey: 'tab.basic', icon: Settings },
+  { key: 'members', labelKey: 'tab.members', icon: Users },
+  { key: 'menus', labelKey: 'tab.menus', icon: List },
+  { key: 'operations', labelKey: 'tab.operations', icon: ShieldCheck },
+  { key: 'connections', labelKey: 'tab.connections', icon: GitFork },
+  { key: 'gremlin', labelKey: 'tab.gremlin', icon: TerminalSquare },
+  { key: 'dangerous', labelKey: 'tab.dangerous', icon: AlertTriangle },
 ]
 
 export default function RoleDetail() {
+  const { t } = useTranslation('roleDetail')
   const { id } = useParams()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -47,19 +49,19 @@ export default function RoleDetail() {
 
   useEffect(() => { loadDetail(); loadCatalog() }, [loadDetail, loadCatalog])
 
-  if (!detail) return <div className="flex h-full items-center justify-center text-gray-400">加载中...</div>
+  if (!detail) return <div className="flex h-full items-center justify-center text-gray-400">{t('loading')}</div>
 
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-6 py-3">
         <button onClick={() => navigate('/role-management')}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-          <ArrowLeft size={18} /> 返回
+          <ArrowLeft size={18} /> {t('back')}
         </button>
         <div className="h-4 w-px bg-gray-200" />
         <h1 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-          角色详情: {detail.roleName}
-          {detail.isBuiltin && <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">内置</span>}
+          {t('detailTitle', { name: detail.roleName })}
+          {detail.isBuiltin && <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">{t('builtin')}</span>}
         </h1>
       </header>
 
@@ -73,19 +75,19 @@ export default function RoleDetail() {
                   : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              <tab.icon size={16} /> {tab.label}
+              <tab.icon size={16} /> {t(tab.labelKey)}
             </button>
           ))}
         </nav>
 
         <div className="flex-1 overflow-auto p-6">
-          {activeTab === 'basic' && <BasicTab detail={detail} roleId={id} onSaved={() => { loadDetail(); showToast('success', '保存成功') }} showToast={showToast} />}
+          {activeTab === 'basic' && <BasicTab detail={detail} roleId={id} onSaved={() => { loadDetail(); showToast('success', t('msg.saveSuccess')) }} showToast={showToast} />}
           {activeTab === 'members' && <MembersTab roleId={id} roleKey={detail.roleKey} />}
-          {activeTab === 'menus' && catalog && <MenuPermissionTab detail={detail} catalog={catalog} roleId={id} onSaved={() => { loadDetail(); showToast('success', '保存成功') }} showToast={showToast} />}
-          {activeTab === 'operations' && catalog && <OperationPermissionTab detail={detail} catalog={catalog} roleId={id} onSaved={() => { loadDetail(); showToast('success', '保存成功') }} showToast={showToast} />}
+          {activeTab === 'menus' && catalog && <MenuPermissionTab detail={detail} catalog={catalog} roleId={id} onSaved={() => { loadDetail(); showToast('success', t('msg.saveSuccess')) }} showToast={showToast} />}
+          {activeTab === 'operations' && catalog && <OperationPermissionTab detail={detail} catalog={catalog} roleId={id} onSaved={() => { loadDetail(); showToast('success', t('msg.saveSuccess')) }} showToast={showToast} />}
           {activeTab === 'connections' && <ConnectionAuthTab roleId={id} />}
-          {activeTab === 'gremlin' && catalog && <GremlinTab detail={detail} catalog={catalog} roleId={id} onSaved={() => { loadDetail(); showToast('success', '保存成功') }} showToast={showToast} />}
-          {activeTab === 'dangerous' && catalog && <DangerousTab detail={detail} catalog={catalog} roleId={id} onSaved={() => { loadDetail(); showToast('success', '保存成功') }} showToast={showToast} />}
+          {activeTab === 'gremlin' && catalog && <GremlinTab detail={detail} catalog={catalog} roleId={id} onSaved={() => { loadDetail(); showToast('success', t('msg.saveSuccess')) }} showToast={showToast} />}
+          {activeTab === 'dangerous' && catalog && <DangerousTab detail={detail} catalog={catalog} roleId={id} onSaved={() => { loadDetail(); showToast('success', t('msg.saveSuccess')) }} showToast={showToast} />}
         </div>
       </div>
 
@@ -103,6 +105,7 @@ const inputCls = 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm out
 // ==================== 基本信息 ====================
 
 function BasicTab({ detail, roleId, onSaved, showToast }) {
+  const { t } = useTranslation('roleDetail')
   const [form, setForm] = useState({
     roleName: detail.roleName || '',
     description: detail.description || '',
@@ -122,32 +125,32 @@ function BasicTab({ detail, roleId, onSaved, showToast }) {
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">角色编码</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">{t('basic.roleKey')}</label>
         <input className={`${inputCls} bg-gray-50 font-mono`} value={detail.roleKey} disabled />
-        <p className="mt-1 text-xs text-gray-400">角色编码不可修改</p>
+        <p className="mt-1 text-xs text-gray-400">{t('builtinHint')}</p>
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">角色名称</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">{t('basic.roleName')}</label>
         <input className={inputCls} value={form.roleName}
           onChange={(e) => setForm({ ...form, roleName: e.target.value })} />
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">角色说明</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">{t('basic.description')}</label>
         <textarea className={inputCls} rows={3} value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })} />
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">状态</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">{t('basic.status')}</label>
         <select className={inputCls} value={form.status}
           onChange={(e) => setForm({ ...form, status: Number(e.target.value) })}>
-          <option value={1}>启用</option>
-          <option value={0}>停用</option>
+          <option value={1}>{t('enabled')}</option>
+          <option value={0}>{t('disabled')}</option>
         </select>
       </div>
       <div className="flex justify-end">
         <button onClick={submit} disabled={saving}
           className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-          <Save size={15} /> {saving ? '保存中...' : '保存'}
+          <Save size={15} /> {saving ? t('common:saving') : t('save')}
         </button>
       </div>
     </div>
@@ -157,6 +160,7 @@ function BasicTab({ detail, roleId, onSaved, showToast }) {
 // ==================== 用户成员 ====================
 
 function MembersTab({ roleId, roleKey }) {
+  const { t } = useTranslation('roleDetail')
   const [memberIds, setMemberIds] = useState([])
   const [allUsers, setAllUsers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -187,18 +191,18 @@ function MembersTab({ roleId, roleKey }) {
   const onRemove = async (userId) => {
     try {
       await removeRoleMember(roleId, userId)
-      showToast('success', '已移除')
+      showToast('success', t('members.removed'))
       load()
     } catch (e) { showToast('error', e.message) }
   }
 
   const onAdd = async () => {
-    if (selectedNew.length === 0) { showToast('error', '请选择用户'); return }
+    if (selectedNew.length === 0) { showToast('error', t('members.selectFirst')); return }
     try {
       await addRoleMembers(roleId, selectedNew)
       setSelectedNew([])
       setShowAdd(false)
-      showToast('success', `已添加 ${selectedNew.length} 个用户`)
+      showToast('success', t('members.added', { count: selectedNew.length }))
       load()
     } catch (e) { showToast('error', e.message) }
   }
@@ -206,18 +210,18 @@ function MembersTab({ roleId, roleKey }) {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <span className="text-sm text-gray-600">共 {members.length} 个用户</span>
+        <span className="text-sm text-gray-600">{t('members.count', { count: members.length })}</span>
         <button onClick={() => setShowAdd(!showAdd)}
           className="flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700">
-          <Plus size={15} /> 添加用户
+          <Plus size={15} /> {t('members.addUser')}
         </button>
       </div>
 
       {showAdd && (
         <div className="mb-4 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-          <div className="mb-2 text-sm font-medium text-gray-700">选择要添加的用户</div>
+          <div className="mb-2 text-sm font-medium text-gray-700">{t('members.selectToAdd')}</div>
           <div className="max-h-48 space-y-1 overflow-auto">
-            {candidates.length === 0 && <p className="text-sm text-gray-400">没有可添加的用户</p>}
+            {candidates.length === 0 && <p className="text-sm text-gray-400">{t('members.noCandidates')}</p>}
             {candidates.map((u) => (
               <label key={u.id} className="flex items-center gap-2 rounded px-2 py-1 hover:bg-white">
                 <input type="checkbox" checked={selectedNew.includes(u.id)}
@@ -229,9 +233,9 @@ function MembersTab({ roleId, roleKey }) {
           </div>
           <div className="mt-3 flex justify-end gap-2">
             <button onClick={() => { setShowAdd(false); setSelectedNew([]) }}
-              className="rounded border border-gray-300 bg-white px-3 py-1 text-xs text-gray-600 hover:bg-gray-50">取消</button>
+              className="rounded border border-gray-300 bg-white px-3 py-1 text-xs text-gray-600 hover:bg-gray-50">{t('cancel')}</button>
             <button onClick={onAdd}
-              className="rounded bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-700">确认添加</button>
+              className="rounded bg-indigo-600 px-3 py-1 text-xs font-medium text-white hover:bg-indigo-700">{t('members.confirmAdd')}</button>
           </div>
         </div>
       )}
@@ -240,26 +244,26 @@ function MembersTab({ roleId, roleKey }) {
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2">用户名</th>
-              <th className="px-4 py-2">显示名称</th>
-              <th className="px-4 py-2">状态</th>
+              <th className="px-4 py-2">{t('members.colUsername')}</th>
+              <th className="px-4 py-2">{t('members.colNickname')}</th>
+              <th className="px-4 py-2">{t('basic.status')}</th>
               <th className="px-4 py-2 w-10"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {loading && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">加载中...</td></tr>}
-            {!loading && members.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">暂无成员</td></tr>}
+            {loading && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t('loading')}</td></tr>}
+            {!loading && members.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t('members.empty')}</td></tr>}
             {!loading && members.map((m) => (
               <tr key={m.id} className="hover:bg-gray-50">
                 <td className="px-4 py-2 font-medium text-gray-800">{m.username}</td>
                 <td className="px-4 py-2 text-gray-600">{m.nickname || '—'}</td>
                 <td className="px-4 py-2">
                   {m.status === 1
-                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">启用</span>
-                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">停用</span>}
+                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">{t('enabled')}</span>
+                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">{t('disabled')}</span>}
                 </td>
                 <td className="px-4 py-2">
-                  <button onClick={() => onRemove(m.id)} title="移除"
+                  <button onClick={() => onRemove(m.id)} title={t("members.remove")}
                     className="flex h-7 w-7 items-center justify-center rounded text-red-400 hover:bg-red-50 hover:text-red-600">
                     <Trash2 size={14} />
                   </button>
@@ -282,6 +286,9 @@ function MembersTab({ roleId, roleKey }) {
 // ==================== 菜单权限 ====================
 
 function MenuPermissionTab({ detail, catalog, roleId, onSaved, showToast }) {
+  const { t } = useTranslation('roleDetail')
+  const { t: tp } = useTranslation('permissions')
+  const menuLabel = (key, fallback) => { const k = 'menu.' + key; const v = tp(k); return v === k ? fallback : v }
   const [selected, setSelected] = useState(new Set(detail.menuPermissions || []))
   const [saving, setSaving] = useState(false)
 
@@ -317,7 +324,7 @@ function MenuPermissionTab({ detail, catalog, roleId, onSaved, showToast }) {
             <input type="checkbox" checked={allChildChecked} ref={el => el && (el.indeterminate = someChildChecked && !allChildChecked)}
               onChange={() => item.children.forEach((c) => { if (allChildChecked) selected.delete(c.key); else selected.add(c.key); setSelected(new Set(selected)) })}
               className="h-4 w-4 rounded border-gray-300 text-indigo-600 font-semibold" />
-            <span className="text-sm font-semibold text-gray-700">{item.label}</span>
+            <span className="text-sm font-semibold text-gray-700">{menuLabel(item.key, item.label)}</span>
           </label>
           <div>{renderMenuTree(item.children, depth + 1)}</div>
         </div>
@@ -328,7 +335,7 @@ function MenuPermissionTab({ detail, catalog, roleId, onSaved, showToast }) {
         <input type="checkbox" checked={selected.has(item.key)}
           onChange={() => toggle(item.key)}
           className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
-        <span className="text-sm text-gray-600">{item.label}</span>
+        <span className="text-sm text-gray-600">{menuLabel(item.key, item.label)}</span>
       </label>
     )
   })
@@ -338,7 +345,7 @@ function MenuPermissionTab({ detail, catalog, roleId, onSaved, showToast }) {
       <div className="mb-4">{renderMenuTree(catalog.menus)}</div>
       <button onClick={save} disabled={saving}
         className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-        <Save size={15} /> {saving ? '保存中...' : '保存'}
+        <Save size={15} /> {saving ? t('common:saving') : t('save')}
       </button>
     </div>
   )
@@ -347,6 +354,10 @@ function MenuPermissionTab({ detail, catalog, roleId, onSaved, showToast }) {
 // ==================== 操作权限 ====================
 
 function OperationPermissionTab({ detail, catalog, roleId, onSaved, showToast }) {
+  const { t } = useTranslation('roleDetail')
+  const { t: tp } = useTranslation('permissions')
+  const menuLabel = (key, fallback) => { const k = 'menu.' + key; const v = tp(k); return v === k ? fallback : v }
+  const opLabel = (code, fallback) => { const k = 'op.' + code.replace(/:/g, '__'); const v = tp(k); return v === k ? fallback : v }
   const [selected, setSelected] = useState(new Set(detail.operationPermissions || []))
   const [saving, setSaving] = useState(false)
   const [expanded, setExpanded] = useState({})
@@ -381,7 +392,7 @@ function OperationPermissionTab({ detail, catalog, roleId, onSaved, showToast })
       return (
         <div key={item.key} className="mb-3" style={{ marginLeft: depth * 0 }}>
           <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-3 py-2 text-sm font-bold text-gray-700">
-            <span className="text-gray-400">{item.label}</span>
+            <span className="text-gray-400">{menuLabel(item.key, item.label)}</span>
             <span className="text-xs text-gray-400 font-normal">({childChecked.length}/{childTotal})</span>
           </div>
           <div className="border-l-2 border-gray-100">
@@ -406,7 +417,7 @@ function OperationPermissionTab({ detail, catalog, roleId, onSaved, showToast })
             {isOpen
               ? <ChevronDown size={14} className="flex-shrink-0 text-gray-400" />
               : <ChevronRight size={14} className="flex-shrink-0 text-gray-400" />}
-            <span className="text-sm font-semibold text-gray-700">{item.label}</span>
+            <span className="text-sm font-semibold text-gray-700">{menuLabel(item.key, item.label)}</span>
             <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-normal text-gray-400">
               {item.operations.filter((o) => selected.has(o.code)).length}/{item.operations.length}
             </span>
@@ -422,7 +433,7 @@ function OperationPermissionTab({ detail, catalog, roleId, onSaved, showToast })
                 <input type="checkbox" checked={selected.has(op.code)}
                   onChange={() => toggle(op.code)}
                   className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                <span>{op.label}</span>
+                <span>{opLabel(op.code, op.label)}</span>
                 <span className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px] text-gray-400">{op.code}</span>
               </label>
             ))}
@@ -437,7 +448,7 @@ function OperationPermissionTab({ detail, catalog, roleId, onSaved, showToast })
       <div className="mb-4">{renderOpTree(catalog.menus)}</div>
       <button onClick={save} disabled={saving}
         className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-        <Save size={15} /> {saving ? '保存中...' : '保存'}
+        <Save size={15} /> {saving ? t('common:saving') : t('save')}
       </button>
     </div>
   )
@@ -446,6 +457,7 @@ function OperationPermissionTab({ detail, catalog, roleId, onSaved, showToast })
 // ==================== 可见连接 ====================
 
 function ConnectionAuthTab({ roleId }) {
+  const { t } = useTranslation('roleDetail')
   const [data, setData] = useState(null)
   const [toast, setToast] = useState(null)
 
@@ -458,7 +470,7 @@ function ConnectionAuthTab({ roleId }) {
 
   useEffect(() => { load() }, [load])
 
-  if (!data) return <div className="text-center text-gray-400">加载中...</div>
+  if (!data) return <div className="text-center text-gray-400">{t('loading')}</div>
 
   const onToggle = async (connId, visible) => {
     try { await updateConnectionAuth(roleId, connId, visible); load() }
@@ -472,31 +484,31 @@ function ConnectionAuthTab({ roleId }) {
     <div>
       <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
         <span className="rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-          {visibleCount} / {totalCount} 个连接可见
+          {t('connections.visibleCount', { visible: visibleCount, total: totalCount })}
         </span>
-        <span className="text-gray-400">勾选的连接将对此角色的用户显示</span>
+        <span className="text-gray-400">{t('connections.hint')}</span>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2">连接名称</th>
-              <th className="px-4 py-2">类型</th>
-              <th className="px-4 py-2">状态</th>
-              <th className="px-4 py-2 text-center">可见</th>
+              <th className="px-4 py-2">{t('connections.colName')}</th>
+              <th className="px-4 py-2">{t('connections.colType')}</th>
+              <th className="px-4 py-2">{t('basic.status')}</th>
+              <th className="px-4 py-2 text-center">{t('connections.colVisible')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {data.connections?.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">暂无连接</td></tr>}
+            {data.connections?.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t('connections.empty')}</td></tr>}
             {data.connections?.map((c) => (
               <tr key={c.connectionId} className="hover:bg-gray-50">
                 <td className="px-4 py-2 font-medium text-gray-800">{c.connectionName}</td>
                 <td className="px-4 py-2 text-xs text-gray-500">{c.dbType}</td>
                 <td className="px-4 py-2">
                   {c.status === 1
-                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">启用</span>
-                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">停用</span>}
+                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">{t('enabled')}</span>
+                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">{t('disabled')}</span>}
                 </td>
                 <td className="px-4 py-2 text-center">
                   <button
@@ -528,6 +540,8 @@ function ConnectionAuthTab({ roleId }) {
 // ==================== Gremlin 权限 ====================
 
 function GremlinTab({ detail, catalog, roleId, onSaved, showToast }) {
+  const { t } = useTranslation('roleDetail')
+  const { t: tg } = useTranslation('gremlin')
   const [level, setLevel] = useState(detail.gremlinPermission || 'READ_ONLY')
   const [saving, setSaving] = useState(false)
 
@@ -552,8 +566,8 @@ function GremlinTab({ detail, catalog, roleId, onSaved, showToast }) {
               onChange={() => setLevel(lv.value)}
               className="mt-0.5 h-4 w-4 border-gray-300 text-indigo-600" />
             <div>
-              <div className="text-sm font-medium text-gray-800">{lv.label}</div>
-              <div className="mt-1 text-xs text-gray-500">{lv.description}</div>
+              <div className="text-sm font-medium text-gray-800">{lv.value === 'READ_ONLY' ? tg('modeReadonly') : lv.value === 'WRITE' ? tg('modeReadwrite') : lv.value === 'DANGEROUS' ? tg('modeAdmin') : lv.label}</div>
+              <div className="mt-1 text-xs text-gray-500">{lv.value === 'READ_ONLY' ? tg('modeReadonlyDesc') : lv.value === 'WRITE' ? tg('modeReadwriteDesc') : lv.value === 'DANGEROUS' ? tg('modeAdminDesc') : lv.description}</div>
             </div>
           </label>
         ))}
@@ -561,7 +575,7 @@ function GremlinTab({ detail, catalog, roleId, onSaved, showToast }) {
       <div className="mt-4">
         <button onClick={save} disabled={saving}
           className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-          <Save size={15} /> {saving ? '保存中...' : '保存'}
+          <Save size={15} /> {saving ? t('common:saving') : t('save')}
         </button>
       </div>
     </div>
@@ -571,6 +585,10 @@ function GremlinTab({ detail, catalog, roleId, onSaved, showToast }) {
 // ==================== 危险操作资格 ====================
 
 function DangerousTab({ detail, catalog, roleId, onSaved, showToast }) {
+  const { t } = useTranslation('roleDetail')
+  const { t: tp } = useTranslation('permissions')
+  const dLabel = (code, fallback) => { const k = 'dangerous.' + code.replace(/:/g, '__'); const v = tp(k); return v === k ? fallback : v }
+  const dDesc = (code, fallback) => { const k = 'dangerousDesc.' + code.replace(/:/g, '__'); const v = tp(k); return v === k ? fallback : v }
   const [selected, setSelected] = useState(new Set(detail.dangerousPermissions || []))
   const [saving, setSaving] = useState(false)
 
@@ -595,14 +613,14 @@ function DangerousTab({ detail, catalog, roleId, onSaved, showToast }) {
     if (hasQualification && matchingOps.length === 0) {
       warnings.push({
         type: ' qualification-without-ops',
-        message: `已配置「${dq.label}」危险操作资格,但该角色当前没有相关操作权限,此资格暂时不会生效。`,
+        message: t('dangerous.warnQualNoOps', { label: dLabel(dq.code, dq.label) }),
       })
     }
     if (!hasQualification && matchingOps.length > 0) {
       const opLabels = matchingOps.join('、')
       warnings.push({
         type: 'ops-without-qualification',
-        message: `已配置 ${opLabels} 操作权限,但未配置「${dq.label}」危险操作资格,该角色仍无法执行这些操作。`,
+        message: t('dangerous.warnOpsNoQual', { ops: opLabels, label: dLabel(dq.code, dq.label) }),
       })
     }
   }
@@ -620,8 +638,8 @@ function DangerousTab({ detail, catalog, roleId, onSaved, showToast }) {
                 onChange={() => toggle(dq.code)}
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" />
               <div>
-                <div className="text-sm font-medium text-gray-800">{dq.label}</div>
-                <div className="mt-1 text-xs text-gray-500">{dq.description}</div>
+                <div className="text-sm font-medium text-gray-800">{dLabel(dq.code, dq.label)}</div>
+                <div className="mt-1 text-xs text-gray-500">{dDesc(dq.code, dq.description)}</div>
               </div>
             </label>
           )
@@ -645,7 +663,7 @@ function DangerousTab({ detail, catalog, roleId, onSaved, showToast }) {
 
       <button onClick={save} disabled={saving}
         className="flex items-center gap-1 rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-        <Save size={15} /> {saving ? '保存中...' : '保存'}
+        <Save size={15} /> {saving ? t('common:saving') : t('save')}
       </button>
     </div>
   )

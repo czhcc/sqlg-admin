@@ -4,12 +4,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   pageRoles, deleteRole,
 } from '../api/roleManagement'
+import { useTranslation } from 'react-i18next'
 import {
   ShieldCheck, Search, RefreshCw, MoreVertical, Settings, Users,
   List, GitFork, TerminalSquare, AlertTriangle, Trash2,
 } from 'lucide-react'
 
 export default function RoleManagement() {
+  const { t, i18n } = useTranslation('roleManagement')
   const navigate = useNavigate()
   const [rows, setRows] = useState([])
   const [keyword, setKeyword] = useState('')
@@ -44,23 +46,23 @@ export default function RoleManagement() {
 
   const onDelete = async (row) => {
     setOpenMenuId(null)
-    if (!window.confirm(`确认删除角色「${row.roleName}」?`)) return
+    if (!window.confirm(t('msg.confirmDelete', { name: row.roleName }))) return
     try {
       await deleteRole(row.id)
-      showToast('success', '已删除')
+      showToast('success', t('msg.deleted'))
       load()
     } catch (e) { showToast('error', e.message) }
   }
 
   const menuActions = (row) => [
-    { label: '基本信息', icon: Settings, action: () => navigate(`/role-detail/${row.id}?tab=basic`) },
-    { label: '用户成员', icon: Users, action: () => navigate(`/role-detail/${row.id}?tab=members`) },
-    { label: '菜单权限', icon: List, action: () => navigate(`/role-detail/${row.id}?tab=menus`) },
-    { label: '操作权限', icon: ShieldCheck, action: () => navigate(`/role-detail/${row.id}?tab=operations`) },
-    { label: '可见连接', icon: GitFork, action: () => navigate(`/role-detail/${row.id}?tab=connections`) },
-    { label: 'Gremlin 权限', icon: TerminalSquare, action: () => navigate(`/role-detail/${row.id}?tab=gremlin`) },
-    { label: '危险操作资格', icon: AlertTriangle, action: () => navigate(`/role-detail/${row.id}?tab=dangerous`) },
-    ...(row.isBuiltin ? [] : [{ label: '删除', icon: Trash2, danger: true, action: () => onDelete(row) }]),
+    { label: t('menu.basicInfo'), icon: Settings, action: () => navigate(`/role-detail/${row.id}?tab=basic`) },
+    { label: t('menu.members'), icon: Users, action: () => navigate(`/role-detail/${row.id}?tab=members`) },
+    { label: t('menu.menus'), icon: List, action: () => navigate(`/role-detail/${row.id}?tab=menus`) },
+    { label: t('menu.operations'), icon: ShieldCheck, action: () => navigate(`/role-detail/${row.id}?tab=operations`) },
+    { label: t('menu.connections'), icon: GitFork, action: () => navigate(`/role-detail/${row.id}?tab=connections`) },
+    { label: t('menu.gremlin'), icon: TerminalSquare, action: () => navigate(`/role-detail/${row.id}?tab=gremlin`) },
+    { label: t('menu.dangerous'), icon: AlertTriangle, action: () => navigate(`/role-detail/${row.id}?tab=dangerous`) },
+    ...(row.isBuiltin ? [] : [{ label: t('menu.delete'), icon: Trash2, danger: true, action: () => onDelete(row) }]),
   ]
 
   return (
@@ -68,21 +70,21 @@ export default function RoleManagement() {
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <div>
           <h1 className="flex items-center gap-2 text-lg font-semibold text-gray-800">
-            <ShieldCheck size={20} className="text-indigo-500" /> 角色管理
+            <ShieldCheck size={20} className="text-indigo-500" /> {t('title')}
           </h1>
-          <p className="mt-0.5 text-sm text-gray-500">管理角色及其权限配置</p>
+          <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             <input value={keyword} onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && load()}
-              placeholder="搜索角色编码/名称"
+              placeholder={t("searchPlaceholder")}
               className="w-56 rounded-md border border-gray-300 py-1.5 pl-8 pr-3 text-sm outline-none focus:border-indigo-500" />
           </div>
           <button onClick={load}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> 刷新
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> {t('common:refresh')}
           </button>
         </div>
       </header>
@@ -93,35 +95,35 @@ export default function RoleManagement() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="sticky top-0 bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
                 <tr>
-                  <th className="px-4 py-3">角色编码</th>
-                  <th className="px-4 py-3">角色名称</th>
-                  <th className="px-4 py-3">状态</th>
-                  <th className="px-4 py-3">用户数量</th>
-                  <th className="px-4 py-3">连接数量</th>
-                  <th className="px-4 py-3">权限数量</th>
-                  <th className="px-4 py-3">更新时间</th>
+                  <th className="px-4 py-3">{t('col.roleKey')}</th>
+                  <th className="px-4 py-3">{t('col.roleName')}</th>
+                  <th className="px-4 py-3">{t('col.status')}</th>
+                  <th className="px-4 py-3">{t('col.userCount')}</th>
+                  <th className="px-4 py-3">{t('col.connCount')}</th>
+                  <th className="px-4 py-3">{t('col.permCount')}</th>
+                  <th className="px-4 py-3">{t('col.updateTime')}</th>
                   <th className="px-4 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {loading && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">加载中...</td></tr>}
-                {!loading && rows.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">暂无角色</td></tr>}
+                {loading && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">{t('common:loading')}</td></tr>}
+                {!loading && rows.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">{t('empty')}</td></tr>}
                 {!loading && rows.map((row) => (
                   <tr key={row.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <span className="font-mono text-xs text-gray-600">{row.roleKey}</span>
-                      {row.isBuiltin && <span className="ml-1 rounded bg-indigo-50 px-1 text-[10px] text-indigo-600">内置</span>}
+                      {row.isBuiltin && <span className="ml-1 rounded bg-indigo-50 px-1 text-[10px] text-indigo-600">{t('builtin')}</span>}
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-800">{row.roleName}</td>
                     <td className="px-4 py-3">
                       {row.status === 1
-                        ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">启用</span>
-                        : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">停用</span>}
+                        ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">{t('common:enable')}</span>
+                        : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{t('common:disable')}</span>}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{row.userCount ?? 0}</td>
                     <td className="px-4 py-3 text-gray-600">{row.connectionCount ?? 0}</td>
                     <td className="px-4 py-3 text-gray-600">{row.permissionCount ?? 0}</td>
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatTime(row.updateTime)}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatTime(row.updateTime, i18n.language?.startsWith('en') ? 'en-US' : 'zh-CN')}</td>
                     <td className="px-4 py-3 relative">
                       <button
                         onClick={(e) => {
@@ -170,8 +172,8 @@ export default function RoleManagement() {
   )
 }
 
-function formatTime(time) {
+function formatTime(time, locale) {
   if (!time) return '—'
   const d = new Date(time)
-  return d.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString(locale || 'zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }

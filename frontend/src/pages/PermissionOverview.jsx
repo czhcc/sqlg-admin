@@ -9,29 +9,46 @@ import {
   KeyRound, Search, ShieldCheck, LayoutGrid, List, GitFork,
   TerminalSquare, AlertTriangle, AlertOctagon, Info, Users, X,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const USER_TABS = [
-  { key: 'summary', label: '权限摘要', icon: LayoutGrid },
-  { key: 'menus', label: '菜单权限', icon: List },
-  { key: 'operations', label: '操作权限', icon: ShieldCheck },
-  { key: 'connections', label: '可见连接', icon: GitFork },
-  { key: 'gremlin', label: 'Gremlin 权限', icon: TerminalSquare },
-  { key: 'dangerous', label: '危险操作资格', icon: AlertOctagon },
-  { key: 'checks', label: '配置检查', icon: AlertTriangle },
+  { key: 'summary', labelKey: 'tab.summary', icon: LayoutGrid },
+  { key: 'menus', labelKey: 'tab.menus', icon: List },
+  { key: 'operations', labelKey: 'tab.operations', icon: ShieldCheck },
+  { key: 'connections', labelKey: 'tab.connections', icon: GitFork },
+  { key: 'gremlin', labelKey: 'tab.gremlin', icon: TerminalSquare },
+  { key: 'dangerous', labelKey: 'tab.dangerous', icon: AlertOctagon },
+  { key: 'checks', labelKey: 'tab.checks', icon: AlertTriangle },
 ]
 
 const ROLE_TABS = [
-  { key: 'summary', label: '权限摘要', icon: LayoutGrid },
-  { key: 'members', label: '用户成员', icon: Users },
-  { key: 'menus', label: '菜单权限', icon: List },
-  { key: 'operations', label: '操作权限', icon: ShieldCheck },
-  { key: 'connections', label: '可见连接', icon: GitFork },
-  { key: 'gremlin', label: 'Gremlin 权限', icon: TerminalSquare },
-  { key: 'dangerous', label: '危险操作资格', icon: AlertOctagon },
-  { key: 'checks', label: '配置检查', icon: AlertTriangle },
+  { key: 'summary', labelKey: 'tab.summary', icon: LayoutGrid },
+  { key: 'members', labelKey: 'tab.members', icon: Users },
+  { key: 'menus', labelKey: 'tab.menus', icon: List },
+  { key: 'operations', labelKey: 'tab.operations', icon: ShieldCheck },
+  { key: 'connections', labelKey: 'tab.connections', icon: GitFork },
+  { key: 'gremlin', labelKey: 'tab.gremlin', icon: TerminalSquare },
+  { key: 'dangerous', labelKey: 'tab.dangerous', icon: AlertOctagon },
+  { key: 'checks', labelKey: 'tab.checks', icon: AlertTriangle },
 ]
 
 export default function PermissionOverview() {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const roleLabel = (keyOrName, fb) => {
+    if (!keyOrName) return fb
+    const k = 'role.' + keyOrName
+    const v = tp(k)
+    if (v !== k) return v
+    // Reverse lookup: try matching by value (Chinese name -> key -> translated)
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const [rk, rv] of Object.entries(all)) {
+        if (rv === keyOrName) return rv // Already correct language
+      }
+    }
+    return fb
+  }
   const [mode, setMode] = useState('users')
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -93,9 +110,9 @@ export default function PermissionOverview() {
   }
 
   const tabs = mode === 'users' ? USER_TABS : ROLE_TABS
-  const placeholderText = mode === 'users' ? '搜索用户名/昵称' : '搜索角色编码/名称'
-  const emptyText = mode === 'users' ? '暂无用户' : '暂无角色'
-  const loadingText = mode === 'users' ? '加载权限数据...' : '加载角色权限...'
+  const placeholderText = mode === 'users' ? t('searchUser') : t('searchRole')
+  const emptyText = mode === 'users' ? t('emptyUser') : t('emptyRole')
+  const loadingText = mode === 'users' ? t('loadingUser') : t('loadingRole')
 
   return (
     <div className="flex h-full">
@@ -109,7 +126,7 @@ export default function PermissionOverview() {
                 mode === 'users' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Users size={14} /> 按用户
+              <Users size={14} /> {t('viewByUser')}
             </button>
             <button
               onClick={() => switchMode('roles')}
@@ -117,7 +134,7 @@ export default function PermissionOverview() {
                 mode === 'roles' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              <ShieldCheck size={14} /> 按角色
+              <ShieldCheck size={14} /> {t('viewByRole')}
             </button>
           </div>
           <div className="relative mt-3">
@@ -135,14 +152,14 @@ export default function PermissionOverview() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm outline-none focus:border-indigo-500"
           >
-            <option value="">全部状态</option>
-            <option value="1">启用</option>
-            <option value="0">停用</option>
+            <option value="">{t('statusAll')}</option>
+            <option value="1">{t('enabled')}</option>
+            <option value="0">{t('disabled')}</option>
           </select>
         </div>
         <div className="flex-1 overflow-y-auto">
           {loadingList && list.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-gray-400">加载中...</div>
+            <div className="px-4 py-8 text-center text-sm text-gray-400">{t('loading')}</div>
           )}
           {!loadingList && list.length === 0 && (
             <div className="px-4 py-8 text-center text-sm text-gray-400">{emptyText}</div>
@@ -162,7 +179,7 @@ export default function PermissionOverview() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {!overview ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
-            {loadingOverview ? loadingText : `请在左侧选择${mode === 'users' ? '用户' : '角色'}`}
+            {loadingOverview ? loadingText : (mode === 'users' ? t('pleaseSelectUser') : t('pleaseSelectRole'))}
           </div>
         ) : (
           <>
@@ -184,7 +201,7 @@ export default function PermissionOverview() {
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    <tab.icon size={15} /> {tab.label}
+                    <tab.icon size={15} /> {t(tab.labelKey)}
                     {badge && (
                       <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-medium text-amber-700">
                         {badge}
@@ -219,6 +236,22 @@ export default function PermissionOverview() {
 // ==================== 左侧列表项 ====================
 
 function UserListItem({ item: u, selected, onSelect }) {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const roleLabel = (keyOrName, fb) => {
+    if (!keyOrName) return fb
+    const k = 'role.' + keyOrName
+    const v = tp(k)
+    if (v !== k) return v
+    // Reverse lookup: try matching by value (Chinese name -> key -> translated)
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const [rk, rv] of Object.entries(all)) {
+        if (rv === keyOrName) return rv // Already correct language
+      }
+    }
+    return fb
+  }
   return (
     <button
       onClick={onSelect}
@@ -235,17 +268,17 @@ function UserListItem({ item: u, selected, onSelect }) {
             {u.nickname || u.username}
           </span>
           {u.isSuperAdmin && (
-            <span className="rounded bg-purple-50 px-1 py-0.5 text-[10px] text-purple-600">超管</span>
+            <span className="rounded bg-purple-50 px-1 py-0.5 text-[10px] text-purple-600">{t('superAdmin')}</span>
           )}
           {u.status === 0 && (
-            <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">停用</span>
+            <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">{t('disabled')}</span>
           )}
         </div>
         <div className="truncate text-xs text-gray-400">{u.username}</div>
       </div>
       {u.roleCount > 0 && (
         <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[10px] text-indigo-600">
-          {u.roleCount}角色
+          {t('roleCountBadge', { count: u.roleCount })}
         </span>
       )}
     </button>
@@ -253,6 +286,7 @@ function UserListItem({ item: u, selected, onSelect }) {
 }
 
 function RoleListItem({ item: r, selected, onSelect }) {
+  const { t } = useTranslation('permissionOverview')
   return (
     <button
       onClick={onSelect}
@@ -267,16 +301,16 @@ function RoleListItem({ item: r, selected, onSelect }) {
         <div className="flex items-center gap-1.5">
           <span className="truncate text-sm font-medium text-gray-800">{r.roleName}</span>
           {r.isBuiltin && (
-            <span className="rounded bg-blue-50 px-1 py-0.5 text-[10px] text-blue-600">内置</span>
+            <span className="rounded bg-blue-50 px-1 py-0.5 text-[10px] text-blue-600">{t('builtin')}</span>
           )}
           {r.status === 0 && (
-            <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">停用</span>
+            <span className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-500">{t('disabled')}</span>
           )}
         </div>
         <div className="truncate text-xs text-gray-400">{r.roleKey}</div>
       </div>
       <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">
-        {r.userCount}人
+        {t('userCountBadge', { count: r.userCount })}
       </span>
     </button>
   )
@@ -285,6 +319,23 @@ function RoleListItem({ item: r, selected, onSelect }) {
 // ==================== 用户信息头 ====================
 
 function UserHeader({ overview }) {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const roleLabel = (keyOrName, fb) => {
+    if (!keyOrName) return fb
+    const k = 'role.' + keyOrName
+    const v = tp(k)
+    if (v !== k) return v
+    // Reverse lookup: try matching by value (Chinese name -> key -> translated)
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const [rk, rv] of Object.entries(all)) {
+        if (rv === keyOrName) return rv // Already correct language
+      }
+    }
+    return fb
+  }
+  const srcLabel = (s) => s.includes('(') ? s : roleLabel(s, s)
   const u = overview.user
   return (
     <div className="border-b border-gray-200 bg-white px-6 py-4">
@@ -297,19 +348,19 @@ function UserHeader({ overview }) {
             <span className="text-lg font-semibold text-gray-800">{u.username}</span>
             {u.nickname && <span className="text-sm text-gray-500">({u.nickname})</span>}
             {u.isSuperAdmin && (
-              <span className="rounded bg-purple-50 px-2 py-0.5 text-xs text-purple-600">超级管理员</span>
+              <span className="rounded bg-purple-50 px-2 py-0.5 text-xs text-purple-600">{t('superAdminFull')}</span>
             )}
             {u.status === 1
-              ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">启用</span>
-              : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">停用</span>}
+              ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">{t('enabled')}</span>
+              : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{t('disabled')}</span>}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-gray-500">
-            <span>所属角色:</span>
+            <span>{t('rolesLabel')}</span>
             {u.roles?.length > 0 ? u.roles.map((r) => (
               <span key={r.key} className="rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-700">
-                {r.label}
+                {roleLabel(r.key, r.label)}
               </span>
-            )) : <span className="text-gray-400">未分配</span>}
+            )) : <span className="text-gray-400">{t('unassigned')}</span>}
           </div>
         </div>
       </div>
@@ -320,6 +371,7 @@ function UserHeader({ overview }) {
 // ==================== 角色信息头 ====================
 
 function RoleHeader({ overview }) {
+  const { t } = useTranslation('permissionOverview')
   const r = overview.role
   return (
     <div className="border-b border-gray-200 bg-white px-6 py-4">
@@ -332,14 +384,14 @@ function RoleHeader({ overview }) {
             <span className="text-lg font-semibold text-gray-800">{r.roleName}</span>
             <span className="rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-500">{r.roleKey}</span>
             {r.isBuiltin && (
-              <span className="rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">内置角色</span>
+              <span className="rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-600">{t('builtinRole')}</span>
             )}
             {r.status === 1
-              ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">启用</span>
-              : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">停用</span>}
+              ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">{t('enabled')}</span>
+              : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{t('disabled')}</span>}
           </div>
           <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
-            <span>用户数量: <strong className="text-gray-700">{r.userCount}</strong></span>
+            <span>{t('userCountLabel')} <strong className="text-gray-700">{r.userCount}</strong></span>
             {r.description && <span className="text-gray-400">· {r.description}</span>}
           </div>
         </div>
@@ -351,15 +403,16 @@ function RoleHeader({ overview }) {
 // ==================== 用户权限摘要 ====================
 
 function UserSummaryTab({ overview }) {
+  const { t } = useTranslation('permissionOverview')
   const s = overview.summary
   const cards = [
-    { label: '所属角色', value: s.roleCount, color: 'indigo' },
-    { label: '可访问菜单', value: s.menuCount, color: 'blue' },
-    { label: '操作权限', value: s.operationCount, color: 'cyan' },
-    { label: '可见连接', value: s.visibleConnectionCount, color: 'teal' },
-    { label: 'Gremlin 权限', value: s.gremlinLevelLabel || s.gremlinLevel, color: 'purple', isText: true },
-    { label: '危险操作资格', value: s.dangerousCount, color: 'red' },
-    { label: '配置警告', value: s.warningCount, color: s.warningCount > 0 ? 'amber' : 'gray' },
+    { label: t('summary.roleCount'), value: s.roleCount, color: 'indigo' },
+    { label: t('summary.menuCount'), value: s.menuCount, color: 'blue' },
+    { label: t('summary.operationCount'), value: s.operationCount, color: 'cyan' },
+    { label: t('summary.connectionCount'), value: s.visibleConnectionCount, color: 'teal' },
+    { label: t('summary.gremlinLevel'), value: s.gremlinLevelLabel || s.gremlinLevel, color: 'purple', isText: true },
+    { label: t('summary.dangerousCount'), value: s.dangerousCount, color: 'red' },
+    { label: t('summary.warningCount'), value: s.warningCount, color: s.warningCount > 0 ? 'amber' : 'gray' },
   ]
 
   return (
@@ -368,7 +421,7 @@ function UserSummaryTab({ overview }) {
       {overview.user?.isSuperAdmin && (
         <div className="mt-4 rounded-lg border border-purple-200 bg-purple-50 px-4 py-3 text-sm text-purple-700">
           <Info size={15} className="mr-1 inline" />
-          超级管理员拥有全部权限,包括所有菜单、操作、连接、Gremlin 危险级别和全部危险操作资格。
+          {t('superAdminHint')}
         </div>
       )}
     </div>
@@ -378,15 +431,16 @@ function UserSummaryTab({ overview }) {
 // ==================== 角色权限摘要 ====================
 
 function RoleSummaryTab({ overview }) {
+  const { t } = useTranslation('permissionOverview')
   const s = overview.summary
   const cards = [
-    { label: '用户成员', value: s.userCount, color: 'indigo' },
-    { label: '菜单权限', value: s.menuCount, color: 'blue' },
-    { label: '操作权限', value: s.operationCount, color: 'cyan' },
-    { label: '可见连接', value: s.visibleConnectionCount, color: 'teal' },
-    { label: 'Gremlin 权限', value: s.gremlinLevelLabel || s.gremlinLevel, color: 'purple', isText: true },
-    { label: '危险操作资格', value: s.dangerousCount, color: 'red' },
-    { label: '配置警告', value: s.warningCount, color: s.warningCount > 0 ? 'amber' : 'gray' },
+    { label: t('summary.userCount'), value: s.userCount, color: 'indigo' },
+    { label: t('summary.menuCount'), value: s.menuCount, color: 'blue' },
+    { label: t('summary.operationCount'), value: s.operationCount, color: 'cyan' },
+    { label: t('summary.connectionCount'), value: s.visibleConnectionCount, color: 'teal' },
+    { label: t('summary.gremlinLevel'), value: s.gremlinLevelLabel || s.gremlinLevel, color: 'purple', isText: true },
+    { label: t('summary.dangerousCount'), value: s.dangerousCount, color: 'red' },
+    { label: t('summary.warningCount'), value: s.warningCount, color: s.warningCount > 0 ? 'amber' : 'gray' },
   ]
 
   return (
@@ -394,8 +448,7 @@ function RoleSummaryTab({ overview }) {
       <SummaryCards cards={cards} />
       <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
         <Info size={15} className="mr-1 inline" />
-        角色级检查仅关注该角色自身配置是否完整,不考虑其他角色补充的权限。
-        用户级检查则基于所有角色合并后的最终权限。
+        {t('roleCheckHint')}
       </div>
     </div>
   )
@@ -427,6 +480,22 @@ function SummaryCards({ cards }) {
 // ==================== 用户成员 (角色视图) ====================
 
 function MembersTab({ overview }) {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const roleLabel = (keyOrName, fb) => {
+    if (!keyOrName) return fb
+    const k = 'role.' + keyOrName
+    const v = tp(k)
+    if (v !== k) return v
+    // Reverse lookup: try matching by value (Chinese name -> key -> translated)
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const [rk, rv] of Object.entries(all)) {
+        if (rv === keyOrName) return rv // Already correct language
+      }
+    }
+    return fb
+  }
   const members = overview.members || []
 
   return (
@@ -435,15 +504,15 @@ function MembersTab({ overview }) {
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2">用户名</th>
-              <th className="px-4 py-2">显示名称</th>
-              <th className="px-4 py-2 w-20">状态</th>
-              <th className="px-4 py-2">其他角色</th>
+              <th className="px-4 py-2">{t('col.username')}</th>
+              <th className="px-4 py-2">{t('col.nickname')}</th>
+              <th className="px-4 py-2 w-20">{t('col.status')}</th>
+              <th className="px-4 py-2">{t('col.otherRoles')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {members.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">暂无成员</td></tr>
+              <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t('emptyMembers')}</td></tr>
             )}
             {members.map((m) => (
               <tr key={m.id} className="hover:bg-gray-50">
@@ -451,8 +520,8 @@ function MembersTab({ overview }) {
                 <td className="px-4 py-2 text-gray-600">{m.nickname || '—'}</td>
                 <td className="px-4 py-2">
                   {m.status === 1
-                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">启用</span>
-                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">停用</span>}
+                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">{t('enabled')}</span>
+                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">{t('disabled')}</span>}
                 </td>
                 <td className="px-4 py-2">
                   {m.otherRoles?.length > 0 ? (
@@ -463,7 +532,7 @@ function MembersTab({ overview }) {
                         </span>
                       ))}
                     </div>
-                  ) : <span className="text-xs text-gray-400">无</span>}
+                  ) : <span className="text-xs text-gray-400">{t('common:none')}</span>}
                 </td>
               </tr>
             ))}
@@ -477,6 +546,23 @@ function MembersTab({ overview }) {
 // ==================== 菜单权限 ====================
 
 function MenusTab({ overview, onItemClick }) {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const srcLabel = (s) => {
+    if (!s || s.includes('(')) return s
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const rk of Object.keys(all)) {
+        if (all[rk] === s) return all[rk]
+      }
+      const zhRoles = i18n.getResourceBundle('zh', 'permissions')?.role || {}
+      for (const rk of Object.keys(zhRoles)) {
+        if (zhRoles[rk] === s) return all[rk] || s
+      }
+    }
+    return s
+  }
+  const mLbl = (key, fb) => { const k = 'menu.' + key; const v = tp(k); return v === k ? fb : v }
   const menus = overview.menus || []
   let currentGroup = null
 
@@ -486,9 +572,9 @@ function MenusTab({ overview, onItemClick }) {
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2">菜单名称</th>
-              <th className="px-4 py-2 w-24">状态</th>
-              <th className="px-4 py-2">来源</th>
+              <th className="px-4 py-2">{t('col.menuName')}</th>
+              <th className="px-4 py-2 w-24">{t('col.status')}</th>
+              <th className="px-4 py-2">{t('col.source')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -506,9 +592,9 @@ function MenusTab({ overview, onItemClick }) {
                   )}
                   <tr
                     className="cursor-pointer hover:bg-indigo-50"
-                    onClick={() => onItemClick?.('menu', m.key, m.label)}
+                    onClick={() => onItemClick?.('menu', m.key, mLbl(m.key, m.label))}
                   >
-                    <td className="px-4 py-2 text-gray-700">{m.label}</td>
+                    <td className="px-4 py-2 text-gray-700">{mLbl(m.key, m.label)}</td>
                     <td className="px-4 py-2"><StatusBadge granted={m.granted} /></td>
                     <td className="px-4 py-2">
                       <SourceBadges sources={m.sources} />
@@ -527,6 +613,24 @@ function MenusTab({ overview, onItemClick }) {
 // ==================== 操作权限 ====================
 
 function OperationsTab({ overview, onItemClick }) {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const srcLabel = (s) => {
+    if (!s || s.includes('(')) return s
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const rk of Object.keys(all)) {
+        if (all[rk] === s) return all[rk]
+      }
+      const zhRoles = i18n.getResourceBundle('zh', 'permissions')?.role || {}
+      for (const rk of Object.keys(zhRoles)) {
+        if (zhRoles[rk] === s) return all[rk] || s
+      }
+    }
+    return s
+  }
+  const menuLabel = (key, fb) => { const k = 'menu.' + key; const v = tp(k); return v === k ? fb : v }
+  const oLbl = (code, fb) => { const k = 'op.' + code.replace(/:/g, '__'); const v = tp(k); return v === k ? fb : v }
   const groups = overview.operations || []
 
   return (
@@ -534,7 +638,7 @@ function OperationsTab({ overview, onItemClick }) {
       {groups.map((g) => (
         <div key={g.menuKey} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
           <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700">
-            {g.menuLabel}
+            {menuLabel(g.menuKey, g.menuLabel)}
           </div>
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <tbody className="divide-y divide-gray-100">
@@ -542,9 +646,9 @@ function OperationsTab({ overview, onItemClick }) {
                 <tr
                   key={op.code}
                   className="cursor-pointer hover:bg-indigo-50"
-                  onClick={() => onItemClick?.('operation', op.code, op.label)}
+                  onClick={() => onItemClick?.('operation', op.code, oLbl(op.code, op.label))}
                 >
-                  <td className="px-4 py-2 pl-8 text-gray-700">{op.label}</td>
+                  <td className="px-4 py-2 pl-8 text-gray-700">{oLbl(op.code, op.label)}</td>
                   <td className="px-4 py-2 w-24"><StatusBadge granted={op.granted} /></td>
                   <td className="px-4 py-2 text-xs">
                     <SourceBadges sources={op.sources} />
@@ -562,6 +666,7 @@ function OperationsTab({ overview, onItemClick }) {
 // ==================== 可见连接 ====================
 
 function ConnectionsTab({ overview, onItemClick }) {
+  const { t } = useTranslation('permissionOverview')
   const conns = overview.connections || []
 
   return (
@@ -570,16 +675,16 @@ function ConnectionsTab({ overview, onItemClick }) {
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2">连接名称</th>
-              <th className="px-4 py-2">类型</th>
-              <th className="px-4 py-2 w-20">状态</th>
-              <th className="px-4 py-2 w-20">可见</th>
-              <th className="px-4 py-2">权限来源</th>
+              <th className="px-4 py-2">{t('col.connName')}</th>
+              <th className="px-4 py-2">{t('col.type')}</th>
+              <th className="px-4 py-2 w-20">{t('col.status')}</th>
+              <th className="px-4 py-2 w-20">{t('col.visible')}</th>
+              <th className="px-4 py-2">{t('col.permissionSource')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {conns.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">暂无连接</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">{t('emptyConns')}</td></tr>
             )}
             {conns.map((c) => (
               <tr
@@ -591,13 +696,13 @@ function ConnectionsTab({ overview, onItemClick }) {
                 <td className="px-4 py-2 text-gray-600">{c.dbType}</td>
                 <td className="px-4 py-2">
                   {c.status === 1
-                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">启用</span>
-                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">停用</span>}
+                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">{t('enabled')}</span>
+                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">{t('disabled')}</span>}
                 </td>
                 <td className="px-4 py-2">
                   {c.visible
-                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">可见</span>
-                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-400">不可见</span>}
+                    ? <span className="rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">{t('visible')}</span>
+                    : <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-400">{t('invisible')}</span>}
                 </td>
                 <td className="px-4 py-2">
                   <SourceBadges sources={c.sources} />
@@ -614,6 +719,24 @@ function ConnectionsTab({ overview, onItemClick }) {
 // ==================== Gremlin 权限 ====================
 
 function GremlinTab({ overview, onItemClick }) {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const capLabel = (key, fb) => { const k = 'gremlinCap.' + key; const v = tp(k); return v === k ? fb : v }
+  const lvlLabel = (val, fb) => { const k = 'gremlinLevel.' + val; const v = tp(k); return v === k ? fb : v }
+  const srcLabel = (s) => {
+    if (!s || s.includes('(')) return s
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const rk of Object.keys(all)) {
+        if (all[rk] === s) return all[rk]
+      }
+      const zhRoles = i18n.getResourceBundle('zh', 'permissions')?.role || {}
+      for (const rk of Object.keys(zhRoles)) {
+        if (zhRoles[rk] === s) return all[rk] || s
+      }
+    }
+    return s
+  }
   const g = overview.gremlin
   if (!g) return null
 
@@ -621,13 +744,13 @@ function GremlinTab({ overview, onItemClick }) {
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-700">最终 Gremlin 级别</h3>
+          <h3 className="text-sm font-semibold text-gray-700">{t('col.gremlinLevel')}</h3>
           <span className={`rounded px-2 py-0.5 text-sm font-medium ${
             g.level === 'DANGEROUS' ? 'bg-red-50 text-red-700' :
             g.level === 'WRITE' ? 'bg-blue-50 text-blue-700' :
             g.level === 'READ_ONLY' ? 'bg-cyan-50 text-cyan-700' :
             'bg-gray-100 text-gray-500'
-          }`}>{g.levelLabel || g.level}</span>
+          }`}>{lvlLabel(g.level, g.levelLabel || g.level)}</span>
         </div>
         <div className="space-y-2">
           {g.capabilities?.map((cap) => (
@@ -637,14 +760,14 @@ function GremlinTab({ overview, onItemClick }) {
               onClick={() => onItemClick?.('gremlin', cap.key, cap.label)}
             >
               <div>
-                <span className="text-sm text-gray-700">{cap.label}</span>
+                <span className="text-sm text-gray-700">{capLabel(cap.key, cap.label)}</span>
                 <span className="ml-2 text-xs text-gray-400">
-                  {cap.sources?.length > 0 ? `来源: ${cap.sources.join('、')}` : ''}
+                  {cap.sources?.length > 0 ? t('sourceLabel') + ' ' + cap.sources.join(', ') : ''}
                 </span>
               </div>
               {cap.granted
-                ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">允许</span>
-                : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400">不允许</span>}
+                ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">{t('allowed')}</span>
+                : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400">{t('notAllowed')}</span>}
             </div>
           ))}
         </div>
@@ -656,22 +779,39 @@ function GremlinTab({ overview, onItemClick }) {
 // ==================== 危险操作资格 ====================
 
 function DangerousTab({ overview, onItemClick }) {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const srcLabel = (s) => {
+    if (!s || s.includes('(')) return s
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const rk of Object.keys(all)) {
+        if (all[rk] === s) return all[rk]
+      }
+      const zhRoles = i18n.getResourceBundle('zh', 'permissions')?.role || {}
+      for (const rk of Object.keys(zhRoles)) {
+        if (zhRoles[rk] === s) return all[rk] || s
+      }
+    }
+    return s
+  }
+  const dLbl = (code, fb) => { const k = 'dangerous.' + code.replace(/:/g, '__'); const v = tp(k); return v === k ? fb : v }
+  const dDesc = (code, fb) => { const k = 'dangerousDesc.' + code.replace(/:/g, '__'); const v = tp(k); return v === k ? fb : v }
   const items = overview.dangerous || []
 
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
         <Info size={15} className="mr-1 inline" />
-        危险操作资格只是附加条件,不会单独授予具体操作能力。
-        执行危险操作时,仍需拥有对应的基础操作权限。
+        {t('dangerousHint')}
       </div>
       <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
             <tr>
-              <th className="px-4 py-2">危险操作</th>
-              <th className="px-4 py-2 w-24">状态</th>
-              <th className="px-4 py-2">来源</th>
+              <th className="px-4 py-2">{t('col.dangerOp')}</th>
+              <th className="px-4 py-2 w-24">{t('col.status')}</th>
+              <th className="px-4 py-2">{t('col.source')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -679,16 +819,16 @@ function DangerousTab({ overview, onItemClick }) {
               <tr
                 key={d.code}
                 className="cursor-pointer hover:bg-indigo-50"
-                onClick={() => onItemClick?.('dangerous', d.code, d.label)}
+                onClick={() => onItemClick?.('dangerous', d.code, dLbl(d.code, d.label))}
               >
                 <td className="px-4 py-2">
-                  <div className="font-medium text-gray-800">{d.label}</div>
-                  <div className="text-xs text-gray-500">{d.description}</div>
+                  <div className="font-medium text-gray-800">{dLbl(d.code, d.label)}</div>
+                  <div className="text-xs text-gray-500">{dDesc(d.code, d.description)}</div>
                 </td>
                 <td className="px-4 py-2">
                   {d.granted
-                    ? <span className="rounded bg-red-50 px-2 py-0.5 text-xs text-red-700">已授权</span>
-                    : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400">未授权</span>}
+                    ? <span className="rounded bg-red-50 px-2 py-0.5 text-xs text-red-700">{t('granted')}</span>
+                    : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400">{t('notGranted')}</span>}
                 </td>
                 <td className="px-4 py-2">
                   <SourceBadges sources={d.sources} />
@@ -705,6 +845,7 @@ function DangerousTab({ overview, onItemClick }) {
 // ==================== 配置检查 ====================
 
 function ChecksTab({ overview }) {
+  const { t } = useTranslation('permissionOverview')
   const checks = overview.configChecks || []
 
   return (
@@ -712,8 +853,8 @@ function ChecksTab({ overview }) {
       {checks.length === 0 ? (
         <div className="rounded-lg border border-green-200 bg-green-50 px-6 py-12 text-center">
           <ShieldCheck size={32} className="mx-auto mb-2 text-green-500" />
-          <div className="text-sm font-medium text-green-700">配置检查通过</div>
-          <div className="mt-1 text-xs text-green-600">未发现无效、矛盾或不完整的权限配置</div>
+          <div className="text-sm font-medium text-green-700">{t('configCheckPass')}</div>
+          <div className="mt-1 text-xs text-green-600">{t('configCheckPassHint')}</div>
         </div>
       ) : (
         checks.map((c, i) => (
@@ -731,15 +872,16 @@ function ChecksTab({ overview }) {
 
 // ==================== 权限反查弹窗 ====================
 
-const TYPE_LABELS = {
-  menu: '菜单权限',
-  operation: '操作权限',
-  connection: '可见连接',
-  gremlin: 'Gremlin 权限',
-  dangerous: '危险操作资格',
+const TYPE_LABEL_KEYS = {
+  menu: 'tab.menus',
+  operation: 'tab.operations',
+  connection: 'tab.connections',
+  gremlin: 'tab.gremlin',
+  dangerous: 'tab.dangerous',
 }
 
 function PermissionLookupModal({ query, onClose }) {
+  const { t } = useTranslation('permissionOverview')
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -761,7 +903,7 @@ function PermissionLookupModal({ query, onClose }) {
       >
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <h2 className="flex items-center gap-2 text-base font-semibold text-gray-800">
-            <Search size={18} className="text-indigo-500" /> 权限反查
+            <Search size={18} className="text-indigo-500" /> {t('lookup.title')}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
@@ -769,7 +911,7 @@ function PermissionLookupModal({ query, onClose }) {
         </div>
 
         <div className="flex-1 overflow-auto px-6 py-4">
-          {loading && <div className="py-12 text-center text-sm text-gray-400">加载中...</div>}
+          {loading && <div className="py-12 text-center text-sm text-gray-400">{t('loading')}</div>}
           {error && <div className="py-12 text-center text-sm text-red-500">{error}</div>}
           {!loading && !error && data && <LookupContent data={data} />}
         </div>
@@ -780,6 +922,36 @@ function PermissionLookupModal({ query, onClose }) {
 }
 
 function LookupContent({ data }) {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const roleLabel = (keyOrName, fb) => {
+    if (!keyOrName) return fb
+    const k = 'role.' + keyOrName
+    const v = tp(k)
+    if (v !== k) return v
+    // Reverse lookup: try matching by value (Chinese name -> key -> translated)
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const [rk, rv] of Object.entries(all)) {
+        if (rv === keyOrName) return rv // Already correct language
+      }
+    }
+    return fb
+  }
+  const srcLabel = (s) => {
+    if (!s || s.includes('(')) return s
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const rk of Object.keys(all)) {
+        if (all[rk] === s) return all[rk]
+      }
+      const zhRoles = i18n.getResourceBundle('zh', 'permissions')?.role || {}
+      for (const rk of Object.keys(zhRoles)) {
+        if (zhRoles[rk] === s) return all[rk] || s
+      }
+    }
+    return s
+  }
   const q = data.query
   const roles = data.roles || []
   const users = data.users || []
@@ -790,15 +962,15 @@ function LookupContent({ data }) {
       <div className="rounded-lg bg-gray-50 px-4 py-3">
         <div className="grid grid-cols-3 gap-2 text-sm">
           <div>
-            <span className="text-gray-400">权限类型</span>
-            <div className="font-medium text-gray-700">{TYPE_LABELS[q.type] || q.type}</div>
+            <span className="text-gray-400">{t('lookup.permType')}</span>
+            <div className="font-medium text-gray-700">t(TYPE_LABEL_KEYS[q.type]) || q.type</div>
           </div>
           <div>
-            <span className="text-gray-400">权限编码</span>
+            <span className="text-gray-400">{t('lookup.permCode')}</span>
             <div className="font-mono text-xs text-gray-700">{q.code}</div>
           </div>
           <div>
-            <span className="text-gray-400">权限名称</span>
+            <span className="text-gray-400">{t('lookup.permName')}</span>
             <div className="font-medium text-gray-700">{q.label}</div>
           </div>
         </div>
@@ -807,21 +979,21 @@ function LookupContent({ data }) {
       <div>
         <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
           <ShieldCheck size={15} className="text-indigo-500" />
-          拥有该权限的角色
+          {t('lookup.rolesWithTitle')}
           <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-600">{roles.length}</span>
         </h3>
         {roles.length === 0 ? (
           <div className="rounded-lg border border-gray-200 px-4 py-3 text-center text-sm text-gray-400">
-            暂无角色拥有此权限
+            {t('lookup.noRoles')}
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
             {roles.map((r) => (
               <span key={r.key} className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm">
                 <ShieldCheck size={14} className="text-indigo-400" />
-                <span className="text-gray-700">{r.label}</span>
-                {r.isBuiltin && <span className="rounded bg-blue-50 px-1 text-[10px] text-blue-500">内置</span>}
-                {r.status === 0 && <span className="rounded bg-gray-100 px-1 text-[10px] text-gray-400">停用</span>}
+                <span className="text-gray-700">{roleLabel(r.key, r.label)}</span>
+                {r.isBuiltin && <span className="rounded bg-blue-50 px-1 text-[10px] text-blue-500">{t('builtin')}</span>}
+                {r.status === 0 && <span className="rounded bg-gray-100 px-1 text-[10px] text-gray-400">{t('disabled')}</span>}
               </span>
             ))}
           </div>
@@ -831,12 +1003,12 @@ function LookupContent({ data }) {
       <div>
         <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
           <Users size={15} className="text-indigo-500" />
-          最终拥有该权限的用户
+          {t('lookup.usersWithTitle')}
           <span className="rounded-full bg-indigo-100 px-1.5 text-xs text-indigo-600">{users.length}</span>
         </h3>
         {users.length === 0 ? (
           <div className="rounded-lg border border-gray-200 px-4 py-3 text-center text-sm text-gray-400">
-            暂无用户拥有此权限
+            {t('lookup.noUsers')}
           </div>
         ) : (
           <div className="flex flex-wrap gap-2">
@@ -844,9 +1016,9 @@ function LookupContent({ data }) {
               <span key={u.id} className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm">
                 <span className="text-gray-700">{u.username}</span>
                 {u.nickname && <span className="text-xs text-gray-400">({u.nickname})</span>}
-                {u.isSuperAdmin && <span className="rounded bg-purple-50 px-1 text-[10px] text-purple-500">超管</span>}
+                {u.isSuperAdmin && <span className="rounded bg-purple-50 px-1 text-[10px] text-purple-500">{t('superAdmin')}</span>}
                 {!u.isSuperAdmin && u.roleLabels?.length > 0 && (
-                  <span className="text-xs text-gray-400">· {u.roleLabels.join('、')}</span>
+                  <span className="text-xs text-gray-400">· {u.roleLabels.map(srcLabel).join(', ')}</span>
                 )}
               </span>
             ))}
@@ -860,24 +1032,41 @@ function LookupContent({ data }) {
 }
 
 function DangerousAnalysisPanel({ analysis: da }) {
+  const { t } = useTranslation('permissionOverview')
+  const { t: tp, i18n } = useTranslation('permissions')
+  const srcLabel = (s) => {
+    if (!s || s.includes('(')) return s
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const rk of Object.keys(all)) {
+        if (all[rk] === s) return all[rk]
+      }
+      const zhRoles = i18n.getResourceBundle('zh', 'permissions')?.role || {}
+      for (const rk of Object.keys(zhRoles)) {
+        if (zhRoles[rk] === s) return all[rk] || s
+      }
+    }
+    return s
+  }
+  const oLbl = (code, fb) => { const k = 'op.' + code.replace(/:/g, '__'); const v = tp(k); return v === k ? fb : v }
   return (
     <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
       <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-amber-800">
         <AlertOctagon size={15} />
-        危险操作分析
+        {t('lookup.dangerAnalysis')}
       </h3>
       <div className="space-y-2 text-sm text-amber-800">
         <div>
-          附加危险资格: <strong>{da.qualificationLabel}</strong>{' '}
+          {t('lookup.qualification')} <strong>{da.qualificationLabel}</strong>{' '}
           <span className="font-mono text-xs">({da.qualificationCode})</span>
         </div>
         {da.relatedOperations?.length > 0 && (
           <div>
-            关联基础操作:{' '}
+            {t('lookup.relatedOps')}{' '}
             {da.relatedOperations.map((op, i) => (
               <span key={op.code}>
-                {i > 0 && '、'}
-                <strong>{op.label}</strong>{' '}
+                {i > 0 && ', '}
+                <strong>{oLbl(op.code, op.label)}</strong>{' '}
                 <span className="font-mono text-xs">({op.code})</span>
               </span>
             ))}
@@ -886,22 +1075,22 @@ function DangerousAnalysisPanel({ analysis: da }) {
         <div className="mt-3 grid grid-cols-3 gap-2 border-t border-amber-200 pt-3">
           <div className="text-center">
             <div className="text-2xl font-bold text-amber-700">{da.usersWithBaseOpCount}</div>
-            <div className="text-xs text-amber-600">拥有基础操作权限</div>
+            <div className="text-xs text-amber-600">{t('lookup.haveBaseOp')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-amber-700">{da.usersWithQualificationCount}</div>
-            <div className="text-xs text-amber-600">同时拥有危险资格</div>
+            <div className="text-xs text-amber-600">{t('lookup.haveQualification')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-red-600">{da.usersWhoCanExecuteCount}</div>
-            <div className="text-xs text-red-500">最终可执行</div>
+            <div className="text-xs text-red-500">{t('lookup.canExecute')}</div>
           </div>
         </div>
         {da.usersWhoCanExecute?.length > 0 && (
           <div className="mt-2 border-t border-amber-200 pt-2">
-            <span className="text-xs text-amber-600">可执行用户: </span>
+            <span className="text-xs text-amber-600">{t('lookup.canExecuteUsers')} </span>
             <span className="text-xs text-amber-800">
-              {da.usersWhoCanExecute.map((u) => u.username).join('、')}
+              {da.usersWhoCanExecute.map((u) => u.username).join(', ')}
             </span>
           </div>
         )}
@@ -913,19 +1102,35 @@ function DangerousAnalysisPanel({ analysis: da }) {
 // ==================== 共享组件 ====================
 
 function StatusBadge({ granted }) {
+  const { t } = useTranslation('permissionOverview')
   return granted
-    ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">已授权</span>
-    : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400">未授权</span>
+    ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">{t('granted')}</span>
+    : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400">{t('notGranted')}</span>
 }
 
 function SourceBadges({ sources }) {
+  const { t: tp, i18n } = useTranslation('permissions')
+  const srcLabel = (s) => {
+    if (!s || s.includes('(')) return s
+    const all = tp('role', { returnObjects: true })
+    if (all && typeof all === 'object') {
+      for (const rk of Object.keys(all)) {
+        if (all[rk] === s) return all[rk]
+      }
+      const zhRoles = i18n.getResourceBundle('zh', 'permissions')?.role || {}
+      for (const rk of Object.keys(zhRoles)) {
+        if (zhRoles[rk] === s) return all[rk] || s
+      }
+    }
+    return s
+  }
   if (!sources || sources.length === 0) {
     return <span className="text-xs text-gray-300">—</span>
   }
   return (
     <div className="flex flex-wrap gap-1">
       {sources.map((s, i) => (
-        <span key={i} className="rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">{s}</span>
+        <span key={i} className="rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-600">{srcLabel(s)}</span>
       ))}
     </div>
   )
