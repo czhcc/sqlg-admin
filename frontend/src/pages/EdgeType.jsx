@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import {
   listEdgeTypeConnections,
@@ -28,6 +29,7 @@ const emptyForm = {
 }
 
 export default function EdgeType() {
+  const { t } = useTranslation('edgeType')
   const { hasOp } = useAuth()
   const [connections, setConnections] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -105,8 +107,6 @@ export default function EdgeType() {
       || r.inVertexLabels?.some((v) => v.toLowerCase().includes(kw))
   })
 
-  // ==================== 新增表单 ====================
-
   const openCreate = async () => {
     setForm({ ...emptyForm })
     setIdStrategy('auto')
@@ -117,7 +117,7 @@ export default function EdgeType() {
         const res = await listVertexLabels(selectedId)
         setVertexLabels(res.data || [])
       } catch (e) {
-        showToast('error', '加载点类型失败: ' + e.message)
+        showToast('error', t('msg.loadVertexFail', { message: e.message }))
       } finally {
         setVertexLabelsLoading(false)
       }
@@ -129,15 +129,15 @@ export default function EdgeType() {
   }
 
   const submit = async () => {
-    if (!form.label.trim()) { showToast('error', 'EdgeLabel 名称不能为空'); return }
-    if (!form.outLabel) { showToast('error', '请选择出点类型'); return }
-    if (!form.inLabel) { showToast('error', '请选择入点类型'); return }
+    if (!form.label.trim()) { showToast('error', t('msg.labelRequired')); return }
+    if (!form.outLabel) { showToast('error', t('msg.outVertexRequired')); return }
+    if (!form.inLabel) { showToast('error', t('msg.inVertexRequired')); return }
 
     const identifiers = idStrategy === 'custom'
       ? (form.identifier && form.identifier.trim() ? [form.identifier.trim()] : [])
       : []
     if (idStrategy === 'custom' && identifiers.length === 0) {
-      showToast('error', '选择字符串 ID 时必须填写字段名')
+      showToast('error', t('msg.stringIdRequired'))
       return
     }
 
@@ -150,7 +150,7 @@ export default function EdgeType() {
         label: form.label.trim(),
         identifiers,
       })
-      showToast('success', '新增成功')
+      showToast('success', t('msg.created'))
       setModalOpen(false)
       loadList()
     } catch (e) {
@@ -160,17 +160,15 @@ export default function EdgeType() {
     }
   }
 
-  // ==================== 行操作 ====================
-
   const onClearData = async (row) => {
     const count = row.edgeCount || 0
     const msg = count > 0
-      ? `确认清空「${row.schema}.${row.label}」的 ${count} 条边数据?\n\n⚠️ 仅删除边数据,保留表结构 E_${row.label} 和 EdgeLabel 定义。`
-      : `确认清空「${row.schema}.${row.label}」?\n(当前无边数据)\n\n⚠️ 仅删除边数据,保留表结构。`
+      ? t('msg.confirmClear', { schema: row.schema, label: row.label, count, table: row.label })
+      : t('msg.confirmClearEmpty', { schema: row.schema, label: row.label })
     if (!window.confirm(msg)) return
     try {
       const res = await clearEdges(selectedId, row.schema, row.label)
-      showToast('success', `已清空 ${res.data?.deleted || 0} 条边数据`)
+      showToast('success', t('msg.cleared', { count: res.data?.deleted || 0 }))
       loadList()
     } catch (e) {
       showToast('error', e.message)
@@ -178,17 +176,10 @@ export default function EdgeType() {
   }
 
   const onDelete = async (row) => {
-    if (!window.confirm(
-      `确认删除边类型「${row.schema}.${row.label}」?\n\n` +
-      `🔴 此操作将永久删除:\n` +
-      `   • EdgeLabel 定义\n` +
-      `   • 底层物理表 ${row.tableName}\n` +
-      `   • 该表的所有边数据\n\n` +
-      `此操作不可恢复!`
-    )) return
+    if (!window.confirm(t('msg.confirmDelete', { schema: row.schema, label: row.label, table: row.tableName }))) return
     try {
       await deleteEdgeType(selectedId, row.schema, row.label)
-      showToast('success', '已删除边类型及底层表')
+      showToast('success', t('msg.deleted'))
       loadList()
     } catch (e) {
       showToast('error', e.message)
@@ -198,28 +189,28 @@ export default function EdgeType() {
   const onViewDetail = async (row) => {
     try {
       const res = await getEdgeTypeDetail(selectedId, row.schema, row.label)
-      setDetailModal({ type: 'detail', title: `${row.schema}.${row.label} — 详情`, data: res.data })
+      setDetailModal({ type: 'detail', title: t('detailTitle', { schema: row.schema, label: row.label }), data: res.data })
     } catch (e) { showToast('error', e.message) }
   }
 
   const onViewTableSchema = async (row) => {
     try {
       const res = await getTableSchema(selectedId, row.schema, row.label)
-      setDetailModal({ type: 'tableSchema', title: `${row.tableName} — 表结构`, data: res.data })
+      setDetailModal({ type: 'tableSchema', title: t('tableSchemaTitle', { tableName: row.tableName }), data: res.data })
     } catch (e) { showToast('error', e.message) }
   }
 
   const onViewGremlin = async (row) => {
     try {
       const res = await getGremlinExamples(row.schema, row.label)
-      setDetailModal({ type: 'examples', title: `${row.label} — Gremlin 示例`, data: res.data, lang: 'gremlin' })
+      setDetailModal({ type: 'examples', title: t('gremlinTitle', { label: row.label }), data: res.data, lang: 'gremlin' })
     } catch (e) { showToast('error', e.message) }
   }
 
   const onViewSql = async (row) => {
     try {
       const res = await getSqlExamples(row.schema, row.label)
-      setDetailModal({ type: 'examples', title: `${row.tableName} — SQL 示例`, data: res.data, lang: 'sql' })
+      setDetailModal({ type: 'examples', title: t('sqlTitle', { tableName: row.tableName }), data: res.data, lang: 'sql' })
     } catch (e) { showToast('error', e.message) }
   }
 
@@ -227,8 +218,8 @@ export default function EdgeType() {
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <div>
-          <h1 className="text-lg font-semibold text-gray-800">边类型管理</h1>
-          <p className="mt-0.5 text-sm text-gray-500">管理 EdgeLabel 定义、出入点类型、属性和数据</p>
+          <h1 className="text-lg font-semibold text-gray-800">{t('title')}</h1>
+          <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -236,7 +227,7 @@ export default function EdgeType() {
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="搜索 Schema/Label/点类型"
+              placeholder={t('searchPlaceholder')}
               className="w-52 rounded-md border border-gray-300 py-1.5 pl-8 pr-3 text-sm outline-none focus:border-indigo-500"
             />
           </div>
@@ -247,7 +238,7 @@ export default function EdgeType() {
             >
               <span className="flex items-center gap-2 truncate">
                 <Database size={15} className="text-pink-500" />
-                <span className="truncate font-medium">{selected ? selected.name : '选择连接'}</span>
+                <span className="truncate font-medium">{selected ? selected.name : t('common:selectConnection')}</span>
                 {selected?.isDefault && <Star size={13} className="fill-amber-400 text-amber-400" />}
               </span>
               <ChevronDown size={15} className="text-gray-400" />
@@ -257,7 +248,7 @@ export default function EdgeType() {
                 <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
                 <div className="absolute right-0 z-20 mt-1 max-h-72 w-64 overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
                   {connections.length === 0 && (
-                    <div className="px-3 py-2 text-sm text-gray-400">暂无可用连接</div>
+                    <div className="px-3 py-2 text-sm text-gray-400">{t('common:noConnection')}</div>
                   )}
                   {connections.map((c) => (
                     <button
@@ -286,7 +277,7 @@ export default function EdgeType() {
             disabled={!selectedId || loading}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> 刷新
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> {t('common:refresh')}
           </button>
           {hasOp('edge_type:create') && (
             <button
@@ -294,7 +285,7 @@ export default function EdgeType() {
               disabled={!selectedId}
               className="flex items-center gap-1 rounded-md bg-pink-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-50"
             >
-              <Plus size={15} /> 新增边类型
+              <Plus size={15} /> {t('addButton')}
             </button>
           )}
         </div>
@@ -303,7 +294,7 @@ export default function EdgeType() {
       <div className="flex-1 overflow-auto p-6">
         {!selectedId && (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
-            请从右上角选择一个图数据库连接
+            {t('common:pleaseSelectConnection')}
           </div>
         )}
         {selectedId && (
@@ -311,23 +302,23 @@ export default function EdgeType() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
                 <tr>
-                  <th className="px-4 py-3">Schema</th>
-                  <th className="px-4 py-3">EdgeLabel</th>
-                  <th className="px-4 py-3">底层表名</th>
-                  <th className="px-4 py-3">出点类型</th>
-                  <th className="px-4 py-3">入点类型</th>
-                  <th className="px-4 py-3 text-center">属性数</th>
-                  <th className="px-4 py-3">Identifier</th>
-                  <th className="px-4 py-3 text-center">索引数</th>
-                  <th className="px-4 py-3 text-center">边数据量</th>
-                  <th className="px-4 py-3 text-right">操作</th>
+                  <th className="px-4 py-3">{t('col.schema')}</th>
+                  <th className="px-4 py-3">{t('col.edgeLabel')}</th>
+                  <th className="px-4 py-3">{t('col.tableName')}</th>
+                  <th className="px-4 py-3">{t('col.outVertex')}</th>
+                  <th className="px-4 py-3">{t('col.inVertex')}</th>
+                  <th className="px-4 py-3 text-center">{t('col.propertyCount')}</th>
+                  <th className="px-4 py-3">{t('col.identifier')}</th>
+                  <th className="px-4 py-3 text-center">{t('col.indexCount')}</th>
+                  <th className="px-4 py-3 text-center">{t('col.edgeCount')}</th>
+                  <th className="px-4 py-3 text-right">{t('common:actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
-                      {loading ? '加载中...' : '暂无边类型,点击右上角「新增边类型」'}
+                      {loading ? t('common:loading') : t('empty')}
                     </td>
                   </tr>
                 )}
@@ -386,22 +377,22 @@ export default function EdgeType() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <ActionBtn title="查看详情" onClick={() => onViewDetail(row)}>
+                        <ActionBtn title={t('action.viewDetail')} onClick={() => onViewDetail(row)}>
                           <Eye size={15} />
                         </ActionBtn>
-                        <ActionBtn title="查看表结构" onClick={() => onViewTableSchema(row)}>
+                        <ActionBtn title={t('action.viewTableSchema')} onClick={() => onViewTableSchema(row)}>
                           <Table2 size={15} />
                         </ActionBtn>
-                        <ActionBtn title="Gremlin 示例" onClick={() => onViewGremlin(row)}>
+                        <ActionBtn title={t('action.gremlinExamples')} onClick={() => onViewGremlin(row)}>
                           <Terminal size={15} />
                         </ActionBtn>
-                        <ActionBtn title="SQL 示例" onClick={() => onViewSql(row)}>
+                        <ActionBtn title={t('action.sqlExamples')} onClick={() => onViewSql(row)}>
                           <FileCode size={15} />
                         </ActionBtn>
-                        {hasOp('edge_data:clear') && <ActionBtn title="清空边数据(保留表结构)" warning onClick={() => onClearData(row)}>
+                        {hasOp('edge_data:clear') && <ActionBtn title={t('action.clearEdges')} warning onClick={() => onClearData(row)}>
                           <Eraser size={15} />
                         </ActionBtn>}
-                        {hasOp('edge_type:delete') && <ActionBtn title="删除边类型(删除表+数据)" danger onClick={() => onDelete(row)}>
+                        {hasOp('edge_type:delete') && <ActionBtn title={t('action.deleteType')} danger onClick={() => onDelete(row)}>
                           <Trash2 size={15} />
                         </ActionBtn>}
                       </div>
@@ -445,21 +436,20 @@ export default function EdgeType() {
   )
 }
 
-// ==================== 新增边类型 Modal ====================
-
 function CreateEdgeModal({
   form, setForm, idStrategy, setIdStrategy,
   vertexLabels, vertexLabelsLoading, saving,
   onClose, onSubmit,
 }) {
+  const { t } = useTranslation('edgeType')
   const schemas = Array.from(new Set(vertexLabels.map((v) => v.schema))).sort()
   const labelsInSchema = vertexLabels.filter((v) => v.schema === form.schema)
   const edgeLabel = form.label || 'edge'
 
   const gremlinPreview = form.outLabel && form.inLabel
-    ? `g.V().hasLabel('${form.outLabel}').has('name','张三')\n` +
+    ? `g.V().hasLabel('${form.outLabel}').has('name','A')\n` +
       ` .as('a')\n` +
-      ` .V().hasLabel('${form.inLabel}').has('name','某对象')\n` +
+      ` .V().hasLabel('${form.inLabel}').has('name','B')\n` +
       ` .addE('${edgeLabel}')\n` +
       ` .from('a')`
     : ''
@@ -468,7 +458,7 @@ function CreateEdgeModal({
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
       <div className="max-h-[92vh] w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-base font-semibold text-gray-800">新增边类型</h2>
+          <h2 className="text-base font-semibold text-gray-800">{t('createTitle')}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={20} />
           </button>
@@ -476,7 +466,7 @@ function CreateEdgeModal({
 
         <div className="max-h-[68vh] overflow-y-auto px-6 py-4">
           <div className="grid grid-cols-3 gap-4">
-            <Field label="Schema" required>
+            <Field label={t('field.schema')} required>
               <select
                 className={inputCls}
                 value={form.schema}
@@ -487,13 +477,13 @@ function CreateEdgeModal({
                   inLabel: '',
                 })}
               >
-                {schemas.length === 0 && <option value="">-- 无 --</option>}
+                {schemas.length === 0 && <option value="">{t('noneOption')}</option>}
                 {schemas.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </Field>
-            <Field label="出点类型 (Out VertexLabel)" required>
+            <Field label={t('field.outVertexLabel')} required>
               <LabelSelect
                 value={form.outLabel}
                 options={labelsInSchema}
@@ -501,7 +491,7 @@ function CreateEdgeModal({
                 onChange={(v) => setForm({ ...form, outLabel: v })}
               />
             </Field>
-            <Field label="入点类型 (In VertexLabel)" required>
+            <Field label={t('field.inVertexLabel')} required>
               <LabelSelect
                 value={form.inLabel}
                 options={labelsInSchema}
@@ -512,18 +502,18 @@ function CreateEdgeModal({
           </div>
 
           <div className="mt-4">
-            <Field label="EdgeLabel 名称" required>
+            <Field label={t('edgeLabelName')} required>
               <input
                 className={inputCls}
                 value={form.label}
                 onChange={(e) => setForm({ ...form, label: e.target.value })}
-                placeholder="如 knows, worksFor, transferTo"
+                placeholder={t('edgeLabelPlaceholder')}
               />
             </Field>
           </div>
 
           <div className="mt-4">
-            <label className="mb-2 block text-sm font-medium text-gray-700">ID 策略</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700">{t('idStrategy')}</label>
             <div className="space-y-2">
               <label className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2.5 text-sm transition-colors ${
                 idStrategy === 'auto' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -532,8 +522,8 @@ function CreateEdgeModal({
                   checked={idStrategy === 'auto'}
                   onChange={() => { setIdStrategy('auto'); setForm({ ...form, identifier: '' }) }} />
                 <Key size={15} className={idStrategy === 'auto' ? 'text-pink-500' : 'text-gray-400'} />
-                <span className="font-medium">默认自增 ID</span>
-                <span className="text-xs text-gray-400">(BIGINT, sqlg 自动生成)</span>
+                <span className="font-medium">{t('autoId')}</span>
+                <span className="text-xs text-gray-400">{t('autoIdHint')}</span>
               </label>
               <label className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2.5 text-sm transition-colors ${
                 idStrategy === 'custom' ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -542,8 +532,8 @@ function CreateEdgeModal({
                   checked={idStrategy === 'custom'}
                   onChange={() => setIdStrategy('custom')} />
                 <Key size={15} className={idStrategy === 'custom' ? 'text-pink-500' : 'text-gray-400'} />
-                <span className="font-medium">字符串 ID</span>
-                <span className="text-xs text-gray-400">(自定义业务主键)</span>
+                <span className="font-medium">{t('stringId')}</span>
+                <span className="text-xs text-gray-400">{t('stringIdHint')}</span>
               </label>
               {idStrategy === 'custom' && (
                 <div className="pl-7">
@@ -551,10 +541,10 @@ function CreateEdgeModal({
                     className={inputCls}
                     value={form.identifier}
                     onChange={(e) => setForm({ ...form, identifier: e.target.value })}
-                    placeholder="identifier 字段名,如 edge_id"
+                    placeholder={t('identifierPlaceholder')}
                   />
                   <p className="mt-1 text-xs text-gray-400">
-                    将自动创建该名称的 STRING 属性并标记为业务主键
+                    {t('identifierHint')}
                   </p>
                 </div>
               )}
@@ -562,24 +552,24 @@ function CreateEdgeModal({
           </div>
 
           <div className="mt-5 rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">边方向预览</div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('directionPreview')}</div>
             <div className="flex items-center justify-center gap-3 py-2">
               <span className="rounded-lg bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">
-                {form.outLabel || '出点'}
+                {form.outLabel || t('outVertex')}
               </span>
               <div className="flex flex-col items-center">
                 <ArrowRight size={20} className="text-pink-500" />
                 <span className="mt-0.5 text-xs font-medium text-pink-600">{edgeLabel}</span>
               </div>
               <span className="rounded-lg bg-pink-50 px-3 py-2 text-sm font-medium text-pink-700">
-                {form.inLabel || '入点'}
+                {form.inLabel || t('inVertex')}
               </span>
             </div>
           </div>
 
           {gremlinPreview && (
             <div className="mt-3">
-              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">Gremlin 示例</div>
+              <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('gremlinPreview')}</div>
               <pre className="overflow-x-auto rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm">
                 <code className="text-indigo-700">{gremlinPreview}</code>
               </pre>
@@ -590,11 +580,11 @@ function CreateEdgeModal({
         <div className="flex items-center justify-end gap-2 border-t border-gray-200 bg-gray-50 px-6 py-3">
           <button onClick={onClose}
             className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-            取消
+            {t('common:cancel')}
           </button>
           <button onClick={onSubmit} disabled={saving}
             className="rounded-md bg-pink-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-50">
-            {saving ? '保存中...' : '保存'}
+            {saving ? t('common:saving') : t('common:save')}
           </button>
         </div>
       </div>
@@ -603,14 +593,15 @@ function CreateEdgeModal({
 }
 
 function LabelSelect({ value, options, loading, onChange }) {
+  const { t } = useTranslation('edgeType')
   return (
     <select
       className={inputCls}
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      <option value="">-- 请选择 --</option>
-      {loading && <option disabled>加载中...</option>}
+      <option value="">{t('pleaseSelect')}</option>
+      {loading && <option disabled>{t('common:loading')}</option>}
       {options.map((v) => (
         <option key={v.label} value={v.label}>
           {v.label}
@@ -619,8 +610,6 @@ function LabelSelect({ value, options, loading, onChange }) {
     </select>
   )
 }
-
-// ==================== 详情 Modal ====================
 
 function DetailModal({ data, onClose }) {
   return (
@@ -643,20 +632,21 @@ function DetailModal({ data, onClose }) {
 }
 
 function EdgeDetail({ detail }) {
+  const { t } = useTranslation('edgeType')
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 text-sm">
-        <Info label="Schema" value={detail.schema} />
-        <Info label="Label" value={detail.label} />
-        <Info label="表名" value={detail.tableName} mono />
-        <Info label="边数量" value={(detail.edgeCount || 0).toLocaleString()} />
+        <Info label={t('col.schema')} value={detail.schema} />
+        <Info label={t('col.edgeLabel')} value={detail.label} />
+        <Info label={t('detail.tableName')} value={detail.tableName} mono />
+        <Info label={t('detail.edgeCount')} value={(detail.edgeCount || 0).toLocaleString()} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-gray-700">出点类型 ({detail.outVertexLabels?.length || 0})</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('detail.outVertexTitle', { count: detail.outVertexLabels?.length || 0 })}</h3>
           <div className="space-y-1">
-            {(detail.outVertexLabels || []).length === 0 && <span className="text-xs text-gray-300">无</span>}
+            {(detail.outVertexLabels || []).length === 0 && <span className="text-xs text-gray-300">{t('detail.none')}</span>}
             {detail.outVertexLabels?.map((v) => (
               <div key={v.fullName} className="flex items-center gap-1 text-sm text-gray-600">
                 <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-700">{v.fullName}</span>
@@ -665,9 +655,9 @@ function EdgeDetail({ detail }) {
           </div>
         </div>
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-gray-700">入点类型 ({detail.inVertexLabels?.length || 0})</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('detail.inVertexTitle', { count: detail.inVertexLabels?.length || 0 })}</h3>
           <div className="space-y-1">
-            {(detail.inVertexLabels || []).length === 0 && <span className="text-xs text-gray-300">无</span>}
+            {(detail.inVertexLabels || []).length === 0 && <span className="text-xs text-gray-300">{t('detail.none')}</span>}
             {detail.inVertexLabels?.map((v) => (
               <div key={v.fullName} className="flex items-center gap-1 text-sm text-gray-600">
                 <span className="rounded bg-pink-50 px-1.5 py-0.5 text-xs text-pink-700">{v.fullName}</span>
@@ -678,15 +668,15 @@ function EdgeDetail({ detail }) {
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-700">属性 ({detail.properties?.length || 0})</h3>
+        <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('detail.propsTitle', { count: detail.properties?.length || 0 })}</h3>
         <div className="overflow-hidden rounded-lg border border-gray-200">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-              <tr><th className="px-3 py-2">属性名</th><th className="px-3 py-2">类型</th><th className="px-3 py-2">Identifier</th></tr>
+              <tr><th className="px-3 py-2">{t('detail.propName')}</th><th className="px-3 py-2">{t('detail.propType')}</th><th className="px-3 py-2">{t('detail.identifier')}</th></tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {(detail.properties || []).length === 0 && (
-                <tr><td colSpan={3} className="px-3 py-4 text-center text-gray-400">无属性</td></tr>
+                <tr><td colSpan={3} className="px-3 py-4 text-center text-gray-400">{t('detail.noProps')}</td></tr>
               )}
               {detail.properties?.map((p) => (
                 <tr key={p.name}>
@@ -702,7 +692,7 @@ function EdgeDetail({ detail }) {
 
       {(detail.indexes?.length > 0) && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-gray-700">索引 ({detail.indexes.length})</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('detail.indexesTitle', { count: detail.indexes.length })}</h3>
           <div className="space-y-1">
             {detail.indexes.map((idx) => (
               <div key={idx.name} className="flex items-center gap-2 rounded-md border border-gray-100 px-3 py-2 text-sm">
@@ -719,20 +709,21 @@ function EdgeDetail({ detail }) {
 }
 
 function TableSchemaDetail({ columns }) {
+  const { t } = useTranslation('edgeType')
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200 text-sm">
         <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
           <tr>
-            <th className="px-3 py-2">列名</th>
-            <th className="px-3 py-2">数据类型</th>
-            <th className="px-3 py-2 text-center">可空</th>
-            <th className="px-3 py-2">默认值</th>
+            <th className="px-3 py-2">{t('detail.colName')}</th>
+            <th className="px-3 py-2">{t('detail.dataType')}</th>
+            <th className="px-3 py-2 text-center">{t('detail.nullable')}</th>
+            <th className="px-3 py-2">{t('detail.defaultValue')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {columns.length === 0 && (
-            <tr><td colSpan={4} className="px-3 py-6 text-center text-gray-400">表不存在或无列信息</td></tr>
+            <tr><td colSpan={4} className="px-3 py-6 text-center text-gray-400">{t('detail.noTable')}</td></tr>
           )}
           {columns.map((c) => (
             <tr key={c.columnName}>
@@ -749,6 +740,7 @@ function TableSchemaDetail({ columns }) {
 }
 
 function ExamplesDetail({ examples, lang }) {
+  const { t } = useTranslation('edgeType')
   const [copied, setCopied] = useState(null)
   const copy = (code, idx) => {
     navigator.clipboard.writeText(code).then(() => {
@@ -766,7 +758,7 @@ function ExamplesDetail({ examples, lang }) {
               onClick={() => copy(ex.code, i)}
               className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-50"
             >
-              {copied === i ? '已复制' : '复制'}
+              {copied === i ? t('common:copied') : t('common:copy')}
             </button>
           </div>
           <pre className="overflow-x-auto px-3 py-2 text-sm">
@@ -777,8 +769,6 @@ function ExamplesDetail({ examples, lang }) {
     </div>
   )
 }
-
-// ==================== 共享组件 ====================
 
 const inputCls = 'flex-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-100'
 

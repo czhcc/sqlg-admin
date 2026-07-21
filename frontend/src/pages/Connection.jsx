@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import {
   listConnections,
@@ -31,6 +32,7 @@ const emptyForm = {
 }
 
 export default function Connection() {
+  const { t } = useTranslation('connection')
   const { hasOp } = useAuth()
   const [list, setList] = useState([])
   const [keyword, setKeyword] = useState('')
@@ -78,7 +80,7 @@ export default function Connection() {
   const submit = async (e) => {
     e.preventDefault()
     if (!form.name || !form.jdbcUrl || !form.username) {
-      showToast('error', '连接名称、JDBC URL、用户名必填')
+      showToast('error', t('msg.requiredFields'))
       return
     }
     setSaving(true)
@@ -93,10 +95,10 @@ export default function Connection() {
       if (!payload.password) delete payload.password
       if (form.id) {
         await updateConnection(form.id, payload)
-        showToast('success', '更新成功')
+        showToast('success', t('msg.updateSuccess'))
       } else {
         await createConnection(payload)
-        showToast('success', '新增成功')
+        showToast('success', t('msg.createSuccess'))
       }
       setModalOpen(false)
       load()
@@ -119,9 +121,9 @@ export default function Connection() {
           })
       const r = res.data
       if (r?.success) {
-        showToast('success', `连接成功: ${r.message}`)
+        showToast('success', t('msg.connectionOk', { message: r.message }))
       } else {
-        showToast('error', `连接失败: ${r?.message || '未知'}`)
+        showToast('error', t('msg.connectionFail', { message: r?.message || t('common:unknown') }))
       }
     } catch (err) {
       showToast('error', err.message)
@@ -134,7 +136,7 @@ export default function Connection() {
     const next = row.status === 1 ? 0 : 1
     try {
       await updateConnectionStatus(row.id, next)
-      showToast('success', next === 1 ? '已启用' : '已停用')
+      showToast('success', next === 1 ? t('msg.enabled') : t('msg.disabled'))
       load()
     } catch (e) {
       showToast('error', e.message)
@@ -144,7 +146,7 @@ export default function Connection() {
   const onSetDefault = async (row) => {
     try {
       await setDefaultConnection(row.id)
-      showToast('success', `已设为默认: ${row.name}`)
+      showToast('success', t('msg.setDefaultOk', { name: row.name }))
       load()
     } catch (e) {
       showToast('error', e.message)
@@ -152,10 +154,10 @@ export default function Connection() {
   }
 
   const onDelete = async (row) => {
-    if (!window.confirm(`确认删除连接「${row.name}」?`)) return
+    if (!window.confirm(t('msg.confirmDelete', { name: row.name }))) return
     try {
       await deleteConnection(row.id)
-      showToast('success', '已删除')
+      showToast('success', t('msg.deleted'))
       load()
     } catch (e) {
       showToast('error', e.message)
@@ -166,8 +168,8 @@ export default function Connection() {
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <div>
-          <h1 className="text-lg font-semibold text-gray-800">连接管理</h1>
-          <p className="mt-0.5 text-sm text-gray-500">管理图数据库连接配置</p>
+          <h1 className="text-lg font-semibold text-gray-800">{t('title')}</h1>
+          <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -176,7 +178,7 @@ export default function Connection() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && load()}
-              placeholder="搜索名称/类型/备注"
+              placeholder={t('searchPlaceholder')}
               className="w-56 rounded-md border border-gray-300 py-1.5 pl-8 pr-3 text-sm outline-none focus:border-indigo-500"
             />
           </div>
@@ -184,14 +186,14 @@ export default function Connection() {
             onClick={load}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> 刷新
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> {t('common:refresh')}
           </button>
           {hasOp('connection:create') && (
             <button
               onClick={openCreate}
               className="flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
             >
-              <Plus size={15} /> 新增连接
+              <Plus size={15} /> {t('addConnection')}
             </button>
           )}
         </div>
@@ -202,22 +204,22 @@ export default function Connection() {
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
               <tr>
-                <th className="px-4 py-3">名称</th>
-                <th className="px-4 py-3">类型</th>
-                <th className="px-4 py-3">JDBC URL</th>
-                <th className="px-4 py-3">用户名</th>
-                <th className="px-4 py-3">distributed</th>
-                <th className="px-4 py-3">状态</th>
-                <th className="px-4 py-3">默认</th>
-                <th className="px-4 py-3">备注</th>
-                <th className="px-4 py-3 text-right">操作</th>
+                <th className="px-4 py-3">{t('col.name')}</th>
+                <th className="px-4 py-3">{t('col.type')}</th>
+                <th className="px-4 py-3">{t('jdbcUrl')}</th>
+                <th className="px-4 py-3">{t('col.username')}</th>
+                <th className="px-4 py-3">{t('col.distributed')}</th>
+                <th className="px-4 py-3">{t('col.status')}</th>
+                <th className="px-4 py-3">{t('col.default')}</th>
+                <th className="px-4 py-3">{t('col.remark')}</th>
+                <th className="px-4 py-3 text-right">{t('common:actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {list.length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
-                    {loading ? '加载中...' : '暂无连接,点击右上角「新增连接」'}
+                    {loading ? t('common:loading') : t('empty')}
                   </td>
                 </tr>
               )}
@@ -240,8 +242,8 @@ export default function Connection() {
                   </td>
                   <td className="px-4 py-3">
                     {row.status === 1
-                      ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">启用</span>
-                      : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">停用</span>}
+                      ? <span className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700">{t('common:enable')}</span>
+                      : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-500">{t('common:disable')}</span>}
                   </td>
                   <td className="px-4 py-3">
                     {row.isDefault
@@ -253,25 +255,25 @@ export default function Connection() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      {hasOp('connection:test') && <ActionBtn title="测试连接" onClick={() => onTest(row)} disabled={testingId === row.id}>
+                      {hasOp('connection:test') && <ActionBtn title={t('action.testConnection')} onClick={() => onTest(row)} disabled={testingId === row.id}>
                         <Plug size={15} />
                       </ActionBtn>}
-                      {hasOp('connection:update') && <ActionBtn title={row.status === 1 ? '停用' : '启用'} onClick={() => onToggleStatus(row)}>
+                      {hasOp('connection:update') && <ActionBtn title={row.status === 1 ? t('action.disable') : t('action.enable')} onClick={() => onToggleStatus(row)}>
                         <Power size={15} className={row.status === 1 ? 'text-green-600' : 'text-gray-400'} />
                       </ActionBtn>}
                       {hasOp('connection:update') &&
                         <ActionBtn
-                          title="设为默认"
+                          title={t('action.setDefault')}
                           onClick={() => onSetDefault(row)}
                           disabled={row.isDefault}
                         >
                           <Star size={15} className={row.isDefault ? 'fill-amber-400 text-amber-400' : ''} />
                         </ActionBtn>
                       }
-                      {hasOp('connection:update') && <ActionBtn title="编辑" onClick={() => openEdit(row)}>
+                      {hasOp('connection:update') && <ActionBtn title={t('common:edit')} onClick={() => openEdit(row)}>
                         <Pencil size={15} />
                       </ActionBtn>}
-                      {hasOp('connection:delete') && <ActionBtn title="删除" danger onClick={() => onDelete(row)}>
+                      {hasOp('connection:delete') && <ActionBtn title={t('common:delete')} danger onClick={() => onDelete(row)}>
                         <Trash2 size={15} />
                       </ActionBtn>}
                     </div>
@@ -288,7 +290,7 @@ export default function Connection() {
           <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
               <h2 className="text-base font-semibold text-gray-800">
-                {form.id ? '编辑连接' : '新增连接'}
+                {form.id ? t('editConnection') : t('addConnection')}
               </h2>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
@@ -297,43 +299,43 @@ export default function Connection() {
 
             <form onSubmit={submit} className="max-h-[70vh] overflow-y-auto px-6 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="连接名称" required>
+                <Field label={t('connectionName')} required>
                   <input className={inputCls}
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="如 prod-pg" />
+                    placeholder={t('connectionNamePlaceholder')} />
                 </Field>
-                <Field label="数据库类型" required>
+                <Field label={t('dbType')} required>
                   <select className={inputCls}
                     value={form.dbType}
                     onChange={(e) => setForm({ ...form, dbType: e.target.value })}>
-                    {DB_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    {DB_TYPES.map((tt) => <option key={tt} value={tt}>{tt}</option>)}
                   </select>
                 </Field>
                 <div className="col-span-2">
-                  <Field label="JDBC URL" required>
+                  <Field label={t('jdbcUrl')} required>
                     <input className={inputCls}
                       value={form.jdbcUrl}
                       onChange={(e) => setForm({ ...form, jdbcUrl: e.target.value })}
-                      placeholder="jdbc:postgresql://host:5432/db" />
+                      placeholder={t('jdbcPlaceholder')} />
                   </Field>
                 </div>
-                <Field label="用户名" required>
+                <Field label={t('col.username')} required>
                   <input className={inputCls}
                     value={form.username}
                     onChange={(e) => setForm({ ...form, username: e.target.value })} />
                 </Field>
-                <Field label={form.id ? '密码 (留空则不修改)' : '密码'} required={!form.id}>
+                <Field label={form.id ? t('passwordEdit') : t('common:password')} required={!form.id}>
                   <input className={inputCls} type="password"
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })} />
                 </Field>
-                <Field label="连接池配置 (JSON)">
+                <Field label={t('poolConfig')}>
                   <textarea className={inputCls} rows={2}
                     value={form.poolConfig}
                     onChange={(e) => setForm({ ...form, poolConfig: e.target.value })} />
                 </Field>
-                <Field label="备注">
+                <Field label={t('common:remark')}>
                   <input className={inputCls}
                     value={form.remark}
                     onChange={(e) => setForm({ ...form, remark: e.target.value })} />
@@ -343,19 +345,19 @@ export default function Connection() {
                     <input type="checkbox"
                       checked={!!form.distributed}
                       onChange={(e) => setForm({ ...form, distributed: e.target.checked })} />
-                    distributed = true
+                    {t('distributed')}
                   </label>
                   <label className="flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox"
                       checked={Number(form.status) === 1}
                       onChange={(e) => setForm({ ...form, status: e.target.checked ? 1 : 0 })} />
-                    启用
+                    {t('common:enable')}
                   </label>
                   <label className="flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox"
                       checked={!!form.isDefault}
                       onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} />
-                    设为默认
+                    {t('action.setDefault')}
                   </label>
                 </div>
               </div>
@@ -369,16 +371,16 @@ export default function Connection() {
                 className="flex items-center gap-1 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"
               >
                 <Plug size={15} className={testingId === 'form' ? 'animate-pulse' : ''} />
-                测试连接
+                {t('action.testConnection')}
               </button>
               <div className="flex gap-2">
                 <button onClick={closeModal}
                   className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-                  取消
+                  {t('common:cancel')}
                 </button>
                 <button onClick={submit} disabled={saving}
                   className="rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-                  {saving ? '保存中...' : '保存'}
+                  {saving ? t('common:saving') : t('common:save')}
                 </button>
               </div>
             </div>

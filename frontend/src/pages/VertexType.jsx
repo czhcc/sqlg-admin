@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
 import {
   listVertexTypeConnections,
@@ -26,6 +27,7 @@ const emptyForm = {
 }
 
 export default function VertexType() {
+  const { t } = useTranslation('vertexType')
   const { hasOp } = useAuth()
   const [connections, setConnections] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -102,8 +104,6 @@ export default function VertexType() {
       || r.tableName?.toLowerCase().includes(kw)
   })
 
-  // ==================== 表单操作 ====================
-
   const openCreate = () => {
     setForm({ ...emptyForm })
     setIdStrategy('auto')
@@ -126,7 +126,7 @@ export default function VertexType() {
       const res = await getVertexTypeDetail(selectedId, row.schema, row.label)
       setExistingProperties(res.data?.properties || [])
     } catch (e) {
-      showToast('error', '加载属性失败: ' + e.message)
+      showToast('error', t('msg.loadPropsFail', { message: e.message }))
     } finally {
       setLoadingDetail(false)
     }
@@ -139,13 +139,13 @@ export default function VertexType() {
   }
 
   const submit = async () => {
-    if (!form.label.trim()) { showToast('error', 'Label 不能为空'); return }
+    if (!form.label.trim()) { showToast('error', t('msg.labelRequired')); return }
 
     setSaving(true)
     try {
       if (editingTarget) {
         if (form.label.trim() === editingTarget.label) {
-          showToast('info', 'Label 未变更')
+          showToast('info', t('msg.labelUnchanged'))
           setModalOpen(false)
           return
         }
@@ -155,13 +155,13 @@ export default function VertexType() {
           originalSchema: editingTarget.schema,
           originalLabel: editingTarget.label,
         })
-        showToast('success', '已重命名')
+        showToast('success', t('msg.renamed'))
       } else {
         const identifiers = idStrategy === 'custom'
           ? form.identifiers.filter((n) => n && n.trim())
           : []
         if (idStrategy === 'custom' && identifiers.length === 0) {
-          showToast('error', '选择字符串 ID 时必须填写字段名')
+          showToast('error', t('msg.stringIdRequired'))
           setSaving(false)
           return
         }
@@ -170,7 +170,7 @@ export default function VertexType() {
           label: form.label.trim(),
           identifiers,
         })
-        showToast('success', '新增成功')
+        showToast('success', t('msg.created'))
       }
       setModalOpen(false)
       loadList()
@@ -181,17 +181,15 @@ export default function VertexType() {
     }
   }
 
-  // ==================== 行操作 ====================
-
   const onClearData = async (row) => {
     const count = row.vertexCount || 0
     const msg = count > 0
-      ? `确认清空「${row.schema}.${row.label}」的 ${count} 个点数据?\n\n⚠️ 仅删除点数据,保留表结构 V_${row.label} 和 VertexLabel 定义。`
-      : `确认清空「${row.schema}.${row.label}」?\n(当前无点数据)\n\n⚠️ 仅删除点数据,保留表结构。`
+      ? t('msg.confirmClear', { schema: row.schema, label: row.label, count, table: row.label })
+      : t('msg.confirmClearEmpty', { schema: row.schema, label: row.label })
     if (!window.confirm(msg)) return
     try {
       const res = await clearVertices(selectedId, row.schema, row.label)
-      showToast('success', `已清空 ${res.data?.deleted || 0} 个点数据`)
+      showToast('success', t('msg.cleared', { count: res.data?.deleted || 0 }))
       loadList()
     } catch (e) {
       showToast('error', e.message)
@@ -199,17 +197,10 @@ export default function VertexType() {
   }
 
   const onDelete = async (row) => {
-    if (!window.confirm(
-      `确认删除点类型「${row.schema}.${row.label}」?\n\n` +
-      `🔴 此操作将永久删除:\n` +
-      `   • VertexLabel 定义\n` +
-      `   • 底层物理表 ${row.tableName}\n` +
-      `   • 该表的所有点数据\n\n` +
-      `此操作不可恢复!`
-    )) return
+    if (!window.confirm(t('msg.confirmDelete', { schema: row.schema, label: row.label, table: row.tableName }))) return
     try {
       await deleteVertexType(selectedId, row.schema, row.label)
-      showToast('success', '已删除点类型及底层表')
+      showToast('success', t('msg.deleted'))
       loadList()
     } catch (e) {
       showToast('error', e.message)
@@ -219,38 +210,37 @@ export default function VertexType() {
   const onViewProperties = async (row) => {
     try {
       const res = await getVertexTypeDetail(selectedId, row.schema, row.label)
-      setDetailModal({ type: 'properties', title: `${row.schema}.${row.label} — 属性`, data: res.data })
+      setDetailModal({ type: 'properties', title: t('propDetailTitle', { schema: row.schema, label: row.label }), data: res.data })
     } catch (e) { showToast('error', e.message) }
   }
 
   const onViewTableSchema = async (row) => {
     try {
       const res = await getTableSchema(selectedId, row.schema, row.label)
-      setDetailModal({ type: 'tableSchema', title: `${row.tableName} — 表结构`, data: res.data })
+      setDetailModal({ type: 'tableSchema', title: t('tableSchemaTitle', { tableName: row.tableName }), data: res.data })
     } catch (e) { showToast('error', e.message) }
   }
 
   const onViewGremlin = async (row) => {
     try {
       const res = await getGremlinExamples(row.schema, row.label)
-      setDetailModal({ type: 'examples', title: `${row.label} — Gremlin 示例`, data: res.data, lang: 'gremlin' })
+      setDetailModal({ type: 'examples', title: t('gremlinTitle', { label: row.label }), data: res.data, lang: 'gremlin' })
     } catch (e) { showToast('error', e.message) }
   }
 
   const onViewSql = async (row) => {
     try {
       const res = await getSqlExamples(row.schema, row.label)
-      setDetailModal({ type: 'examples', title: `${row.tableName} — SQL 示例`, data: res.data, lang: 'sql' })
+      setDetailModal({ type: 'examples', title: t('sqlTitle', { tableName: row.tableName }), data: res.data, lang: 'sql' })
     } catch (e) { showToast('error', e.message) }
   }
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <div>
-          <h1 className="text-lg font-semibold text-gray-800">点类型管理</h1>
-          <p className="mt-0.5 text-sm text-gray-500">管理 VertexLabel 定义、属性、索引和数据</p>
+          <h1 className="text-lg font-semibold text-gray-800">{t('title')}</h1>
+          <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -258,7 +248,7 @@ export default function VertexType() {
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="搜索 Schema/Label"
+              placeholder={t('searchPlaceholder')}
               className="w-44 rounded-md border border-gray-300 py-1.5 pl-8 pr-3 text-sm outline-none focus:border-indigo-500"
             />
           </div>
@@ -269,7 +259,7 @@ export default function VertexType() {
             >
               <span className="flex items-center gap-2 truncate">
                 <Database size={15} className="text-indigo-500" />
-                <span className="truncate font-medium">{selected ? selected.name : '选择连接'}</span>
+                <span className="truncate font-medium">{selected ? selected.name : t('common:selectConnection')}</span>
                 {selected?.isDefault && <Star size={13} className="fill-amber-400 text-amber-400" />}
               </span>
               <ChevronDown size={15} className="text-gray-400" />
@@ -279,7 +269,7 @@ export default function VertexType() {
                 <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
                 <div className="absolute right-0 z-20 mt-1 max-h-72 w-64 overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
                   {connections.length === 0 && (
-                    <div className="px-3 py-2 text-sm text-gray-400">暂无可用连接</div>
+                    <div className="px-3 py-2 text-sm text-gray-400">{t('common:noConnection')}</div>
                   )}
                   {connections.map((c) => (
                     <button
@@ -308,7 +298,7 @@ export default function VertexType() {
             disabled={!selectedId || loading}
             className="flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
           >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> 刷新
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> {t('common:refresh')}
           </button>
           {hasOp('vertex_type:create') && (
             <button
@@ -316,17 +306,16 @@ export default function VertexType() {
               disabled={!selectedId}
               className="flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
             >
-              <Plus size={15} /> 新增点类型
+              <Plus size={15} /> {t('addButton')}
             </button>
           )}
         </div>
       </header>
 
-      {/* Table */}
       <div className="flex-1 overflow-auto p-6">
         {!selectedId && (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">
-            请从右上角选择一个图数据库连接
+            {t('common:pleaseSelectConnection')}
           </div>
         )}
         {selectedId && (
@@ -334,22 +323,22 @@ export default function VertexType() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50 text-left text-xs uppercase tracking-wider text-gray-500">
                 <tr>
-                  <th className="px-4 py-3">Schema</th>
-                  <th className="px-4 py-3">VertexLabel</th>
-                  <th className="px-4 py-3">底层表名</th>
-                  <th className="px-4 py-3 text-center">属性数</th>
-                  <th className="px-4 py-3">Identifier</th>
-                  <th className="px-4 py-3 text-center">索引数</th>
-                  <th className="px-4 py-3 text-center">点数据量</th>
-                  <th className="px-4 py-3">状态</th>
-                  <th className="px-4 py-3 text-right">操作</th>
+                  <th className="px-4 py-3">{t('col.schema')}</th>
+                  <th className="px-4 py-3">{t('col.vertexLabel')}</th>
+                  <th className="px-4 py-3">{t('col.tableName')}</th>
+                  <th className="px-4 py-3 text-center">{t('col.propertyCount')}</th>
+                  <th className="px-4 py-3">{t('col.identifier')}</th>
+                  <th className="px-4 py-3 text-center">{t('col.indexCount')}</th>
+                  <th className="px-4 py-3 text-center">{t('col.vertexCount')}</th>
+                  <th className="px-4 py-3">{t('col.status')}</th>
+                  <th className="px-4 py-3 text-right">{t('common:actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.length === 0 && (
                   <tr>
                     <td colSpan={9} className="px-4 py-12 text-center text-gray-400">
-                      {loading ? '加载中...' : '暂无点类型,点击右上角「新增点类型」'}
+                      {loading ? t('common:loading') : t('empty')}
                     </td>
                   </tr>
                 )}
@@ -389,25 +378,25 @@ export default function VertexType() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <ActionBtn title="查看属性" onClick={() => onViewProperties(row)}>
+                        <ActionBtn title={t('action.viewProperties')} onClick={() => onViewProperties(row)}>
                           <Eye size={15} />
                         </ActionBtn>
-                        <ActionBtn title="查看表结构" onClick={() => onViewTableSchema(row)}>
+                        <ActionBtn title={t('action.viewTableSchema')} onClick={() => onViewTableSchema(row)}>
                           <Table2 size={15} />
                         </ActionBtn>
-                        <ActionBtn title="Gremlin 示例" onClick={() => onViewGremlin(row)}>
+                        <ActionBtn title={t('action.gremlinExamples')} onClick={() => onViewGremlin(row)}>
                           <Terminal size={15} />
                         </ActionBtn>
-                        <ActionBtn title="SQL 示例" onClick={() => onViewSql(row)}>
+                        <ActionBtn title={t('action.sqlExamples')} onClick={() => onViewSql(row)}>
                           <FileCode size={15} />
                         </ActionBtn>
-                        {hasOp('vertex_type:update') && <ActionBtn title="编辑" onClick={() => openEdit(row)}>
+                        {hasOp('vertex_type:update') && <ActionBtn title={t('common:edit')} onClick={() => openEdit(row)}>
                           <Pencil size={15} />
                         </ActionBtn>}
-                        {hasOp('vertex_data:clear') && <ActionBtn title="清空点数据(保留表结构)" warning onClick={() => onClearData(row)}>
+                        {hasOp('vertex_data:clear') && <ActionBtn title={t('action.clearVertices')} warning onClick={() => onClearData(row)}>
                           <Eraser size={15} />
                         </ActionBtn>}
-                        {hasOp('vertex_type:delete') && <ActionBtn title="删除点类型(删除表+数据)" danger onClick={() => onDelete(row)}>
+                        {hasOp('vertex_type:delete') && <ActionBtn title={t('action.deleteType')} danger onClick={() => onDelete(row)}>
                           <Trash2 size={15} />
                         </ActionBtn>}
                       </div>
@@ -420,13 +409,12 @@ export default function VertexType() {
         )}
       </div>
 
-      {/* Create/Edit Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
               <h2 className="text-base font-semibold text-gray-800">
-                {editingTarget ? '编辑点类型' : '新增点类型'}
+                {editingTarget ? t('editTitle') : t('createTitle')}
               </h2>
               <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
@@ -435,7 +423,7 @@ export default function VertexType() {
 
             <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Schema" required={!editingTarget}>
+                <Field label={t('col.schema')} required={!editingTarget}>
                   {editingTarget ? (
                     <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">{form.schema}</div>
                   ) : (
@@ -445,23 +433,23 @@ export default function VertexType() {
                       placeholder="public" />
                   )}
                 </Field>
-                <Field label="Label 名称" required>
+                <Field label={t('labelName')} required>
                   <input className={inputCls}
                     value={form.label}
                     onChange={(e) => setForm({ ...form, label: e.target.value })}
-                    placeholder="如 Person" />
+                    placeholder={t('labelPlaceholder')} />
                 </Field>
               </div>
 
               {editingTarget ? (
                 <div className="mt-4">
                   <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    <span>属性列表{existingProperties.length > 0 && ` (${existingProperties.length})`}</span>
-                    <span className="font-normal normal-case text-gray-400">— 只读,属性的增删改请在属性管理中进行</span>
+                    <span>{t('propListTitle')}{existingProperties.length > 0 && ` (${existingProperties.length})`}</span>
+                    <span className="font-normal normal-case text-gray-400">{t('propListReadonly')}</span>
                   </div>
-                  {loadingDetail && <div className="py-4 text-center text-xs text-gray-400">加载中...</div>}
+                  {loadingDetail && <div className="py-4 text-center text-xs text-gray-400">{t('common:loading')}</div>}
                   {!loadingDetail && existingProperties.length === 0 && (
-                    <div className="py-4 text-center text-xs text-gray-400">该点类型暂无属性</div>
+                    <div className="py-4 text-center text-xs text-gray-400">{t('noPropsOnLabel')}</div>
                   )}
                   <div className="space-y-1.5">
                     {existingProperties.map((p) => (
@@ -484,7 +472,7 @@ export default function VertexType() {
                 </div>
               ) : (
                 <div className="mt-4">
-                  <label className="mb-2 block text-sm font-medium text-gray-700">ID 策略</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">{t('idStrategy')}</label>
                   <div className="space-y-2">
                     <label className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2.5 text-sm transition-colors ${
                       idStrategy === 'auto' ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -493,8 +481,8 @@ export default function VertexType() {
                         checked={idStrategy === 'auto'}
                         onChange={() => { setIdStrategy('auto'); setForm({ ...form, identifiers: [] }) }} />
                       <Key size={15} className={idStrategy === 'auto' ? 'text-indigo-500' : 'text-gray-400'} />
-                      <span className="font-medium">默认自增 ID</span>
-                      <span className="text-xs text-gray-400">(BIGINT, sqlg 自动生成)</span>
+                      <span className="font-medium">{t('autoId')}</span>
+                      <span className="text-xs text-gray-400">{t('autoIdHint')}</span>
                     </label>
                     <label className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2.5 text-sm transition-colors ${
                       idStrategy === 'custom' ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -503,8 +491,8 @@ export default function VertexType() {
                         checked={idStrategy === 'custom'}
                         onChange={() => setIdStrategy('custom')} />
                       <Key size={15} className={idStrategy === 'custom' ? 'text-indigo-500' : 'text-gray-400'} />
-                      <span className="font-medium">字符串 ID</span>
-                      <span className="text-xs text-gray-400">(自定义业务主键)</span>
+                      <span className="font-medium">{t('stringId')}</span>
+                      <span className="text-xs text-gray-400">{t('stringIdHint')}</span>
                     </label>
                     {idStrategy === 'custom' && (
                       <div className="pl-7">
@@ -515,10 +503,10 @@ export default function VertexType() {
                             ...form,
                             identifiers: e.target.value ? [e.target.value] : [],
                           })}
-                          placeholder="identifier 字段名,如 object_id"
+                          placeholder={t('identifierPlaceholder')}
                         />
                         <p className="mt-1 text-xs text-gray-400">
-                          将自动创建该名称的 STRING 属性并标记为业务主键
+                          {t('identifierHint')}
                         </p>
                       </div>
                     )}
@@ -530,23 +518,21 @@ export default function VertexType() {
             <div className="flex items-center justify-end gap-2 border-t border-gray-200 bg-gray-50 px-6 py-3">
               <button onClick={closeModal}
                 className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
-                取消
+                {t('common:cancel')}
               </button>
               <button onClick={submit} disabled={saving}
                 className="rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-                {saving ? '保存中...' : '保存'}
+                {saving ? t('common:saving') : t('common:save')}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Detail Modal */}
       {detailModal && (
         <DetailModal data={detailModal} onClose={() => setDetailModal(null)} />
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 rounded-lg px-4 py-2.5 text-sm shadow-lg ${
           toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
@@ -557,8 +543,6 @@ export default function VertexType() {
     </div>
   )
 }
-
-// ==================== Detail Modal ====================
 
 function DetailModal({ data, onClose }) {
   return (
@@ -581,21 +565,22 @@ function DetailModal({ data, onClose }) {
 }
 
 function PropertiesDetail({ detail }) {
+  const { t } = useTranslation('vertexType')
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 text-sm">
-        <Info label="Schema" value={detail.schema} />
-        <Info label="Label" value={detail.label} />
-        <Info label="表名" value={detail.tableName} mono />
-        <Info label="点数量" value={(detail.vertexCount || 0).toLocaleString()} />
+        <Info label={t('col.schema')} value={detail.schema} />
+        <Info label={t('col.vertexLabel')} value={detail.label} />
+        <Info label={t('detail.tableName')} value={detail.tableName} mono />
+        <Info label={t('detail.vertexCount')} value={(detail.vertexCount || 0).toLocaleString()} />
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-gray-700">属性 ({detail.properties?.length || 0})</h3>
+        <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('detail.propsTitle', { count: detail.properties?.length || 0 })}</h3>
         <div className="overflow-hidden rounded-lg border border-gray-200">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
-              <tr><th className="px-3 py-2">属性名</th><th className="px-3 py-2">类型</th><th className="px-3 py-2">Identifier</th></tr>
+              <tr><th className="px-3 py-2">{t('detail.propName')}</th><th className="px-3 py-2">{t('detail.propType')}</th><th className="px-3 py-2">{t('detail.identifier')}</th></tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {detail.properties?.map((p) => (
@@ -612,7 +597,7 @@ function PropertiesDetail({ detail }) {
 
       {(detail.indexes?.length > 0) && (
         <div>
-          <h3 className="mb-2 text-sm font-semibold text-gray-700">索引 ({detail.indexes.length})</h3>
+          <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('detail.indexesTitle', { count: detail.indexes.length })}</h3>
           <div className="space-y-1">
             {detail.indexes.map((idx) => (
               <div key={idx.name} className="flex items-center gap-2 rounded-md border border-gray-100 px-3 py-2 text-sm">
@@ -628,23 +613,23 @@ function PropertiesDetail({ detail }) {
       {(detail.inEdgeLabels?.length > 0 || detail.outEdgeLabels?.length > 0) && (
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">入边 ({detail.inEdgeLabels?.length || 0})</h3>
+            <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('detail.inEdgesTitle', { count: detail.inEdgeLabels?.length || 0 })}</h3>
             <div className="space-y-1">
               {detail.inEdgeLabels?.map((e) => (
                 <div key={e.fullName} className="flex items-center gap-1 text-sm text-gray-600">
                   <GitFork size={13} className="text-pink-400" /> {e.fullName}
                 </div>
-              )) || <span className="text-xs text-gray-300">无</span>}
+              )) || <span className="text-xs text-gray-300">{t('common:noData')}</span>}
             </div>
           </div>
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-gray-700">出边 ({detail.outEdgeLabels?.length || 0})</h3>
+            <h3 className="mb-2 text-sm font-semibold text-gray-700">{t('detail.outEdgesTitle', { count: detail.outEdgeLabels?.length || 0 })}</h3>
             <div className="space-y-1">
               {detail.outEdgeLabels?.map((e) => (
                 <div key={e.fullName} className="flex items-center gap-1 text-sm text-gray-600">
                   <GitFork size={13} className="text-pink-400" /> {e.fullName}
                 </div>
-              )) || <span className="text-xs text-gray-300">无</span>}
+              )) || <span className="text-xs text-gray-300">{t('common:noData')}</span>}
             </div>
           </div>
         </div>
@@ -654,20 +639,21 @@ function PropertiesDetail({ detail }) {
 }
 
 function TableSchemaDetail({ columns }) {
+  const { t } = useTranslation('vertexType')
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200 text-sm">
         <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
           <tr>
-            <th className="px-3 py-2">列名</th>
-            <th className="px-3 py-2">数据类型</th>
-            <th className="px-3 py-2 text-center">可空</th>
-            <th className="px-3 py-2">默认值</th>
+            <th className="px-3 py-2">{t('detail.colName')}</th>
+            <th className="px-3 py-2">{t('detail.dataType')}</th>
+            <th className="px-3 py-2 text-center">{t('detail.nullable')}</th>
+            <th className="px-3 py-2">{t('detail.defaultValue')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {columns.length === 0 && (
-            <tr><td colSpan={4} className="px-3 py-6 text-center text-gray-400">表不存在或无列信息</td></tr>
+            <tr><td colSpan={4} className="px-3 py-6 text-center text-gray-400">{t('detail.noTable')}</td></tr>
           )}
           {columns.map((c) => (
             <tr key={c.columnName}>
@@ -684,6 +670,7 @@ function TableSchemaDetail({ columns }) {
 }
 
 function ExamplesDetail({ examples, lang }) {
+  const { t } = useTranslation('vertexType')
   const [copied, setCopied] = useState(null)
   const copy = (code, idx) => {
     navigator.clipboard.writeText(code).then(() => {
@@ -701,7 +688,7 @@ function ExamplesDetail({ examples, lang }) {
               onClick={() => copy(ex.code, i)}
               className="rounded border border-gray-200 px-2 py-0.5 text-xs text-gray-500 hover:bg-gray-50"
             >
-              {copied === i ? '已复制' : '复制'}
+              {copied === i ? t('common:copied') : t('common:copy')}
             </button>
           </div>
           <pre className="overflow-x-auto px-3 py-2 text-sm">
@@ -712,8 +699,6 @@ function ExamplesDetail({ examples, lang }) {
     </div>
   )
 }
-
-// ==================== Shared Components ====================
 
 const inputCls = 'flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-100'
 
