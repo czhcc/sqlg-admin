@@ -76,5 +76,17 @@
   "created": "Created",
   "updated": "Updated",
   "createdVertexLabel": "Created VertexLabels",
-  "createdEdgeLabel": "Created EdgeLabels"
+  "createdEdgeLabel": "Created EdgeLabels",
+  "execMode": "Execution Mode",
+  "modeSync": "Direct",
+  "modeSyncDesc": "Synchronous, returns immediately",
+  "modeTask": "Submit Task",
+  "modeTaskDesc": "Async, track progress in Task Center",
+  "submitTaskBtn": "Submit Task",
+  "submittingTask": "Submitting...",
+  "msg": {
+    "taskCreated": "Task created: {{taskNo}}, track in Task Center",
+    "taskCreateFail": "Failed to create task: {{message}}",
+    "goToTaskCenter": "Go to Task Center"
+  }
 }

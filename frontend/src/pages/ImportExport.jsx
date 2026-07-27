@@ -1,19 +1,23 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   listIoConnections, setActiveConnection, getSchemas,
   exportVertices, exportEdges, exportTopology, importTopology,
   previewImport, importVertices, importEdges,
   refreshConnection,
 } from '../api/io'
+import { createTask } from '../api/taskCenter'
 import {
   Database, Star, ChevronDown, ArrowLeftRight, RefreshCw,
   Download, Upload, Network, FileJson, FileSpreadsheet,
   CheckCircle2, AlertTriangle, X, Eye, Code2, FileText,
+  Zap, ListChecks, ArrowRight,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 export default function ImportExport() {
   const { t } = useTranslation('importExport')
+  const navigate = useNavigate()
   const [connections, setConnections] = useState([])
   const [selectedConnId, setSelectedConnId] = useState(null)
   const [connDropdown, setConnDropdown] = useState(false)
@@ -139,11 +143,11 @@ export default function ImportExport() {
         {!selectedConnId ? (
           <div className="flex h-full items-center justify-center text-sm text-gray-400">{t('common:pleaseSelectConnection')}</div>
         ) : activeTab === 'export' ? (
-          <ExportPanel vertexLabels={vertexLabels} edgeLabels={edgeLabels} connectionId={selectedConnId} onDownload={downloadFile} showToast={showToast} />
+          <ExportPanel vertexLabels={vertexLabels} edgeLabels={edgeLabels} connectionId={selectedConnId} onDownload={downloadFile} showToast={showToast} navigate={navigate} />
         ) : activeTab === 'import' ? (
-          <ImportPanel vertexLabels={vertexLabels} edgeLabels={edgeLabels} connectionId={selectedConnId} showToast={showToast} />
+          <ImportPanel vertexLabels={vertexLabels} edgeLabels={edgeLabels} connectionId={selectedConnId} showToast={showToast} navigate={navigate} />
         ) : (
-          <TopologyPanel connectionId={selectedConnId} onDownload={downloadFile} showToast={showToast} />
+          <TopologyPanel connectionId={selectedConnId} onDownload={downloadFile} showToast={showToast} navigate={navigate} />
         )}
       </div>
 
@@ -156,8 +160,69 @@ export default function ImportExport() {
   )
 }
 
-function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showToast }) {
+function ExecModeToggle({ mode, setMode }) {
   const { t } = useTranslation('importExport')
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <span className="text-sm font-medium text-gray-600">{t('execMode')}:</span>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setMode('sync')}
+          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            mode === 'sync' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'
+          }`}
+        >
+          <Zap size={14} /> {t('modeSync')}
+        </button>
+        <button
+          onClick={() => setMode('task')}
+          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+            mode === 'task' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'
+          }`}
+        >
+          <ListChecks size={14} /> {t('modeTask')}
+        </button>
+      </div>
+      <span className="text-xs text-gray-400">
+        {mode === 'sync' ? t('modeSyncDesc') : t('modeTaskDesc')}
+      </span>
+    </div>
+  )
+}
+
+async function submitTaskAndToast(taskType, connectionId, schemaName, targetLabel, params, showToast, navigate) {
+  const { t } = useTranslation('importExport')
+  try {
+    const res = await createTask({ taskType, connectionId, schemaName, targetLabel, params })
+    showToast('success', t('msg.taskCreated', { taskNo: res.data.taskNo }))
+    return res.data
+  } catch (e) {
+    showToast('error', t('msg.taskCreateFail', { message: e.message }))
+    return null
+  }
+}
+
+function TaskCreatedHint({ taskNo, navigate }) {
+  const { t } = useTranslation('importExport')
+  return (
+    <div className="mb-4 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
+      <span className="text-sm text-green-700">
+        {t('msg.taskCreated', { taskNo })}
+      </span>
+      <button
+        onClick={() => navigate('/task-center')}
+        className="flex items-center gap-1 text-sm font-medium text-green-700 hover:text-green-800"
+      >
+        {t('msg.goToTaskCenter')} <ArrowRight size={14} />
+      </button>
+    </div>
+  )
+}
+
+function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showToast, navigate }) {
+  const { t } = useTranslation('importExport')
+  const [execMode, setExecMode] = useState('sync')
+  const [createdTask, setCreatedTask] = useState(null)
   const [selectedLabel, setSelectedLabel] = useState(null)
   const [labelType, setLabelType] = useState('vertex')
   const [format, setFormat] = useState('csv')
@@ -165,6 +230,18 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
 
   const onExport = async () => {
     if (!selectedLabel) { showToast('error', t('msg.noConnectionSelected')); return }
+    setCreatedTask(null)
+
+    if (execMode === 'task') {
+      setExporting(true)
+      const taskType = labelType === 'vertex' ? 'EXPORT_VERTEX' : 'EXPORT_EDGE'
+      const task = await submitTaskAndToast(taskType, connectionId, selectedLabel.schemaName, selectedLabel.name,
+        { format, schema: selectedLabel.schemaName, label: selectedLabel.name }, showToast, navigate)
+      setExporting(false)
+      if (task) setCreatedTask(task)
+      return
+    }
+
     setExporting(true)
     try {
       const res = labelType === 'vertex'
@@ -181,6 +258,8 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      <ExecModeToggle mode={execMode} setMode={setExecMode} />
+      {createdTask && <TaskCreatedHint taskNo={createdTask.taskNo} navigate={navigate} />}
       <SectionCard title={t('exportTypeVertex')} icon={Download}>
         <div className="mb-4 flex items-center gap-2">
           <button onClick={() => { setLabelType('vertex'); setSelectedLabel(null) }}
@@ -233,16 +312,18 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
       <div className="flex justify-end">
         <button onClick={onExport} disabled={!selectedLabel || exporting}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-          {exporting ? <RefreshCw size={15} className="animate-spin" /> : <Download size={15} />}
-          {exporting ? t('exporting') : t('exportBtn')}
+          {exporting ? <RefreshCw size={15} className="animate-spin" /> : execMode === 'task' ? <ListChecks size={15} /> : <Download size={15} />}
+          {exporting ? t('submittingTask') : execMode === 'task' ? t('submitTaskBtn') : t('exportBtn')}
         </button>
       </div>
     </div>
   )
 }
 
-function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
+function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast, navigate }) {
   const { t } = useTranslation('importExport')
+  const [execMode, setExecMode] = useState('sync')
+  const [createdTask, setCreatedTask] = useState(null)
   const [importType, setImportType] = useState('vertex')
   const [selectedLabel, setSelectedLabel] = useState(null)
   const [format, setFormat] = useState('csv')
@@ -304,6 +385,22 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
   const onImport = async () => {
     if (!fileContent || !selectedLabel) { showToast('error', t('msg.noFileSelected')); return }
     if (importType === 'edge' && (!outVertexField || !inVertexField)) { showToast('error', t('msg.noFileSelected')); return }
+    setCreatedTask(null)
+
+    if (execMode === 'task') {
+      setImporting(true)
+      const taskType = importType === 'vertex' ? 'IMPORT_VERTEX' : 'IMPORT_EDGE'
+      const params = importType === 'vertex'
+        ? { content: fileContent, format, schema: selectedLabel.schemaName, label: selectedLabel.name,
+            fieldMapping, overwrite }
+        : { content: fileContent, format, schema: selectedLabel.schemaName, label: selectedLabel.name,
+            outVertexLabel, inVertexLabel, outVertexField, inVertexField, fieldMapping }
+      const task = await submitTaskAndToast(taskType, connectionId, selectedLabel.schemaName, selectedLabel.name, params, showToast, navigate)
+      setImporting(false)
+      if (task) setCreatedTask(task)
+      return
+    }
+
     setImporting(true)
     setImportResult(null)
     try {
@@ -325,6 +422,8 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      <ExecModeToggle mode={execMode} setMode={setExecMode} />
+      {createdTask && <TaskCreatedHint taskNo={createdTask.taskNo} navigate={navigate} />}
       <SectionCard title={t('tabImport')} icon={Upload}>
         <div className="mb-4 flex items-center gap-2">
           <button onClick={() => { setImportType('vertex'); setSelectedLabel(null); setPreview(null); setImportResult(null) }}
@@ -526,16 +625,18 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast }) {
       <div className="flex justify-end">
         <button onClick={onImport} disabled={!selectedLabel || !fileContent || importing}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-          {importing ? <RefreshCw size={15} className="animate-spin" /> : <Upload size={15} />}
-          {importing ? t('importing') : t('importBtn')}
+          {importing ? <RefreshCw size={15} className="animate-spin" /> : execMode === 'task' ? <ListChecks size={15} /> : <Upload size={15} />}
+          {importing ? (execMode === 'task' ? t('submittingTask') : t('importing')) : (execMode === 'task' ? t('submitTaskBtn') : t('importBtn'))}
         </button>
       </div>
     </div>
   )
 }
 
-function TopologyPanel({ connectionId, onDownload, showToast }) {
+function TopologyPanel({ connectionId, onDownload, showToast, navigate }) {
   const { t } = useTranslation('importExport')
+  const [execMode, setExecMode] = useState('sync')
+  const [createdTask, setCreatedTask] = useState(null)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
   const [topoContent, setTopoContent] = useState('')
@@ -543,6 +644,14 @@ function TopologyPanel({ connectionId, onDownload, showToast }) {
   const [importResult, setImportResult] = useState(null)
 
   const onExportTopology = async () => {
+    setCreatedTask(null)
+    if (execMode === 'task') {
+      setExporting(true)
+      const task = await submitTaskAndToast('EXPORT_TOPOLOGY', connectionId, null, null, {}, showToast, navigate)
+      setExporting(false)
+      if (task) setCreatedTask(task)
+      return
+    }
     setExporting(true)
     try {
       const res = await exportTopology(connectionId)
@@ -567,6 +676,17 @@ function TopologyPanel({ connectionId, onDownload, showToast }) {
   const onImportTopology = async () => {
     if (!topoContent) { showToast('error', t('msg.noFileSelected')); return }
     if (!window.confirm(t('confirmTopologyImport'))) return
+    setCreatedTask(null)
+
+    if (execMode === 'task') {
+      setImporting(true)
+      const task = await submitTaskAndToast('IMPORT_TOPOLOGY', connectionId, null, null,
+        { content: topoContent }, showToast, navigate)
+      setImporting(false)
+      if (task) setCreatedTask(task)
+      return
+    }
+
     setImporting(true)
     setImportResult(null)
     try {
@@ -581,6 +701,8 @@ function TopologyPanel({ connectionId, onDownload, showToast }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      <ExecModeToggle mode={execMode} setMode={setExecMode} />
+      {createdTask && <TaskCreatedHint taskNo={createdTask.taskNo} navigate={navigate} />}
       <SectionCard title={t("topologyExport")} icon={Download}>
         <p className="mb-4 text-sm text-gray-500">
           Export the Sqlg Topology (Schema / VertexLabel / EdgeLabel / Properties / Identifiers) as a JSON file.

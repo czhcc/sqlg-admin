@@ -76,5 +76,17 @@
   "created": "新增",
   "updated": "更新",
   "createdVertexLabel": "新增 VertexLabel",
-  "createdEdgeLabel": "新增 EdgeLabel"
+  "createdEdgeLabel": "新增 EdgeLabel",
+  "execMode": "执行模式",
+  "modeSync": "直接执行",
+  "modeSyncDesc": "同步执行,立即返回结果",
+  "modeTask": "提交任务",
+  "modeTaskDesc": "异步执行,在任务中心查看进度",
+  "submitTaskBtn": "提交任务",
+  "submittingTask": "提交中...",
+  "msg": {
+    "taskCreated": "任务已创建: {{taskNo}},可在任务中心查看进度",
+    "taskCreateFail": "创建任务失败: {{message}}",
+    "goToTaskCenter": "前往任务中心"
+  }
 }
