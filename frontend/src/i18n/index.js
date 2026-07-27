@@ -23,6 +23,7 @@ import zhRoleManagement from './zh/roleManagement.json'
 import zhRoleDetail from './zh/roleDetail.json'
 import zhPermission from './zh/permissionOverview.json'
 import zhLoginLog from './zh/loginLog.json'
+import zhTaskCenter from './zh/taskCenter.json'
 import zhPermissions from './zh/permissions.json'
 
 import enCommon from './en/common.json'
@@ -46,6 +47,7 @@ import enRoleManagement from './en/roleManagement.json'
 import enRoleDetail from './en/roleDetail.json'
 import enPermission from './en/permissionOverview.json'
 import enLoginLog from './en/loginLog.json'
+import enTaskCenter from './en/taskCenter.json'
 import enPermissions from './en/permissions.json'
 
 i18n
@@ -75,6 +77,7 @@ i18n
         roleDetail: zhRoleDetail,
         permissionOverview: zhPermission,
         loginLog: zhLoginLog,
+        taskCenter: zhTaskCenter,
         permissions: zhPermissions,
       },
       en: {
@@ -99,6 +102,7 @@ i18n
         roleDetail: enRoleDetail,
         permissionOverview: enPermission,
         loginLog: enLoginLog,
+        taskCenter: enTaskCenter,
         permissions: enPermissions,
       },
     },
