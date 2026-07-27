@@ -33,6 +33,9 @@ public final class PermissionCatalog {
 
     public static List<Map<String, Object>> menuTree() {
         List<Map<String, Object>> menus = new ArrayList<>();
+        menus.add(menu("workspace", "工作台", ops(
+                op("workspace:view", "查看")
+        )));
         menus.add(menu("connection", "连接管理", ops(
                 op("connection:view", "查看"),
                 op("connection:create", "新增"),

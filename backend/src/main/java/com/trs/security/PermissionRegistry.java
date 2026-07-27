@@ -37,6 +37,7 @@ public class PermissionRegistry {
     private static final Map<String, MenuGroupDef> MENU_GROUPS = new LinkedHashMap<>();
 
     static {
+        MENU_LABELS.put("workspace", "工作台");
         MENU_LABELS.put("connection", "连接管理");
         MENU_LABELS.put("topology", "Topology 浏览");
         MENU_LABELS.put("vertex-type", "点类型管理");
