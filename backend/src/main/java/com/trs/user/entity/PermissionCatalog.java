@@ -122,7 +122,12 @@ public final class PermissionCatalog {
         )));
         menus.add(group("operation-management", "运维管理", List.of(
                 menu("task-center", "任务中心", ops(
-                        op("task_center:view", "查看")
+                        op("task_center:view", "查看"),
+                        op("task_center:create", "创建任务"),
+                        op("task_center:cancel", "取消任务"),
+                        op("task_center:retry", "重试任务"),
+                        op("task_center:delete", "删除任务"),
+                        op("task_center:download", "下载结果")
                 )),
                 menu("diagnostic-tools", "诊断工具", ops(
                         op("diagnostic_tools:view", "查看")
