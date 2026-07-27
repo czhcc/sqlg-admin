@@ -1,0 +1,75 @@
+{
+  "title": "Workspace",
+  "subtitle": "Platform overview, graph statistics and alerts",
+  "msg": {
+    "loadFail": "Failed to load data",
+    "noConnections": "No connections available. Please add one in Connections.",
+    "switchSuccess": "Connection switched",
+    "switchFail": "Failed to switch: {{message}}",
+    "refreshed": "Refreshed",
+    "goToConnection": "Go to Connections"
+  },
+  "connection": {
+    "title": "Current Connection",
+    "name": "Name",
+    "dbType": "Database Type",
+    "jdbcUrl": "JDBC URL",
+    "currentDb": "Database",
+    "status": "Status",
+    "schemaCount": "Schema Count",
+    "lastCheck": "Last Check",
+    "responseTime": "Response Time",
+    "statusOk": "OK",
+    "statusError": "Error",
+    "unknown": "—",
+    "environment": "Environment"
+  },
+  "topology": {
+    "title": "Topology Overview",
+    "schemaCount": "Schemas",
+    "vertexLabelCount": "Vertex Labels",
+    "edgeLabelCount": "Edge Labels",
+    "vertexPropertyCount": "Vertex Properties",
+    "edgePropertyCount": "Edge Properties",
+    "indexCount": "Indexes",
+    "identifierCount": "Identifiers",
+    "emptyVertexLabel": "Empty Vertex Labels",
+    "emptyEdgeLabel": "Empty Edge Labels",
+    "distribution": "Topology Distribution"
+  },
+  "data": {
+    "title": "Data Overview",
+    "totalVertices": "Total Vertices",
+    "totalEdges": "Total Edges",
+    "largestVertex": "Largest Vertex Label",
+    "largestEdge": "Largest Edge Label",
+    "orphanVertices": "Orphan Vertices",
+    "emptyVertexLabel": "Empty Vertex Labels",
+    "emptyEdgeLabel": "Empty Edge Labels",
+    "topVertexLabels": "Top {{n}} Vertex Labels",
+    "topEdgeLabels": "Top {{n}} Edge Labels",
+    "noData": "No data"
+  },
+  "connStatus": {
+    "title": "Connection Status",
+    "name": "Name",
+    "environment": "Environment",
+    "status": "Status",
+    "responseTime": "Response Time",
+    "lastCheck": "Last Check",
+    "detail": "Detail",
+    "statusOk": "OK",
+    "statusError": "Error",
+    "goToManage": "Manage"
+  },
+  "alerts": {
+    "title": "Alerts & Risks",
+    "noAlerts": "No alerts",
+    "level": {
+      "error": "Error",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "goToDetail": "View"
+  }
+}

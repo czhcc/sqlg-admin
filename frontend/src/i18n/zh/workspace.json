@@ -1,0 +1,75 @@
+{
+  "title": "工作台",
+  "subtitle": "平台运行概况、图库统计与异常提醒",
+  "msg": {
+    "loadFail": "加载数据失败",
+    "noConnections": "暂无可用连接,请先在连接管理中添加",
+    "switchSuccess": "已切换连接",
+    "switchFail": "切换连接失败: {{message}}",
+    "refreshed": "已刷新",
+    "goToConnection": "前往连接管理"
+  },
+  "connection": {
+    "title": "当前连接",
+    "name": "连接名称",
+    "dbType": "数据库类型",
+    "jdbcUrl": "数据库地址",
+    "currentDb": "当前数据库",
+    "status": "连接状态",
+    "schemaCount": "Schema 数量",
+    "lastCheck": "最近检测",
+    "responseTime": "响应时间",
+    "statusOk": "正常",
+    "statusError": "异常",
+    "unknown": "—",
+    "environment": "环境"
+  },
+  "topology": {
+    "title": "Topology 概览",
+    "schemaCount": "Schema",
+    "vertexLabelCount": "VertexLabel",
+    "edgeLabelCount": "EdgeLabel",
+    "vertexPropertyCount": "点属性",
+    "edgePropertyCount": "边属性",
+    "indexCount": "索引",
+    "identifierCount": "Identifier",
+    "emptyVertexLabel": "空点类型",
+    "emptyEdgeLabel": "空边类型",
+    "distribution": "Topology 分布"
+  },
+  "data": {
+    "title": "图数据概览",
+    "totalVertices": "点总数",
+    "totalEdges": "边总数",
+    "largestVertex": "最大点类型",
+    "largestEdge": "最大边类型",
+    "orphanVertices": "孤立点",
+    "emptyVertexLabel": "空点类型",
+    "emptyEdgeLabel": "空边类型",
+    "topVertexLabels": "点数据量 Top {{n}}",
+    "topEdgeLabels": "边数据量 Top {{n}}",
+    "noData": "暂无数据"
+  },
+  "connStatus": {
+    "title": "连接状态概览",
+    "name": "连接名称",
+    "environment": "环境",
+    "status": "状态",
+    "responseTime": "响应时间",
+    "lastCheck": "最近检测",
+    "detail": "详情",
+    "statusOk": "正常",
+    "statusError": "异常",
+    "goToManage": "管理"
+  },
+  "alerts": {
+    "title": "异常与风险提醒",
+    "noAlerts": "暂无异常",
+    "level": {
+      "error": "严重",
+      "warning": "警告",
+      "info": "提示"
+    },
+    "goToDetail": "查看"
+  }
+}

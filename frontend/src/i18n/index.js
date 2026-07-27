@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 
 import zhCommon from './zh/common.json'
+import zhWorkspace from './zh/workspace.json'
 import zhLogin from './zh/login.json'
 import zhLayout from './zh/layout.json'
 import zhConnection from './zh/connection.json'
@@ -25,6 +26,7 @@ import zhLoginLog from './zh/loginLog.json'
 import zhPermissions from './zh/permissions.json'
 
 import enCommon from './en/common.json'
+import enWorkspace from './en/workspace.json'
 import enLogin from './en/login.json'
 import enLayout from './en/layout.json'
 import enConnection from './en/connection.json'
@@ -53,6 +55,7 @@ i18n
     resources: {
       zh: {
         common: zhCommon,
+        workspace: zhWorkspace,
         login: zhLogin,
         layout: zhLayout,
         connection: zhConnection,
@@ -76,6 +79,7 @@ i18n
       },
       en: {
         common: enCommon,
+        workspace: enWorkspace,
         login: enLogin,
         layout: enLayout,
         connection: enConnection,
