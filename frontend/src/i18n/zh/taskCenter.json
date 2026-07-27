@@ -1,6 +1,8 @@
 {
   "title": "任务中心",
   "subtitle": "统一管理异步任务:导入导出、批量删除、统计、诊断",
+  "allUsers": "全部用户",
+  "myTasks": "仅我的任务",
   "msg": {
     "loadFail": "加载失败",
     "cancelSuccess": "已取消任务",

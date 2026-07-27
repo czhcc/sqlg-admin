@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next'
 import {
   listTasks, getTaskDetail, retryTask, cancelTask, deleteTask, downloadTaskResult,
 } from '../api/taskCenter'
+import { useAuth } from '../context/AuthContext'
 import {
   RefreshCw, X, ChevronLeft, ChevronRight,
   CheckCircle2, XCircle, Loader, AlertTriangle, Circle,
-  Download, Trash2, RotateCcw, Ban, Eye, FileText,
+  Download, Trash2, RotateCcw, Ban, Eye, FileText, Users,
 } from 'lucide-react'
 
 const STATUSES = ['PENDING', 'RUNNING', 'SUCCESS', 'PARTIAL', 'FAILED', 'CANCELLED']
@@ -15,10 +16,13 @@ const POLL_INTERVAL = 3000
 
 export default function TaskCenter() {
   const { t } = useTranslation('taskCenter')
+  const { permissions } = useAuth()
+  const isAdmin = permissions?.menus?.includes('*')
   const [tasks, setTasks] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [size] = useState(20)
+  const [showAllUsers, setShowAllUsers] = useState(false)
   const [filters, setFilters] = useState({ status: '', category: '', connectionId: '', schemaName: '', targetLabel: '', keyword: '', startTime: '', endTime: '' })
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState(null)
@@ -31,6 +35,7 @@ export default function TaskCenter() {
     setLoading(true)
     try {
       const params = { page, size, ...Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== '')) }
+      if (showAllUsers && isAdmin) params.userId = 'all'
       const res = await listTasks(params)
       setTasks(res.data?.rows || [])
       setTotal(res.data?.total || 0)
@@ -39,7 +44,7 @@ export default function TaskCenter() {
     } finally {
       setLoading(false)
     }
-  }, [page, size, filters])
+  }, [page, size, filters, showAllUsers, isAdmin])
 
   useEffect(() => { load() }, [load])
 
@@ -88,10 +93,23 @@ export default function TaskCenter() {
           <h1 className="text-lg font-semibold text-gray-800">{t('title')}</h1>
           <p className="mt-0.5 text-sm text-gray-500">{t('subtitle')}</p>
         </div>
-        <button onClick={load} disabled={loading}
-          className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> {t('common:refresh')}
-        </button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <label className="flex cursor-pointer items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
+              <input
+                type="checkbox"
+                checked={showAllUsers}
+                onChange={(e) => { setShowAllUsers(e.target.checked); setPage(1) }}
+                className="accent-indigo-600"
+              />
+              <Users size={14} /> {t('allUsers', { defaultValue: '全部用户' })}
+            </label>
+          )}
+          <button onClick={load} disabled={loading}
+            className="flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> {t('common:refresh')}
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-auto bg-gray-50 p-6">

@@ -1,6 +1,8 @@
 {
   "title": "Task Center",
   "subtitle": "Async task management: import, export, maintenance, statistics, diagnostics",
+  "allUsers": "All Users",
+  "myTasks": "My Tasks Only",
   "msg": {
     "loadFail": "Failed to load",
     "cancelSuccess": "Task cancelled",
