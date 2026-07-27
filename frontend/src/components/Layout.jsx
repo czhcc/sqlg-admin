@@ -30,9 +30,11 @@ import {
   X,
   Save,
   Globe,
+  LayoutDashboard,
 } from 'lucide-react'
 
 const menuConfig = [
+  { to: '/workspace', key: 'workspace', icon: LayoutDashboard },
   { to: '/connection', key: 'connection', icon: Database },
   { to: '/topology', key: 'topology', icon: Share2 },
   { to: '/vertex-type', key: 'vertexType', icon: CircleDot },
@@ -83,6 +85,7 @@ export default function Layout({ children }) {
       const visibleChildren = item.children.filter((c) => hasMenu(menuToKey(c.to)))
       return visibleChildren.length > 0
     }
+    if (item.key === 'workspace') return true
     return hasMenu(menuToKey(item.to))
   })
 

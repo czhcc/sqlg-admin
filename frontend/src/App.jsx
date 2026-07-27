@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import Workspace from './pages/Workspace'
 import Connection from './pages/Connection'
 import Topology from './pages/Topology'
 import VertexType from './pages/VertexType'
@@ -22,6 +23,7 @@ import UserDetail from './pages/UserDetail'
 import RoleDetail from './pages/RoleDetail'
 
 const pages = [
+  { path: 'workspace', element: <Workspace /> },
   { path: 'connection', element: <Connection /> },
   { path: 'topology', element: <Topology /> },
   { path: 'vertex-type', element: <VertexType /> },
@@ -52,7 +54,7 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Layout>
-                  <Navigate to="/connection" replace />
+                  <Navigate to="/workspace" replace />
                 </Layout>
               </ProtectedRoute>
             }

@@ -1,5 +1,6 @@
 {
   "menu": {
+    "workspace": "工作台",
     "connection": "连接管理",
     "topology": "Topology 浏览",
     "vertexType": "点类型管理",

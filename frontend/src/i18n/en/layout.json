@@ -1,5 +1,6 @@
 {
   "menu": {
+    "workspace": "Workspace",
     "connection": "Connections",
     "topology": "Topology",
     "vertexType": "Vertex Types",
