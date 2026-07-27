@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.trs.modules.task.mapper.TaskMapper">
+
+    <resultMap id="taskMap" type="com.trs.modules.task.entity.Task">
+        <id property="id" column="id"/>
+        <result property="taskNo" column="task_no"/>
+        <result property="taskType" column="task_type"/>
+        <result property="category" column="category"/>
+        <result property="name" column="name"/>
+        <result property="status" column="status"/>
+        <result property="connectionId" column="connection_id"/>
+        <result property="connectionName" column="connection_name"/>
+        <result property="schemaName" column="schema_name"/>
+        <result property="targetLabel" column="target_label"/>
+        <result property="params" column="params"/>
+        <result property="resultSummary" column="result_summary"/>
+        <result property="errorMessage" column="error_message"/>
+        <result property="progressPercent" column="progress_percent"/>
+        <result property="processedCount" column="processed_count"/>
+        <result property="successCount" column="success_count"/>
+        <result property="failedCount" column="failed_count"/>
+        <result property="totalCount" column="total_count"/>
+        <result property="currentStage" column="current_stage"/>
+        <result property="resultFilePath" column="result_file_path"/>
+        <result property="errorFilePath" column="error_file_path"/>
+        <result property="parentTaskId" column="parent_task_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="createTime" column="create_time"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="lastHeartbeatTime" column="last_heartbeat_time"/>
+    </resultMap>
+
+    <sql id="filterConditions">
+        <where>
+            <if test="status != null and status != ''">AND t.status = #{status}</if>
+            <if test="category != null and category != ''">AND t.category = #{category}</if>
+            <if test="taskType != null and taskType != ''">AND t.task_type = #{taskType}</if>
+            <if test="connectionId != null">AND t.connection_id = #{connectionId}</if>
+            <if test="userId != null">AND t.user_id = #{userId}</if>
+            <if test="schemaName != null and schemaName != ''">AND t.schema_name = #{schemaName}</if>
+            <if test="targetLabel != null and targetLabel != ''">AND t.target_label = #{targetLabel}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (t.task_no ILIKE CONCAT('%', #{keyword}, '%')
+                  OR t.name ILIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="startTime != null">AND t.create_time &gt;= #{startTime}</if>
+            <if test="endTime != null">AND t.create_time &lt;= #{endTime}</if>
+        </where>
+    </sql>
+
+    <insert id="insert" parameterType="com.trs.modules.task.entity.Task" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_task (
+            task_no, task_type, category, name, status,
+            connection_id, connection_name, schema_name, target_label,
+            params, progress_percent, parent_task_id, user_id, username,
+            create_time, last_heartbeat_time
+        ) VALUES (
+            #{taskNo}, #{taskType}, #{category}, #{name}, #{status},
+            #{connectionId}, #{connectionName}, #{schemaName}, #{targetLabel},
+            #{params}, #{progressPercent}, #{parentTaskId}, #{userId}, #{username},
+            COALESCE(#{createTime}, CURRENT_TIMESTAMP), CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="update" parameterType="com.trs.modules.task.entity.Task">
+        UPDATE sys_task
+        <set>
+            <if test="status != null">status = #{status},</if>
+            <if test="name != null">name = #{name},</if>
+            <if test="progressPercent != null">progress_percent = #{progressPercent},</if>
+            <if test="processedCount != null">processed_count = #{processedCount},</if>
+            <if test="successCount != null">success_count = #{successCount},</if>
+            <if test="failedCount != null">failed_count = #{failedCount},</if>
+            <if test="totalCount != null">total_count = #{totalCount},</if>
+            <if test="currentStage != null">current_stage = #{currentStage},</if>
+            <if test="resultSummary != null">result_summary = #{resultSummary},</if>
+            <if test="errorMessage != null">error_message = #{errorMessage},</if>
+            <if test="resultFilePath != null">result_file_path = #{resultFilePath},</if>
+            <if test="errorFilePath != null">error_file_path = #{errorFilePath},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            last_heartbeat_time = CURRENT_TIMESTAMP,
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE sys_task
+        SET status = #{status}
+            <if test="startTime != null">, start_time = #{startTime}</if>
+            <if test="endTime != null">, end_time = #{endTime}</if>
+            , last_heartbeat_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateProgress">
+        UPDATE sys_task
+        SET progress_percent = #{progressPercent},
+            processed_count = #{processedCount},
+            success_count = #{successCount},
+            failed_count = #{failedCount},
+            total_count = #{totalCount},
+            current_stage = #{currentStage},
+            last_heartbeat_time = #{lastHeartbeatTime}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateResult">
+        UPDATE sys_task
+        SET status = #{status},
+            progress_percent = #{progressPercent},
+            success_count = #{successCount},
+            failed_count = #{failedCount},
+            result_summary = #{resultSummary},
+            error_message = #{errorMessage},
+            result_file_path = #{resultFilePath},
+            error_file_path = #{errorFilePath},
+            end_time = #{endTime},
+            last_heartbeat_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="taskMap">
+        SELECT * FROM sys_task WHERE id = #{id}
+    </select>
+
+    <select id="selectByTaskNo" resultMap="taskMap">
+        SELECT * FROM sys_task WHERE task_no = #{taskNo}
+    </select>
+
+    <select id="selectPage" resultMap="taskMap">
+        SELECT t.* FROM sys_task t
+        <include refid="filterConditions"/>
+        ORDER BY t.create_time DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*) FROM sys_task t
+        <include refid="filterConditions"/>
+    </select>
+
+    <select id="selectStaleRunning" resultMap="taskMap">
+        SELECT * FROM sys_task
+        WHERE status = 'RUNNING'
+          AND last_heartbeat_time &lt; #{before}
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM sys_task WHERE id = #{id}
+    </delete>
+
+    <select id="countByDateAndPrefix" resultType="long">
+        SELECT COUNT(*) FROM sys_task
+        WHERE task_no LIKE #{datePrefix} || '%'
+          AND task_no LIKE #{typePrefix} || '%'
+    </select>
+
+</mapper>
