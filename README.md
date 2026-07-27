@@ -343,6 +343,7 @@ docker build -f docker/Dockerfile.frontend -t graph-mng-frontend:latest .
 
 | 模块 | 后端 | 前端 | 状态 |
 |------|------|------|------|
+| 工作台 | ✅ | ✅ | 完整实现(登录后默认首页 · 5 大区块: 当前连接概览 / Topology 概览 / 图数据概览 / 连接状态概览 / 异常与风险提醒 · ECharts 统计图表 · Topology 统计走 `graph.getTopology()` 不走 `g.V().label().dedup()`) |
 | 连接管理 | ✅ | ✅ | 完整实现(CRUD + 测试 + 启停 + 默认 + 角色可见性过滤) |
 | Topology 浏览 | ✅ | ✅ | 完整实现(树形展开 + 连接记忆 + 刷新) |
 | 点类型管理 | ✅ | ✅ | 完整实现(CRUD + 清空点 + 关联边 + 表结构 + 示例) |
