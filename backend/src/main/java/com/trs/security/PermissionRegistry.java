@@ -53,11 +53,16 @@ public class PermissionRegistry {
         MENU_LABELS.put("permission-overview", "权限总览");
         MENU_LABELS.put("login-log", "登录日志");
         MENU_LABELS.put("operation-log", "操作日志");
+        MENU_LABELS.put("task-center", "任务中心");
+        MENU_LABELS.put("diagnostic-tools", "诊断工具");
+        MENU_LABELS.put("operation-monitor", "运维监控");
 
         MENU_GROUPS.put("user-permission", new MenuGroupDef("user-permission", "用户与权限",
                 List.of("user-management", "role-management", "permission-overview")));
         MENU_GROUPS.put("audit-log", new MenuGroupDef("audit-log", "审计日志",
                 List.of("login-log", "operation-log")));
+        MENU_GROUPS.put("operation-management", new MenuGroupDef("operation-management", "运维管理",
+                List.of("task-center", "diagnostic-tools", "operation-monitor")));
     }
 
     private final ApplicationContext applicationContext;

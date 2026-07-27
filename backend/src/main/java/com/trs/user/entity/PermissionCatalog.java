@@ -120,6 +120,17 @@ public final class PermissionCatalog {
                         op("operation_log:view", "查看")
                 ))
         )));
+        menus.add(group("operation-management", "运维管理", List.of(
+                menu("task-center", "任务中心", ops(
+                        op("task_center:view", "查看")
+                )),
+                menu("diagnostic-tools", "诊断工具", ops(
+                        op("diagnostic_tools:view", "查看")
+                )),
+                menu("operation-monitor", "运维监控", ops(
+                        op("operation_monitor:view", "查看")
+                ))
+        )));
         return menus;
     }
 
