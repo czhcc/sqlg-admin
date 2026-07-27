@@ -15,11 +15,15 @@
     "userManagement": "Users",
     "roleManagement": "Roles",
     "permissionOverview": "Permissions",
-    "loginLog": "Login Log"
+    "loginLog": "Login Log",
+    "taskCenter": "Task Center",
+    "diagnosticTools": "Diagnostic Tools",
+    "operationMonitor": "Operation Monitor"
   },
   "group": {
     "userPermission": "Users & Permissions",
-    "auditLog": "Audit Logs"
+    "auditLog": "Audit Logs",
+    "operationManagement": "Operations"
   },
   "user": {
     "profile": "Profile",

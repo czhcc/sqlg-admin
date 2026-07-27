@@ -31,6 +31,9 @@ import {
   Save,
   Globe,
   LayoutDashboard,
+  ListChecks,
+  Stethoscope,
+  Activity,
 } from 'lucide-react'
 
 const menuConfig = [
@@ -60,6 +63,15 @@ const menuConfig = [
     children: [
       { to: '/login-log', key: 'loginLog', icon: LogIn },
       { to: '/operation-log', key: 'operationLog', icon: ScrollText },
+    ],
+  },
+  {
+    groupKey: 'operationManagement',
+    icon: ListChecks,
+    children: [
+      { to: '/task-center', key: 'taskCenter', icon: ListChecks },
+      { to: '/diagnostic-tools', key: 'diagnosticTools', icon: Stethoscope },
+      { to: '/operation-monitor', key: 'operationMonitor', icon: Activity },
     ],
   },
 ]

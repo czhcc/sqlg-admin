@@ -19,6 +19,9 @@ import UserManagement from './pages/UserManagement'
 import RoleManagement from './pages/RoleManagement'
 import PermissionOverview from './pages/PermissionOverview'
 import LoginLog from './pages/LoginLog'
+import TaskCenter from './pages/TaskCenter'
+import DiagnosticTools from './pages/DiagnosticTools'
+import OperationMonitor from './pages/OperationMonitor'
 import UserDetail from './pages/UserDetail'
 import RoleDetail from './pages/RoleDetail'
 
@@ -39,6 +42,9 @@ const pages = [
   { path: 'role-management', element: <RoleManagement /> },
   { path: 'permission-overview', element: <PermissionOverview /> },
   { path: 'login-log', element: <LoginLog /> },
+  { path: 'task-center', element: <TaskCenter /> },
+  { path: 'diagnostic-tools', element: <DiagnosticTools /> },
+  { path: 'operation-monitor', element: <OperationMonitor /> },
   { path: 'user-detail/:id', element: <UserDetail /> },
   { path: 'role-detail/:id', element: <RoleDetail /> },
 ]

@@ -15,11 +15,15 @@
     "userManagement": "用户管理",
     "roleManagement": "角色管理",
     "permissionOverview": "权限总览",
-    "loginLog": "登录日志"
+    "loginLog": "登录日志",
+    "taskCenter": "任务中心",
+    "diagnosticTools": "诊断工具",
+    "operationMonitor": "运维监控"
   },
   "group": {
     "userPermission": "用户与权限",
-    "auditLog": "审计日志"
+    "auditLog": "审计日志",
+    "operationManagement": "运维管理"
   },
   "user": {
     "profile": "个人信息",
