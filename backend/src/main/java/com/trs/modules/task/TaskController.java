@@ -45,7 +45,7 @@ public class TaskController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String taskType,
             @RequestParam(required = false) Long connectionId,
-            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String userId,
             @RequestParam(required = false) String schemaName,
             @RequestParam(required = false) String targetLabel,
             @RequestParam(required = false) String keyword,
@@ -54,14 +54,44 @@ public class TaskController {
 
         LocalDateTime start = parseDateTime(startTime);
         LocalDateTime end = parseDateTime(endTime);
+
+        Long effectiveUserId = null;
+        boolean adminOverride = false;
+        User current = currentUser();
+        boolean isAdmin = current != null && isAdmin(current);
+
+        if ("all".equalsIgnoreCase(userId)) {
+            if (isAdmin) {
+                adminOverride = true;
+            } else {
+                effectiveUserId = current != null ? current.getId() : null;
+            }
+        } else if (userId != null && !userId.isBlank()) {
+            try {
+                effectiveUserId = Long.valueOf(userId);
+            } catch (NumberFormatException ignored) {
+                effectiveUserId = current != null ? current.getId() : null;
+            }
+        } else {
+            if (!isAdmin && current != null) {
+                effectiveUserId = current.getId();
+            }
+        }
+
         return Result.ok(service.page(page, size, status, category, taskType, connectionId,
-                userId, schemaName, targetLabel, keyword, start, end));
+                adminOverride ? null : effectiveUserId,
+                schemaName, targetLabel, keyword, start, end));
     }
 
     @GetMapping("/{id}")
     public Result<Task> detail(@PathVariable Long id) {
         Task task = service.getById(id);
         if (task == null) return Result.fail(404, "任务不存在");
+        User current = currentUser();
+        if (current != null && !isAdmin(current) && task.getUserId() != null
+                && !task.getUserId().equals(current.getId())) {
+            return Result.fail(403, "无权查看其他用户的任务");
+        }
         return Result.ok(task);
     }
 
@@ -81,11 +111,13 @@ public class TaskController {
 
     @PostMapping("/{id}/retry")
     public Result<Task> retry(@PathVariable Long id) {
+        checkOwnership(id);
         return Result.ok(service.retry(id, currentUser()));
     }
 
     @PostMapping("/{id}/cancel")
     public Result<?> cancel(@PathVariable Long id) {
+        checkOwnership(id);
         boolean ok = service.cancel(id);
         if (!ok) return Result.fail(400, "任务无法取消(可能已结束)");
         return Result.ok();
@@ -93,6 +125,7 @@ public class TaskController {
 
     @DeleteMapping("/{id}")
     public Result<?> delete(@PathVariable Long id) {
+        checkOwnership(id);
         try {
             service.delete(id);
             return Result.ok();
@@ -104,6 +137,7 @@ public class TaskController {
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(@PathVariable Long id,
                                                @RequestParam(defaultValue = "result") String fileType) {
+        checkOwnership(id);
         Task task = service.getById(id);
         if (task == null) return ResponseEntity.notFound().build();
 
@@ -139,6 +173,21 @@ public class TaskController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated()) return null;
         return auth.getPrincipal() instanceof User u ? u : null;
+    }
+
+    private boolean isAdmin(User u) {
+        return u.getRoles() != null && u.getRoles().toUpperCase().contains("SUPER_ADMIN");
+    }
+
+    private void checkOwnership(Long taskId) {
+        User current = currentUser();
+        if (current == null) return;
+        if (isAdmin(current)) return;
+        Task task = service.getById(taskId);
+        if (task == null) return;
+        if (task.getUserId() != null && !task.getUserId().equals(current.getId())) {
+            throw new SecurityException("无权操作其他用户的任务");
+        }
     }
 
     private String str(Map<String, Object> m, String k) {

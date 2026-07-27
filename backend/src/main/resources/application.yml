@@ -36,6 +36,11 @@ app:
     expiration-ms: 86400000   # 24h
     header: Authorization
     prefix: "Bearer "
+  task:
+    core-pool-size: 4
+    max-pool-size: 8
+    queue-capacity: 100
+    storage-dir: ${user.dir}/task-files
 
 sqlg-admin:
   gremlin:

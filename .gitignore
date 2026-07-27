@@ -34,3 +34,7 @@ yarn-error.log*
 # === Frontend misc ===
 frontend/.vite/
 frontend/stats.html
+
+
+# === Task Center runtime files ===
+backend/task-files/
