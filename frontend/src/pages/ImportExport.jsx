@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import {
   listIoConnections, setActiveConnection, getSchemas,
@@ -160,33 +161,49 @@ export default function ImportExport() {
   )
 }
 
-function ExecModeToggle({ mode, setMode }) {
+function ExecModeDialog({ title, onChoose, onClose }) {
   const { t } = useTranslation('importExport')
-  return (
-    <div className="mb-4 flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
-      <span className="text-sm font-medium text-gray-600">{t('execMode')}:</span>
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => setMode('sync')}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            mode === 'sync' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'
-          }`}
-        >
-          <Zap size={14} /> {t('modeSync')}
-        </button>
-        <button
-          onClick={() => setMode('task')}
-          className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            mode === 'task' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-500 hover:bg-gray-100'
-          }`}
-        >
-          <ListChecks size={14} /> {t('modeTask')}
-        </button>
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-lg overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <h2 className="text-base font-semibold text-gray-800">{title}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        </div>
+        <div className="space-y-3 p-6">
+          <button
+            onClick={() => onChoose('sync')}
+            className="flex w-full items-start gap-3 rounded-lg border-2 border-transparent bg-gray-50 p-4 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50"
+          >
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+              <Zap size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">{t('modeSync')}</p>
+              <p className="mt-0.5 text-xs text-gray-500">{t('modeSyncDesc')}</p>
+            </div>
+          </button>
+          <button
+            onClick={() => onChoose('task')}
+            className="flex w-full items-start gap-3 rounded-lg border-2 border-transparent bg-gray-50 p-4 text-left transition-colors hover:border-green-300 hover:bg-green-50"
+          >
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-600">
+              <ListChecks size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-800">{t('modeTask')}</p>
+              <p className="mt-0.5 text-xs text-gray-500">{t('modeTaskDesc')}</p>
+            </div>
+          </button>
+        </div>
+        <div className="flex justify-end border-t border-gray-200 bg-gray-50 px-6 py-3">
+          <button onClick={onClose} className="rounded-md border border-gray-300 bg-white px-4 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
+            {t('common:cancel')}
+          </button>
+        </div>
       </div>
-      <span className="text-xs text-gray-400">
-        {mode === 'sync' ? t('modeSyncDesc') : t('modeTaskDesc')}
-      </span>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -221,18 +238,19 @@ function TaskCreatedHint({ taskNo, navigate }) {
 
 function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showToast, navigate }) {
   const { t } = useTranslation('importExport')
-  const [execMode, setExecMode] = useState('sync')
+  const [execDialog, setExecDialog] = useState(null)
   const [createdTask, setCreatedTask] = useState(null)
   const [selectedLabel, setSelectedLabel] = useState(null)
   const [labelType, setLabelType] = useState('vertex')
   const [format, setFormat] = useState('csv')
   const [exporting, setExporting] = useState(false)
 
-  const onExport = async () => {
-    if (!selectedLabel) { showToast('error', t('msg.noConnectionSelected')); return }
+  const runExport = async (mode) => {
+    setExecDialog(null)
+    if (!selectedLabel) return
     setCreatedTask(null)
 
-    if (execMode === 'task') {
+    if (mode === 'task') {
       setExporting(true)
       const taskType = labelType === 'vertex' ? 'EXPORT_VERTEX' : 'EXPORT_EDGE'
       const task = await submitTaskAndToast(taskType, connectionId, selectedLabel.schemaName, selectedLabel.name,
@@ -258,7 +276,6 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <ExecModeToggle mode={execMode} setMode={setExecMode} />
       {createdTask && <TaskCreatedHint taskNo={createdTask.taskNo} navigate={navigate} />}
       <SectionCard title={t('exportTypeVertex')} icon={Download}>
         <div className="mb-4 flex items-center gap-2">
@@ -310,19 +327,29 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
       </SectionCard>
 
       <div className="flex justify-end">
-        <button onClick={onExport} disabled={!selectedLabel || exporting}
+        <button onClick={() => {
+          if (!selectedLabel) { showToast('error', t('msg.noConnectionSelected')); return }
+          setExecDialog(t('exportBtn'))
+        }} disabled={exporting}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-          {exporting ? <RefreshCw size={15} className="animate-spin" /> : execMode === 'task' ? <ListChecks size={15} /> : <Download size={15} />}
-          {exporting ? t('submittingTask') : execMode === 'task' ? t('submitTaskBtn') : t('exportBtn')}
+          {exporting ? <RefreshCw size={15} className="animate-spin" /> : <Download size={15} />}
+          {exporting ? t('exporting') : t('exportBtn')}
         </button>
       </div>
+      {execDialog && (
+        <ExecModeDialog
+          title={execDialog}
+          onChoose={runExport}
+          onClose={() => setExecDialog(null)}
+        />
+      )}
     </div>
   )
 }
 
 function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast, navigate }) {
   const { t } = useTranslation('importExport')
-  const [execMode, setExecMode] = useState('sync')
+  const [execDialog, setExecDialog] = useState(null)
   const [createdTask, setCreatedTask] = useState(null)
   const [importType, setImportType] = useState('vertex')
   const [selectedLabel, setSelectedLabel] = useState(null)
@@ -382,12 +409,13 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast, naviga
     finally { setPreviewing(false) }
   }
 
-  const onImport = async () => {
-    if (!fileContent || !selectedLabel) { showToast('error', t('msg.noFileSelected')); return }
-    if (importType === 'edge' && (!outVertexField || !inVertexField)) { showToast('error', t('msg.noFileSelected')); return }
+  const runImport = async (mode) => {
+    setExecDialog(null)
+    if (!fileContent || !selectedLabel) return
+    if (importType === 'edge' && (!outVertexField || !inVertexField)) return
     setCreatedTask(null)
 
-    if (execMode === 'task') {
+    if (mode === 'task') {
       setImporting(true)
       const taskType = importType === 'vertex' ? 'IMPORT_VERTEX' : 'IMPORT_EDGE'
       const params = importType === 'vertex'
@@ -422,7 +450,6 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast, naviga
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <ExecModeToggle mode={execMode} setMode={setExecMode} />
       {createdTask && <TaskCreatedHint taskNo={createdTask.taskNo} navigate={navigate} />}
       <SectionCard title={t('tabImport')} icon={Upload}>
         <div className="mb-4 flex items-center gap-2">
@@ -623,19 +650,31 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast, naviga
       )}
 
       <div className="flex justify-end">
-        <button onClick={onImport} disabled={!selectedLabel || !fileContent || importing}
+        <button onClick={() => {
+          if (!selectedLabel || !fileContent) { showToast('error', t('msg.noFileSelected')); return }
+          if (importType === 'edge' && (!outVertexField || !inVertexField)) { showToast('error', t('msg.noFileSelected')); return }
+          setExecDialog(t('importBtn'))
+        }} disabled={importing}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-          {importing ? <RefreshCw size={15} className="animate-spin" /> : execMode === 'task' ? <ListChecks size={15} /> : <Upload size={15} />}
-          {importing ? (execMode === 'task' ? t('submittingTask') : t('importing')) : (execMode === 'task' ? t('submitTaskBtn') : t('importBtn'))}
+          {importing ? <RefreshCw size={15} className="animate-spin" /> : <Upload size={15} />}
+          {importing ? t('importing') : t('importBtn')}
         </button>
       </div>
+      {execDialog && (
+        <ExecModeDialog
+          title={execDialog}
+          onChoose={runImport}
+          onClose={() => setExecDialog(null)}
+        />
+      )}
     </div>
   )
 }
 
 function TopologyPanel({ connectionId, onDownload, showToast, navigate }) {
   const { t } = useTranslation('importExport')
-  const [execMode, setExecMode] = useState('sync')
+  const [exportDialog, setExportDialog] = useState(false)
+  const [importDialog, setImportDialog] = useState(false)
   const [createdTask, setCreatedTask] = useState(null)
   const [exporting, setExporting] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -643,9 +682,10 @@ function TopologyPanel({ connectionId, onDownload, showToast, navigate }) {
   const [topoFileName, setTopoFileName] = useState('')
   const [importResult, setImportResult] = useState(null)
 
-  const onExportTopology = async () => {
+  const runExportTopology = async (mode) => {
+    setExportDialog(false)
     setCreatedTask(null)
-    if (execMode === 'task') {
+    if (mode === 'task') {
       setExporting(true)
       const task = await submitTaskAndToast('EXPORT_TOPOLOGY', connectionId, null, null, {}, showToast, navigate)
       setExporting(false)
@@ -673,12 +713,13 @@ function TopologyPanel({ connectionId, onDownload, showToast, navigate }) {
     reader.readAsText(file)
   }
 
-  const onImportTopology = async () => {
-    if (!topoContent) { showToast('error', t('msg.noFileSelected')); return }
+  const runImportTopology = async (mode) => {
+    setImportDialog(false)
+    if (!topoContent) return
     if (!window.confirm(t('confirmTopologyImport'))) return
     setCreatedTask(null)
 
-    if (execMode === 'task') {
+    if (mode === 'task') {
       setImporting(true)
       const task = await submitTaskAndToast('IMPORT_TOPOLOGY', connectionId, null, null,
         { content: topoContent }, showToast, navigate)
@@ -701,14 +742,13 @@ function TopologyPanel({ connectionId, onDownload, showToast, navigate }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <ExecModeToggle mode={execMode} setMode={setExecMode} />
       {createdTask && <TaskCreatedHint taskNo={createdTask.taskNo} navigate={navigate} />}
       <SectionCard title={t("topologyExport")} icon={Download}>
         <p className="mb-4 text-sm text-gray-500">
           Export the Sqlg Topology (Schema / VertexLabel / EdgeLabel / Properties / Identifiers) as a JSON file.
           Useful for environment migration, backup, or documentation.
         </p>
-        <button onClick={onExportTopology} disabled={exporting}
+        <button onClick={() => setExportDialog(true)} disabled={exporting}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
           {exporting ? <RefreshCw size={15} className="animate-spin" /> : <Download size={15} />}
           {exporting ? t('exporting') : t('topologyExportBtn')}
@@ -751,12 +791,29 @@ function TopologyPanel({ connectionId, onDownload, showToast, navigate }) {
           </div>
         )}
 
-        <button onClick={onImportTopology} disabled={!topoContent || importing}
+        <button onClick={() => {
+          if (!topoContent) { showToast('error', t('msg.noFileSelected')); return }
+          setImportDialog(true)
+        }} disabled={importing}
           className="flex items-center gap-1.5 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
           {importing ? <RefreshCw size={15} className="animate-spin" /> : <Upload size={15} />}
           {importing ? t('importing') : t('importBtn')}
         </button>
       </SectionCard>
+      {exportDialog && (
+        <ExecModeDialog
+          title={t('topologyExportBtn')}
+          onChoose={runExportTopology}
+          onClose={() => setExportDialog(false)}
+        />
+      )}
+      {importDialog && (
+        <ExecModeDialog
+          title={t('importBtn')}
+          onChoose={runImportTopology}
+          onClose={() => setImportDialog(false)}
+        />
+      )}
     </div>
   )
 }
