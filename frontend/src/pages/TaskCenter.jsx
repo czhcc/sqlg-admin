@@ -73,6 +73,12 @@ export default function TaskCenter() {
       } else if (action === 'detail') {
         const res = await getTaskDetail(task.id)
         setDetailTask(res.data)
+      } else if (action === 'download-from-detail') {
+        const res = await downloadTaskResult(task.id)
+        const url = URL.createObjectURL(res.data)
+        const a = document.createElement('a')
+        a.href = url; a.download = task.resultFilePath?.split('/').pop() || 'result'; a.click()
+        URL.revokeObjectURL(url)
       }
       if (action !== 'detail') load()
     } catch (e) {
@@ -196,7 +202,7 @@ export default function TaskCenter() {
         </div>
       </div>
 
-      {detailTask && <DetailModal task={detailTask} onClose={() => setDetailTask(null)} t={t} />}
+      {detailTask && <DetailModal task={detailTask} onClose={() => setDetailTask(null)} t={t} onDownload={() => onAction('download-from-detail', detailTask)} />}
       {toast && <div className={`fixed bottom-6 right-6 z-50 rounded-lg px-4 py-2.5 text-sm shadow-lg ${toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>{toast.message}</div>}
     </div>
   )
@@ -245,7 +251,7 @@ function StatusBadge({ status, t }) {
   )
 }
 
-function DetailModal({ task, onClose, t }) {
+function DetailModal({ task, onClose, t, onDownload }) {
   const params = (() => { try { return task.params ? JSON.parse(task.params) : {} } catch { return {} } })()
   const result = (() => { try { return task.resultSummary ? JSON.parse(task.resultSummary) : null } catch { return null } })()
   return createPortal(
@@ -302,10 +308,10 @@ function DetailModal({ task, onClose, t }) {
             <Section title={t('detail.result')}>
               <pre className="overflow-x-auto rounded-lg bg-gray-50 p-3 text-xs text-gray-700">{JSON.stringify(result, null, 2)}</pre>
               {task.resultFilePath && (
-                <a href={`/api/task/${task.id}/download`} target="_blank" rel="noreferrer"
+                <button onClick={onDownload}
                   className="mt-2 inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800">
                   <FileText size={14} /> {task.resultFilePath.split('/').pop()}
-                </a>
+                </button>
               )}
             </Section>
           )}

@@ -231,7 +231,7 @@ public class TaskService {
     private String generateTaskNo(String taskType) {
         String prefix = TYPE_PREFIX.get(taskType);
         String dateStr = LocalDate.now().format(DATE_FMT);
-        long seq = taskMapper.countByDateAndPrefix(dateStr, prefix) + 1;
+        long seq = taskMapper.countByDateAndPrefix(dateStr, prefix, taskType) + 1;
         return String.format("%s-%s-%03d", prefix, dateStr, seq);
     }
 

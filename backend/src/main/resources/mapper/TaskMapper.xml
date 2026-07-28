@@ -156,8 +156,8 @@
 
     <select id="countByDateAndPrefix" resultType="long">
         SELECT COUNT(*) FROM sys_task
-        WHERE task_no LIKE #{datePrefix} || '%'
-          AND task_no LIKE #{typePrefix} || '%'
+        WHERE task_type = #{taskType}
+          AND task_no LIKE #{typePrefix} || '-' || #{datePrefix} || '%'
     </select>
 
 </mapper>

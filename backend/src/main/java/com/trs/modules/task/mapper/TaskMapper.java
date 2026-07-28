@@ -78,5 +78,6 @@ public interface TaskMapper {
     int deleteById(@Param("id") Long id);
 
     long countByDateAndPrefix(@Param("datePrefix") String datePrefix,
-                              @Param("typePrefix") String typePrefix);
+                              @Param("typePrefix") String typePrefix,
+                              @Param("taskType") String taskType);
 }
