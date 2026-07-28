@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 /**
@@ -204,6 +207,20 @@ public class TaskService {
         if (Task.STATUS_PENDING.equals(task.getStatus()) || Task.STATUS_RUNNING.equals(task.getStatus())) {
             throw new IllegalStateException("运行中或等待中的任务不能删除,请先取消");
         }
+
+        if (task.getTaskNo() != null && !task.getTaskNo().isBlank()) {
+            Path taskDir = Paths.get(storageDir, task.getTaskNo());
+            if (Files.exists(taskDir)) {
+                try (var stream = Files.walk(taskDir)) {
+                    stream.sorted(Comparator.reverseOrder()).forEach(p -> {
+                        try { Files.deleteIfExists(p); } catch (Exception ignored) {}
+                    });
+                } catch (Exception e) {
+                    log.warn("Failed to delete task files for {}: {}", task.getTaskNo(), e.getMessage());
+                }
+            }
+        }
+
         taskMapper.deleteById(taskId);
         return true;
     }
