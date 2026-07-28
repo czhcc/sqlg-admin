@@ -66,7 +66,7 @@ export default function TaskCenter() {
         await deleteTask(task.id); showToast('success', t('msg.deleteSuccess'))
       } else if (action === 'download') {
         const res = await downloadTaskResult(task.id)
-        const url = URL.createObjectURL(res.data)
+        const url = URL.createObjectURL(res)
         const a = document.createElement('a')
         a.href = url; a.download = task.resultFilePath?.split('/').pop() || 'result'; a.click()
         URL.revokeObjectURL(url)
@@ -75,7 +75,7 @@ export default function TaskCenter() {
         setDetailTask(res.data)
       } else if (action === 'download-from-detail') {
         const res = await downloadTaskResult(task.id)
-        const url = URL.createObjectURL(res.data)
+        const url = URL.createObjectURL(res)
         const a = document.createElement('a')
         a.href = url; a.download = task.resultFilePath?.split('/').pop() || 'result'; a.click()
         URL.revokeObjectURL(url)
