@@ -207,8 +207,7 @@ function ExecModeDialog({ title, onChoose, onClose }) {
   )
 }
 
-async function submitTaskAndToast(taskType, connectionId, schemaName, targetLabel, params, showToast, navigate) {
-  const { t } = useTranslation('importExport')
+async function submitTaskAndToast(taskType, connectionId, schemaName, targetLabel, params, showToast, navigate, t) {
   try {
     const res = await createTask({ taskType, connectionId, schemaName, targetLabel, params })
     showToast('success', t('msg.taskCreated', { taskNo: res.data.taskNo }))
@@ -254,7 +253,7 @@ function ExportPanel({ vertexLabels, edgeLabels, connectionId, onDownload, showT
       setExporting(true)
       const taskType = labelType === 'vertex' ? 'EXPORT_VERTEX' : 'EXPORT_EDGE'
       const task = await submitTaskAndToast(taskType, connectionId, selectedLabel.schemaName, selectedLabel.name,
-        { format, schema: selectedLabel.schemaName, label: selectedLabel.name }, showToast, navigate)
+        { format, schema: selectedLabel.schemaName, label: selectedLabel.name }, showToast, navigate, t)
       setExporting(false)
       if (task) setCreatedTask(task)
       return
@@ -423,7 +422,7 @@ function ImportPanel({ vertexLabels, edgeLabels, connectionId, showToast, naviga
             fieldMapping, overwrite }
         : { content: fileContent, format, schema: selectedLabel.schemaName, label: selectedLabel.name,
             outVertexLabel, inVertexLabel, outVertexField, inVertexField, fieldMapping }
-      const task = await submitTaskAndToast(taskType, connectionId, selectedLabel.schemaName, selectedLabel.name, params, showToast, navigate)
+      const task = await submitTaskAndToast(taskType, connectionId, selectedLabel.schemaName, selectedLabel.name, params, showToast, navigate, t)
       setImporting(false)
       if (task) setCreatedTask(task)
       return
@@ -687,7 +686,7 @@ function TopologyPanel({ connectionId, onDownload, showToast, navigate }) {
     setCreatedTask(null)
     if (mode === 'task') {
       setExporting(true)
-      const task = await submitTaskAndToast('EXPORT_TOPOLOGY', connectionId, null, null, {}, showToast, navigate)
+      const task = await submitTaskAndToast('EXPORT_TOPOLOGY', connectionId, null, null, {}, showToast, navigate, t)
       setExporting(false)
       if (task) setCreatedTask(task)
       return
@@ -722,7 +721,7 @@ function TopologyPanel({ connectionId, onDownload, showToast, navigate }) {
     if (mode === 'task') {
       setImporting(true)
       const task = await submitTaskAndToast('IMPORT_TOPOLOGY', connectionId, null, null,
-        { content: topoContent }, showToast, navigate)
+        { content: topoContent }, showToast, navigate, t)
       setImporting(false)
       if (task) setCreatedTask(task)
       return
