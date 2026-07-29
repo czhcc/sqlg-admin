@@ -11,7 +11,9 @@
   "checksTotal": "共 {{count}} 项检查",
   "tab": {
     "newRun": "新建诊断",
-    "reports": "最近报告"
+    "reports": "最近报告",
+    "compare": "报告对比",
+    "stats": "聚合统计"
   },
   "check": {
     "selectConnection": "选择连接",
@@ -68,7 +70,35 @@
     "endTime": "结束时间",
     "issues": "问题数",
     "creator": "创建人",
-    "view": "查看"
+    "view": "查看",
+    "exportJson": "导出 JSON",
+    "exportExcel": "导出 Excel"
+  },
+  "compare": {
+    "title": "报告对比",
+    "desc": "选择基线报告和当前报告,查看新增、已修复和持续存在的问题",
+    "baseline": "基线报告(旧)",
+    "current": "当前报告(新)",
+    "selectTask": "选择报告",
+    "run": "开始对比",
+    "comparing": "对比中...",
+    "needTwo": "至少需要 2 份已成功的诊断报告才能进行对比",
+    "newIssues": "新增问题",
+    "fixedIssues": "已修复",
+    "persistent": "持续存在",
+    "noNew": "无新增问题",
+    "noFixed": "无已修复问题",
+    "noPersistent": "无持续存在问题",
+    "wasLevel": "级别变化"
+  },
+  "stats": {
+    "title": "聚合统计",
+    "allConnections": "全部连接",
+    "lastN": "最近 {{n}} 份",
+    "tasksAnalyzed": "分析任务数",
+    "byCategory": "按类别分布",
+    "byCheckId": "高频问题检查项 (Top 15)",
+    "timeline": "问题数量时间线"
   },
   "msg": {
     "loadFail": "加载失败: {{message}}",

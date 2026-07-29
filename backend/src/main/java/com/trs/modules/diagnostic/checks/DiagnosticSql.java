@@ -96,4 +96,83 @@ final class DiagnosticSql {
         } catch (Exception ignored) {}
         return result;
     }
+
+    /**
+     * 列出指定边表的所有 FK 列(命名格式 {@code <vertexSchema>.<VertexLabel>__O} 或 {@code __I}),
+     * 返回解析后的结构化信息。用于边数据检查时动态发现端点列。
+     */
+    static List<FkColumn> listEdgeFkColumns(SqlgGraph graph, String edgeSchema, String edgeTable) {
+        List<FkColumn> result = new ArrayList<>();
+        try (Connection conn = graph.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT column_name FROM information_schema.columns " +
+                             "WHERE table_schema=? AND table_name=? " +
+                             "AND (column_name LIKE '%\\__O' ESCAPE '\\' OR column_name LIKE '%\\__I' ESCAPE '\\') " +
+                             "ORDER BY column_name")) {
+            ps.setString(1, edgeSchema);
+            ps.setString(2, edgeTable);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    FkColumn parsed = parseFkColumn(rs.getString(1));
+                    if (parsed != null) result.add(parsed);
+                }
+            }
+        } catch (Exception ignored) {}
+        return result;
+    }
+
+    /**
+     * 列出指定表的所有 NOT NULL 业务列(排除 ID / FK 列 / sqlg 内部列)。
+     * 用于检测 NOT NULL 约束违反。
+     */
+    static List<String> listNotNullBusinessColumns(SqlgGraph graph, String schema, String table) {
+        List<String> result = new ArrayList<>();
+        try (Connection conn = graph.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT column_name FROM information_schema.columns " +
+                             "WHERE table_schema=? AND table_name=? AND is_nullable='NO' " +
+                             "AND column_name NOT IN ('ID') " +
+                             "AND column_name NOT LIKE '%\\__O' ESCAPE '\\' " +
+                             "AND column_name NOT LIKE '%\\__I' ESCAPE '\\' " +
+                             "ORDER BY column_name")) {
+            ps.setString(1, schema);
+            ps.setString(2, table);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) result.add(rs.getString(1));
+            }
+        } catch (Exception ignored) {}
+        return result;
+    }
+
+    /**
+     * 解析 sqlg 边表 FK 列名:格式 {@code <vSchema>.<vLabel>__O} 或 {@code __I}。
+     * 例如 {@code public.Person__O} → vSchema=public, vLabel=Person, direction=OUT。
+     */
+    static FkColumn parseFkColumn(String columnName) {
+        if (columnName == null) return null;
+        int dirSep = -1;
+        if (columnName.endsWith("__O")) dirSep = columnName.length() - 4;
+        else if (columnName.endsWith("__I")) dirSep = columnName.length() - 4;
+        else return null;
+        if (dirSep <= 0) return null;
+        String direction = columnName.endsWith("__O") ? "OUT" : "IN";
+        String beforeSuffix = columnName.substring(0, dirSep);
+        int dotIdx = beforeSuffix.indexOf('.');
+        if (dotIdx <= 0 || dotIdx >= beforeSuffix.length() - 1) return null;
+        String vSchema = beforeSuffix.substring(0, dotIdx);
+        String vLabel = beforeSuffix.substring(dotIdx + 1);
+        return new FkColumn(columnName, vSchema, vLabel, direction, "V_" + vLabel);
+    }
+
+    /**
+     * FK 列解析结果。
+     *
+     * @param columnName  原始列名,如 {@code public.Person__O}
+     * @param vertexSchema 端点 VertexLabel 所属 schema
+     * @param vertexLabel  端点 VertexLabel 名
+     * @param direction    OUT 或 IN
+     * @param vertexTable  端点物理表名,如 {@code V_Person}
+     */
+    record FkColumn(String columnName, String vertexSchema, String vertexLabel,
+                     String direction, String vertexTable) {}
 }

@@ -11,7 +11,9 @@
   "checksTotal": "{{count}} checks total",
   "tab": {
     "newRun": "New Run",
-    "reports": "Recent Reports"
+    "reports": "Recent Reports",
+    "compare": "Compare",
+    "stats": "Statistics"
   },
   "check": {
     "selectConnection": "Select Connection",
@@ -68,7 +70,35 @@
     "endTime": "End time",
     "issues": "Issues",
     "creator": "Creator",
-    "view": "View"
+    "view": "View",
+    "exportJson": "Export JSON",
+    "exportExcel": "Export Excel"
+  },
+  "compare": {
+    "title": "Report Comparison",
+    "desc": "Select baseline and current reports to see new, fixed, and persistent issues",
+    "baseline": "Baseline (older)",
+    "current": "Current (newer)",
+    "selectTask": "Select report",
+    "run": "Compare",
+    "comparing": "Comparing...",
+    "needTwo": "At least 2 successful diagnostic reports are required",
+    "newIssues": "New issues",
+    "fixedIssues": "Fixed",
+    "persistent": "Persistent",
+    "noNew": "No new issues",
+    "noFixed": "No fixed issues",
+    "noPersistent": "No persistent issues",
+    "wasLevel": "Level change"
+  },
+  "stats": {
+    "title": "Aggregate Statistics",
+    "allConnections": "All connections",
+    "lastN": "Last {{n}}",
+    "tasksAnalyzed": "Tasks analyzed",
+    "byCategory": "By category",
+    "byCheckId": "Top frequent checks (Top 15)",
+    "timeline": "Issue count timeline"
   },
   "msg": {
     "loadFail": "Load failed: {{message}}",

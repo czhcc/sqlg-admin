@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   listConnections, listChecks, runDiagnostic, getReport, listRecentReports, getTaskStatus,
+  downloadReportJson, downloadReportExcel, compareReports, getStats,
 } from '../api/diagnostic'
 import {
   RefreshCw, Play, ChevronDown, ChevronRight, CheckCircle2, XCircle, Loader,
   AlertTriangle, AlertOctagon, Info, ExternalLink, Stethoscope, ListChecks,
+  Download, FileSpreadsheet, GitCompare, BarChart3, TrendingUp, TrendingDown, Minus,
 } from 'lucide-react'
 
 const POLL_INTERVAL = 2000
@@ -162,7 +164,7 @@ export default function DiagnosticTools() {
       </header>
 
       <div className="flex items-center gap-1 border-b border-gray-200 bg-white px-6">
-        {['newRun', 'reports'].map((key) => (
+        {['newRun', 'reports', 'compare', 'stats'].map((key) => (
           <button key={key} onClick={() => setTab(key)}
             className={`-mb-px border-b-2 px-4 py-2.5 text-sm transition-colors ${
               tab === key
@@ -194,7 +196,7 @@ export default function DiagnosticTools() {
             report={report}
             navigate={navigate}
           />
-        ) : (
+        ) : tab === 'reports' ? (
           <ReportsTab
             t={t}
             reports={reports}
@@ -203,6 +205,10 @@ export default function DiagnosticTools() {
             setPage={setReportsPage}
             onView={viewReport}
           />
+        ) : tab === 'compare' ? (
+          <CompareTab t={t} reports={reports} showToast={showToast} />
+        ) : (
+          <StatsTab t={t} connections={connections} showToast={showToast} />
         )}
       </div>
 
@@ -511,6 +517,23 @@ function StatusBadge({ status }) {
 
 function ReportsTab({ t, reports, total, page, setPage, onView }) {
   const totalPages = Math.max(1, Math.ceil(total / 10))
+  const onExport = async (e, taskId, format) => {
+    e.stopPropagation()
+    try {
+      const res = format === 'excel'
+        ? await downloadReportExcel(taskId)
+        : await downloadReportJson(taskId)
+      const blob = new Blob([res], { type: format === 'excel' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = format === 'excel' ? `diagnostic_report_${taskId}.xlsx` : `diagnostic_report_${taskId}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      alert(t('msg.loadReportFail', { message: err.message }))
+    }
+  }
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-100 px-4 py-3">
@@ -552,11 +575,25 @@ function ReportsTab({ t, reports, total, page, setPage, onView }) {
                     {r.startTime ? String(r.startTime).replace('T', ' ').substring(0, 19) : '—'}
                   </td>
                   <td className="px-3 py-2 text-xs text-gray-500">{r.username || '—'}</td>
-                  <td className="px-3 py-2 text-right">
-                    <button onClick={() => onView(r.id)}
-                      className="rounded-md px-2 py-1 text-xs text-indigo-600 hover:bg-indigo-50">
-                      {t('reports.view')}
-                    </button>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => onView(r.id)} title={t('reports.view')}
+                        className="rounded p-1 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600">
+                        <ListChecks size={14} />
+                      </button>
+                      {r.status === 'SUCCESS' && r.issueCount > 0 && (
+                        <>
+                          <button onClick={(e) => onExport(e, r.id, 'json')} title={t('reports.exportJson')}
+                            className="rounded p-1 text-gray-400 hover:bg-blue-50 hover:text-blue-600">
+                            <Download size={14} />
+                          </button>
+                          <button onClick={(e) => onExport(e, r.id, 'excel')} title={t('reports.exportExcel')}
+                            className="rounded p-1 text-gray-400 hover:bg-green-50 hover:text-green-600">
+                            <FileSpreadsheet size={14} />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -576,6 +613,255 @@ function ReportsTab({ t, reports, total, page, setPage, onView }) {
               </button>
             </div>
           </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function CompareTab({ t, reports, showToast }) {
+  const [baselineId, setBaselineId] = useState('')
+  const [currentId, setCurrentId] = useState('')
+  const [result, setResult] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const validReports = reports.filter((r) => r.status === 'SUCCESS')
+  const canCompare = !!baselineId && !!currentId && baselineId !== currentId
+
+  const onCompare = async () => {
+    if (!canCompare) return
+    setLoading(true)
+    setResult(null)
+    try {
+      const res = await compareReports(Number(baselineId), Number(currentId))
+      setResult(res.data)
+    } catch (e) {
+      showToast('error', t('msg.loadFail', { message: e.message }))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <GitCompare size={15} className="text-indigo-600" /> {t('compare.title')}
+        </h2>
+        <p className="mb-3 text-sm text-gray-500">{t('compare.desc')}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">{t('compare.baseline')}</label>
+            <select value={baselineId} onChange={(e) => setBaselineId(e.target.value)}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-indigo-500">
+              <option value="">{t('compare.selectTask')}</option>
+              {validReports.map((r) => (
+                <option key={r.id} value={r.id}>{r.taskNo} · {r.connectionName || '—'} · {r.startTime ? String(r.startTime).replace('T', ' ').substring(0, 16) : '—'}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">{t('compare.current')}</label>
+            <select value={currentId} onChange={(e) => setCurrentId(e.target.value)}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-indigo-500">
+              <option value="">{t('compare.selectTask')}</option>
+              {validReports.map((r) => (
+                <option key={r.id} value={r.id}>{r.taskNo} · {r.connectionName || '—'} · {r.startTime ? String(r.startTime).replace('T', ' ').substring(0, 16) : '—'}</option>
+              ))}
+            </select>
+          </div>
+          <button onClick={onCompare} disabled={!canCompare || loading}
+            className="self-end rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+            {loading ? t('compare.comparing') : t('compare.run')}
+          </button>
+        </div>
+        {validReports.length < 2 && (
+          <p className="mt-3 text-xs text-amber-600">{t('compare.needTwo')}</p>
+        )}
+      </section>
+
+      {result && (
+        <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            <CompareStatCard icon={TrendingUp} cls="text-red-600 bg-red-50" label={t('compare.newIssues')} count={result.newCount} />
+            <CompareStatCard icon={TrendingDown} cls="text-green-600 bg-green-50" label={t('compare.fixedIssues')} count={result.fixedCount} />
+            <CompareStatCard icon={Minus} cls="text-amber-600 bg-amber-50" label={t('compare.persistent')} count={result.persistentCount} />
+          </div>
+          <CompareIssueList title={t('compare.newIssues')} icon={TrendingUp} cls="border-red-200 bg-red-50 text-red-700"
+            issues={result.newIssues} t={t} emptyMsg={t('compare.noNew')} />
+          <CompareIssueList title={t('compare.fixedIssues')} icon={TrendingDown} cls="border-green-200 bg-green-50 text-green-700"
+            issues={result.fixedIssues} t={t} emptyMsg={t('compare.noFixed')} />
+          <CompareIssueList title={t('compare.persistent')} icon={Minus} cls="border-amber-200 bg-amber-50 text-amber-700"
+            issues={result.persistentIssues} t={t} emptyMsg={t('compare.noPersistent')} />
+        </section>
+      )}
+    </div>
+  )
+}
+
+function CompareStatCard({ icon: Icon, cls, label, count }) {
+  return (
+    <div className={`rounded-lg border p-3 ${cls}`}>
+      <div className="flex items-center gap-1.5">
+        <Icon size={14} />
+        <span className="text-xs font-medium">{label}</span>
+      </div>
+      <p className="mt-1 text-2xl font-bold">{count}</p>
+    </div>
+  )
+}
+
+function CompareIssueList({ title, icon: Icon, cls, issues, t, emptyMsg }) {
+  if (!issues || issues.length === 0) {
+    return (
+      <div className={`mb-3 rounded-lg border px-3 py-2 text-sm ${cls}`}>
+        <div className="flex items-center gap-1.5">
+          <Icon size={13} /> <span className="font-medium">{title}</span>
+        </div>
+        <p className="mt-1 text-xs opacity-70">{emptyMsg}</p>
+      </div>
+    )
+  }
+  return (
+    <div className={`mb-3 overflow-hidden rounded-lg border ${cls}`}>
+      <div className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium">
+        <Icon size={13} /> {title} <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs">{issues.length}</span>
+      </div>
+      <div className="divide-y divide-black/5 bg-white">
+        {issues.map((issue, idx) => (
+          <div key={idx} className="px-3 py-1.5">
+            <p className="font-mono text-xs text-gray-700">{issue.target}</p>
+            <p className="text-sm text-gray-800">{issue.message}</p>
+            {issue.baselineLevel && (
+              <p className="text-xs text-gray-400">{t('compare.wasLevel')}: {issue.baselineLevel} → {issue.level}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function StatsTab({ t, connections, showToast }) {
+  const [connectionId, setConnectionId] = useState('')
+  const [recentLimit, setRecentLimit] = useState(50)
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  const load = async () => {
+    setLoading(true)
+    try {
+      const res = await getStats(connectionId || null, recentLimit)
+      setStats(res.data)
+    } catch (e) {
+      showToast('error', t('msg.loadFail', { message: e.message }))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  return (
+    <div className="space-y-4">
+      <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
+          <BarChart3 size={15} className="text-indigo-600" /> {t('stats.title')}
+        </h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={connectionId} onChange={(e) => setConnectionId(e.target.value)}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-indigo-500">
+            <option value="">{t('stats.allConnections')}</option>
+            {connections.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select value={recentLimit} onChange={(e) => setRecentLimit(Number(e.target.value))}
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-indigo-500">
+            <option value={20}>{t('stats.lastN', { n: 20 })}</option>
+            <option value={50}>{t('stats.lastN', { n: 50 })}</option>
+            <option value={100}>{t('stats.lastN', { n: 100 })}</option>
+            <option value={200}>{t('stats.lastN', { n: 200 })}</option>
+          </select>
+          <button onClick={load} disabled={loading}
+            className="rounded-md bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+            <RefreshCw size={14} className={`mr-1 inline ${loading ? 'animate-spin' : ''}`} />
+            {t('common:refresh')}
+          </button>
+        </div>
+      </section>
+
+      {stats && (
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+              <p className="text-xs text-gray-500">{t('stats.tasksAnalyzed')}</p>
+              <p className="mt-1 text-2xl font-bold text-gray-900">{stats.analyzedTaskCount}</p>
+            </div>
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="text-xs text-red-600">{t('severity.CRITICAL')}</p>
+              <p className="mt-1 text-2xl font-bold text-red-700">{stats.bySeverity?.CRITICAL || 0}</p>
+            </div>
+            <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+              <p className="text-xs text-orange-600">{t('severity.ERROR')}</p>
+              <p className="mt-1 text-2xl font-bold text-orange-700">{stats.bySeverity?.ERROR || 0}</p>
+            </div>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <p className="text-xs text-amber-600">{t('severity.WARNING')}</p>
+              <p className="mt-1 text-2xl font-bold text-amber-700">{stats.bySeverity?.WARNING || 0}</p>
+            </div>
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <p className="text-xs text-blue-600">{t('severity.INFO')}</p>
+              <p className="mt-1 text-2xl font-bold text-blue-700">{stats.bySeverity?.INFO || 0}</p>
+            </div>
+          </div>
+
+          {stats.byCategory && Object.keys(stats.byCategory).length > 0 && (
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <h3 className="mb-3 text-sm font-semibold text-gray-700">{t('stats.byCategory')}</h3>
+              <div className="space-y-2">
+                {Object.entries(stats.byCategory).sort((a, b) => b[1] - a[1]).map(([cat, n]) => (
+                  <div key={cat} className="flex items-center gap-3">
+                    <span className="w-40 text-xs text-gray-600">{t(`category.${cat}`, { defaultValue: cat })}</span>
+                    <div className="h-4 flex-1 overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.min(100, (n / stats.totalIssues) * 100)}%` }} />
+                    </div>
+                    <span className="w-10 text-right text-xs font-medium text-gray-700">{n}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {stats.byCheckId && Object.keys(stats.byCheckId).length > 0 && (
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <h3 className="mb-3 text-sm font-semibold text-gray-700">{t('stats.byCheckId')}</h3>
+              <div className="space-y-1.5">
+                {Object.entries(stats.byCheckId).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([cid, n]) => (
+                  <div key={cid} className="flex items-center gap-2 text-xs">
+                    <span className="w-64 truncate font-mono text-gray-600" title={cid}>{cid}</span>
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700">{n}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {stats.timeline && stats.timeline.length > 0 && (
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <h3 className="mb-3 text-sm font-semibold text-gray-700">{t('stats.timeline')}</h3>
+              <div className="space-y-1">
+                {[...stats.timeline].reverse().map((p, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs">
+                    <span className="w-32 text-gray-500">{p.endTime ? String(p.endTime).replace('T', ' ').substring(0, 16) : '—'}</span>
+                    <span className="w-24 truncate text-gray-600" title={p.connectionName}>{p.connectionName || '—'}</span>
+                    <div className="h-3 flex-1 overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-full rounded-full bg-indigo-500" style={{ width: `${Math.min(100, (p.issueCount / Math.max(...stats.timeline.map((t) => t.issueCount))) * 100)}%` }} />
+                    </div>
+                    <span className="w-8 text-right font-medium text-gray-700">{p.issueCount}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </>
       )}
     </div>

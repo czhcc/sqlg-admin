@@ -23,3 +23,23 @@ export function listRecentReports(params) {
 export function getTaskStatus(taskId) {
   return client.get(`/task/${taskId}`)
 }
+
+export function runSingleCheck(connectionId, checkId) {
+  return client.post('/diagnostic/run-single', { connectionId, checkId })
+}
+
+export function downloadReportJson(taskId) {
+  return client.get(`/diagnostic/report/${taskId}/export`, { responseType: 'blob' })
+}
+
+export function downloadReportExcel(taskId) {
+  return client.get(`/diagnostic/report/${taskId}/export-excel`, { responseType: 'blob' })
+}
+
+export function compareReports(baselineTaskId, currentTaskId) {
+  return client.get('/diagnostic/compare', { params: { baselineTaskId, currentTaskId } })
+}
+
+export function getStats(connectionId, recentLimit = 50) {
+  return client.get('/diagnostic/stats', { params: { connectionId, recentLimit } })
+}

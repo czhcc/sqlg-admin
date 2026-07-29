@@ -5,6 +5,9 @@ import com.trs.modules.diagnostic.service.DiagnosticService;
 import com.trs.modules.task.entity.Task;
 import com.trs.security.RequirePermission;
 import com.trs.user.entity.User;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -76,6 +79,50 @@ public class DiagnosticController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return Result.ok(service.listRecentReports(connectionId, page, size));
+    }
+
+    @RequirePermission(menu = "diagnostic-tools", code = "diagnostic_tools:run", name = "执行诊断")
+    @PostMapping("/run-single")
+    public Result<Map<String, Object>> runSingle(@RequestBody Map<String, Object> body) {
+        Long connectionId = body.get("connectionId") instanceof Number n ? n.longValue() : null;
+        String checkId = body.get("checkId") instanceof String s ? s : null;
+        if (connectionId == null) return Result.fail(400, "connectionId 不能为空");
+        if (checkId == null || checkId.isBlank()) return Result.fail(400, "checkId 不能为空");
+        return Result.ok(service.runSingleCheck(connectionId, checkId));
+    }
+
+    @GetMapping("/report/{taskId}/export")
+    public ResponseEntity<String> exportReport(@PathVariable Long taskId) {
+        String json = service.exportReportAsJson(taskId);
+        String fileName = service.getReportFileName(taskId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(json);
+    }
+
+    @GetMapping("/report/{taskId}/export-excel")
+    public ResponseEntity<byte[]> exportReportExcel(@PathVariable Long taskId) {
+        byte[] xlsx = service.exportReportAsExcel(taskId);
+        String fileName = service.getReportExcelFileName(taskId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(xlsx);
+    }
+
+    @GetMapping("/compare")
+    public Result<Map<String, Object>> compare(
+            @RequestParam Long baselineTaskId,
+            @RequestParam Long currentTaskId) {
+        return Result.ok(service.compareReports(baselineTaskId, currentTaskId));
+    }
+
+    @GetMapping("/stats")
+    public Result<Map<String, Object>> stats(
+            @RequestParam(required = false) Long connectionId,
+            @RequestParam(defaultValue = "50") int recentLimit) {
+        return Result.ok(service.aggregateStats(connectionId, recentLimit));
     }
 
     private User currentUser() {
