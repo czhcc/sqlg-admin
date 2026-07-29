@@ -1,0 +1,79 @@
+{
+  "title": "Diagnostic Tools",
+  "subtitle": "Detect inconsistencies between Sqlg Topology, underlying tables, indexes, and graph data",
+  "noConnection": "Please select a connection first",
+  "noChecksSelected": "Select at least one check",
+  "run": "Run Diagnostics",
+  "running": "Running...",
+  "selectAll": "Select All",
+  "selectNone": "Select None",
+  "selected": "{{count}} selected",
+  "checksTotal": "{{count}} checks total",
+  "tab": {
+    "newRun": "New Run",
+    "reports": "Recent Reports"
+  },
+  "check": {
+    "selectConnection": "Select Connection",
+    "selectChecks": "Select Checks",
+    "selectAllInCategory": "Select all in this category"
+  },
+  "category": {
+    "TOPOLOGY": "Topology Consistency",
+    "LABEL_STATUS": "Label Status",
+    "INDEX": "Index Check",
+    "VERTEX_DATA": "Vertex Data",
+    "EDGE_DATA": "Edge Data",
+    "CONNECTION": "Connection Diagnostics"
+  },
+  "severity": {
+    "INFO": "Info",
+    "WARNING": "Warning",
+    "ERROR": "Error",
+    "CRITICAL": "Critical"
+  },
+  "progress": {
+    "title": "Progress",
+    "currentStage": "Current stage",
+    "completed": "Completed",
+    "of": "of",
+    "checks": "checks"
+  },
+  "report": {
+    "title": "Diagnostic Report",
+    "checkedAt": "Checked at",
+    "connection": "Connection",
+    "scope": "Scope",
+    "totalIssues": "Total issues",
+    "bySeverity": "By severity",
+    "byCategory": "By category",
+    "noIssues": "No issues found",
+    "noIssuesDesc": "All selected checks passed within the inspected scope",
+    "issues": "Issue details",
+    "target": "Target",
+    "message": "Description",
+    "suggestion": "Suggestion",
+    "jumpTo": "Open manager",
+    "noSuggestion": "No suggestion",
+    "notReady": "Report not ready yet",
+    "empty": "No diagnostic reports yet — create one above"
+  },
+  "reports": {
+    "title": "Recent Reports",
+    "taskNo": "Task No.",
+    "name": "Name",
+    "status": "Status",
+    "connection": "Connection",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "issues": "Issues",
+    "creator": "Creator",
+    "view": "View"
+  },
+  "msg": {
+    "loadFail": "Load failed: {{message}}",
+    "runSuccess": "Diagnostic task created",
+    "runFail": "Failed to create diagnostic task: {{message}}",
+    "loadReportFail": "Failed to load report: {{message}}"
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "title": "诊断工具",
+  "subtitle": "检查 Sqlg Topology、底层表结构、索引和图数据之间的一致性,发现潜在问题",
+  "noConnection": "请先选择一个连接",
+  "noChecksSelected": "至少选择一项检查",
+  "run": "开始执行",
+  "running": "执行中...",
+  "selectAll": "全选",
+  "selectNone": "全不选",
+  "selected": "已选 {{count}} 项",
+  "checksTotal": "共 {{count}} 项检查",
+  "tab": {
+    "newRun": "新建诊断",
+    "reports": "最近报告"
+  },
+  "check": {
+    "selectConnection": "选择连接",
+    "selectChecks": "选择检查项",
+    "selectAllInCategory": "选择此分类全部"
+  },
+  "category": {
+    "TOPOLOGY": "Topology 一致性",
+    "LABEL_STATUS": "Label 状态",
+    "INDEX": "索引检查",
+    "VERTEX_DATA": "点数据检查",
+    "EDGE_DATA": "边数据检查",
+    "CONNECTION": "连接诊断"
+  },
+  "severity": {
+    "INFO": "信息",
+    "WARNING": "警告",
+    "ERROR": "错误",
+    "CRITICAL": "严重"
+  },
+  "progress": {
+    "title": "执行进度",
+    "currentStage": "当前阶段",
+    "completed": "已完成",
+    "of": "/",
+    "checks": "项检查"
+  },
+  "report": {
+    "title": "诊断报告",
+    "checkedAt": "检查时间",
+    "connection": "当前连接",
+    "scope": "检查范围",
+    "totalIssues": "问题总数",
+    "bySeverity": "按严重级别",
+    "byCategory": "按类别",
+    "noIssues": "未发现问题",
+    "noIssuesDesc": "本次检查范围内所有检查项均通过",
+    "issues": "问题详情",
+    "target": "定位",
+    "message": "描述",
+    "suggestion": "建议处理",
+    "jumpTo": "跳转管理",
+    "noSuggestion": "暂无建议",
+    "notReady": "报告尚未生成",
+    "empty": "尚无诊断报告,先创建一个吧"
+  },
+  "reports": {
+    "title": "最近报告",
+    "taskNo": "任务编号",
+    "name": "任务名称",
+    "status": "状态",
+    "connection": "连接",
+    "startTime": "开始时间",
+    "endTime": "结束时间",
+    "issues": "问题数",
+    "creator": "创建人",
+    "view": "查看"
+  },
+  "msg": {
+    "loadFail": "加载失败: {{message}}",
+    "runSuccess": "诊断任务已创建",
+    "runFail": "创建诊断任务失败: {{message}}",
+    "loadReportFail": "加载报告失败: {{message}}"
+  }
+}

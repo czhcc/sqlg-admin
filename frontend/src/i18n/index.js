@@ -25,6 +25,7 @@ import zhPermission from './zh/permissionOverview.json'
 import zhLoginLog from './zh/loginLog.json'
 import zhTaskCenter from './zh/taskCenter.json'
 import zhPermissions from './zh/permissions.json'
+import zhDiagnosticTools from './zh/diagnosticTools.json'
 
 import enCommon from './en/common.json'
 import enWorkspace from './en/workspace.json'
@@ -49,6 +50,7 @@ import enPermission from './en/permissionOverview.json'
 import enLoginLog from './en/loginLog.json'
 import enTaskCenter from './en/taskCenter.json'
 import enPermissions from './en/permissions.json'
+import enDiagnosticTools from './en/diagnosticTools.json'
 
 i18n
   .use(LanguageDetector)
@@ -79,6 +81,7 @@ i18n
         loginLog: zhLoginLog,
         taskCenter: zhTaskCenter,
         permissions: zhPermissions,
+        diagnosticTools: zhDiagnosticTools,
       },
       en: {
         common: enCommon,
@@ -104,6 +107,7 @@ i18n
         loginLog: enLoginLog,
         taskCenter: enTaskCenter,
         permissions: enPermissions,
+        diagnosticTools: enDiagnosticTools,
       },
     },
     fallbackLng: 'zh',

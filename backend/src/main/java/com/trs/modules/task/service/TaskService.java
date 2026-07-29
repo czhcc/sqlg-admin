@@ -56,6 +56,7 @@ public class TaskService {
         TYPE_PREFIX.put("DIAG_INDEX", "DIA");
         TYPE_PREFIX.put("DIAG_DATA_INTEGRITY", "DIA");
         TYPE_PREFIX.put("DIAG_ORPHAN", "DIA");
+        TYPE_PREFIX.put("DIAG_CUSTOM", "DIA");
 
         TYPE_CATEGORY.put("IMPORT_VERTEX", Task.CAT_IMPORT);
         TYPE_CATEGORY.put("IMPORT_EDGE", Task.CAT_IMPORT);
@@ -74,6 +75,7 @@ public class TaskService {
         TYPE_CATEGORY.put("DIAG_INDEX", Task.CAT_DIAGNOSTIC);
         TYPE_CATEGORY.put("DIAG_DATA_INTEGRITY", Task.CAT_DIAGNOSTIC);
         TYPE_CATEGORY.put("DIAG_ORPHAN", Task.CAT_DIAGNOSTIC);
+        TYPE_CATEGORY.put("DIAG_CUSTOM", Task.CAT_DIAGNOSTIC);
 
         TYPE_DEFAULT_NAME.put("IMPORT_VERTEX", "点数据导入");
         TYPE_DEFAULT_NAME.put("IMPORT_EDGE", "边数据导入");
@@ -92,6 +94,7 @@ public class TaskService {
         TYPE_DEFAULT_NAME.put("DIAG_INDEX", "索引检查");
         TYPE_DEFAULT_NAME.put("DIAG_DATA_INTEGRITY", "数据完整性检查");
         TYPE_DEFAULT_NAME.put("DIAG_ORPHAN", "孤立点检查");
+        TYPE_DEFAULT_NAME.put("DIAG_CUSTOM", "自定义诊断任务");
     }
 
     private final TaskMapper taskMapper;

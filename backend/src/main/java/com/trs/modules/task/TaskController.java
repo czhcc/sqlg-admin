@@ -164,7 +164,7 @@ public class TaskController {
         byCategory.put("EXPORT", List.of("EXPORT_VERTEX", "EXPORT_EDGE", "EXPORT_TOPOLOGY"));
         byCategory.put("MAINTENANCE", List.of("BATCH_DELETE_VERTEX", "BATCH_DELETE_EDGE", "CLEAR_VERTEX", "CLEAR_EDGE"));
         byCategory.put("STATISTICS", List.of("STAT_VERTEX_COUNTS", "STAT_EDGE_COUNTS", "STAT_ORPHAN"));
-        byCategory.put("DIAGNOSTIC", List.of("DIAG_TOPOLOGY", "DIAG_INDEX", "DIAG_DATA_INTEGRITY", "DIAG_ORPHAN"));
+        byCategory.put("DIAGNOSTIC", List.of("DIAG_TOPOLOGY", "DIAG_INDEX", "DIAG_DATA_INTEGRITY", "DIAG_ORPHAN", "DIAG_CUSTOM"));
         result.put("categories", byCategory);
         return Result.ok(result);
     }

@@ -1,17 +1,16 @@
 package com.trs.modules.task.engine;
 
+import com.trs.modules.diagnostic.handlers.DiagnosticTaskHandler;
 import com.trs.modules.task.handlers.ImportExportTaskHandler;
 import com.trs.modules.task.handlers.MaintenanceTaskHandler;
 import com.trs.modules.task.handlers.StatisticsDiagnosticTaskHandler;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
-
 /**
  * 任务类型 → 处理器映射注册表。
  * <p>
- * TaskService 创建 17 种具体类型(IMPORT_VERTEX/EXPORT_EDGE/...)的任务,
- * 而处理器只有 3 个聚合实现,本类负责将具体类型路由到对应处理器。
+ * TaskService 创建 18 种具体类型(IMPORT_VERTEX/EXPORT_EDGE/.../DIAG_CUSTOM)的任务,
+ * 而处理器只有 4 个聚合实现,本类负责将具体类型路由到对应处理器。
  *
  * @author czh
  * @date 2026/07/23
@@ -22,13 +21,16 @@ public class TaskHandlerRegistry {
     private final ImportExportTaskHandler importExportHandler;
     private final MaintenanceTaskHandler maintenanceHandler;
     private final StatisticsDiagnosticTaskHandler statsDiagHandler;
+    private final DiagnosticTaskHandler diagnosticHandler;
 
     public TaskHandlerRegistry(ImportExportTaskHandler importExportHandler,
                                  MaintenanceTaskHandler maintenanceHandler,
-                                 StatisticsDiagnosticTaskHandler statsDiagHandler) {
+                                 StatisticsDiagnosticTaskHandler statsDiagHandler,
+                                 DiagnosticTaskHandler diagnosticHandler) {
         this.importExportHandler = importExportHandler;
         this.maintenanceHandler = maintenanceHandler;
         this.statsDiagHandler = statsDiagHandler;
+        this.diagnosticHandler = diagnosticHandler;
     }
 
     public TaskHandler getHandler(String taskType) {
@@ -39,6 +41,7 @@ public class TaskHandlerRegistry {
                  "CLEAR_VERTEX", "CLEAR_EDGE" -> maintenanceHandler;
             case "STAT_VERTEX_COUNTS", "STAT_EDGE_COUNTS", "STAT_ORPHAN",
                  "DIAG_TOPOLOGY", "DIAG_INDEX", "DIAG_DATA_INTEGRITY", "DIAG_ORPHAN" -> statsDiagHandler;
+            case "DIAG_CUSTOM" -> diagnosticHandler;
             default -> null;
         };
     }
