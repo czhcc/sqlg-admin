@@ -28,6 +28,8 @@ const PALETTE = [
   '#6DC8EC', '#945FB9', '#FF9845', '#1E9493', '#FF99C3',
 ]
 
+const FIT_VIEW_OPTIONS = { when: 'always', direction: 'both' }
+
 export default function GraphExplore() {
   const { t } = useTranslation('graphExplore')
   const [connections, setConnections] = useState([])
@@ -40,6 +42,7 @@ export default function GraphExplore() {
 
   const [queryModal, setQueryModal] = useState(false)
   const [layout, setLayout] = useState('force')
+  const [layoutPending, setLayoutPending] = useState(false)
   const [expanding, setExpanding] = useState(null)
 
   const containerRef = useRef(null)
@@ -93,9 +96,10 @@ export default function GraphExplore() {
     if (!containerRef.current || graphRef.current) return
     const graph = new G6Graph({
       container: containerRef.current,
-      autoFit: 'view',
+      autoFit: { type: 'view', options: FIT_VIEW_OPTIONS, animation: false },
+      padding: 32,
       behaviors: ['drag-canvas', 'zoom-canvas', 'drag-element'],
-      layout: buildLayoutConfig(layout),
+      layout: buildLayoutConfig('force'),
       node: {
         style: {
           size: 36,
@@ -170,8 +174,8 @@ export default function GraphExplore() {
       graph.setElementState(nodeId, ['selected'])
     })
 
-    graph.render()
-  }, [layout])
+    graph.render().catch((e) => showToast('error', e.message))
+  }, [])
 
   useEffect(() => {
     initGraph()
@@ -187,7 +191,23 @@ export default function GraphExplore() {
     const graph = graphRef.current
     if (!graph || graph.destroyed) return
     graph.setLayout(buildLayoutConfig(layout))
-    graph.layout().then(() => graph.fitView()).catch(() => {})
+    if (graph.getNodeData().length === 0) return
+    let cancelled = false
+    setLayoutPending(true)
+    const applyLayout = async () => {
+      try {
+        await graph.render()
+        if (cancelled || graph.destroyed) return
+        // 等布局和绘制结束后立即居中缩放，避免视口动画与下一次布局互相干扰。
+        await graph.fitView(FIT_VIEW_OPTIONS, false)
+      } catch (e) {
+        if (!cancelled) showToast('error', e.message)
+      } finally {
+        if (!cancelled) setLayoutPending(false)
+      }
+    }
+    applyLayout()
+    return () => { cancelled = true }
   }, [layout])
 
   const handleExpand = async (vertexId) => {
@@ -236,12 +256,10 @@ export default function GraphExplore() {
 
       if (newNodes.length > 0 || newEdges.length > 0) {
         graph.addData({ nodes: newNodes, edges: newEdges })
-        graph.layout().then(() => {
-          graph.fitView()
-          setTimeout(() => {
-            clearHighlights()
-          }, 3000)
-        }).catch(() => {})
+        // render 会先绘制新增元素再执行布局，layout 会跳过尚未绘制的节点。
+        await graph.render()
+        await graph.fitView()
+        setTimeout(() => clearHighlights(), 3000)
       }
 
       showToast('success', t('msg.expandOk', { nodes: newNodes.length, edges: newEdges.length }))
@@ -266,7 +284,7 @@ export default function GraphExplore() {
     })
   }
 
-  const handleAddVerticesToGraph = (vertices) => {
+  const handleAddVerticesToGraph = async (vertices) => {
     const graph = graphRef.current
     if (!graph) return
 
@@ -290,10 +308,13 @@ export default function GraphExplore() {
       graph.addData({ nodes: filtered, edges: [] })
     }
 
-    graph.layout().then(() => {
-      graph.fitView()
+    try {
+      await graph.render()
+      await graph.fitView()
       setTimeout(() => clearHighlights(), 3000)
-    }).catch(() => {})
+    } catch (e) {
+      showToast('error', e.message)
+    }
   }
 
   const onClearGraph = () => {
@@ -308,7 +329,8 @@ export default function GraphExplore() {
   }
 
   const onFitView = () => {
-    graphRef.current?.fitView()
+    graphRef.current?.fitView(FIT_VIEW_OPTIONS, false)
+      .catch((e) => showToast('error', e.message))
   }
 
   const onRefresh = async () => {
@@ -412,8 +434,8 @@ export default function GraphExplore() {
       <div className="flex items-center gap-3 border-b border-gray-100 bg-gray-50 px-6 py-2">
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400">{t('layout')}:</span>
-          <select value={layout} onChange={(e) => setLayout(e.target.value)}
-            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-indigo-500">
+          <select value={layout} onChange={(e) => setLayout(e.target.value)} disabled={layoutPending}
+            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-indigo-500 disabled:cursor-wait disabled:opacity-50">
             {LAYOUTS.map((l) => <option key={l.value} value={l.value}>{t(l.labelKey)}</option>)}
           </select>
         </div>

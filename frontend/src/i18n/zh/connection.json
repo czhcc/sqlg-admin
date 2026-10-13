@@ -23,12 +23,16 @@
     "remark": "备注"
   },
   "action": {
+    "createDemo": "创建演示数据",
+    "creatingDemo": "正在创建演示数据…",
     "testConnection": "测试连接",
     "setDefault": "设为默认",
     "enable": "启用",
     "disable": "停用"
   },
   "msg": {
+    "confirmDemo": "在连接「{{name}}」的 public Schema 中创建 TinkerPop Modern 演示数据？将新增 6 个点、6 条边及对应类型，不修改已有数据。若已存在 person、software、knows 或 created 类型则停止创建，避免重复或冲突。点 ID 由图库自动生成。",
+    "demoCreated": "演示数据创建成功：6 个点、6 条边，可前往 Topology、点/边数据、图关系展开和 Gremlin 控制台验证",
     "requiredFields": "连接名称、JDBC URL、用户名必填",
     "updateSuccess": "更新成功",
     "createSuccess": "新增成功",

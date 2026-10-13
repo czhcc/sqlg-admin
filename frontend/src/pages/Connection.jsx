@@ -10,9 +10,10 @@ import {
   testConnectionById,
   updateConnectionStatus,
   setDefaultConnection,
+  createDemoData,
 } from '../api/connection'
 import {
-  Plus, Pencil, Trash2, Plug, Power, Star, X, Search, RefreshCw,
+  Plus, Pencil, Trash2, Plug, Power, Star, X, Search, RefreshCw, Database,
 } from 'lucide-react'
 
 const DB_TYPES = ['POSTGRES', 'H2', 'HSQLDB', 'MARIADB', 'MYSQL']
@@ -41,6 +42,7 @@ export default function Connection() {
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
   const [testingId, setTestingId] = useState(null)
+  const [creatingDemoId, setCreatingDemoId] = useState(null)
   const [toast, setToast] = useState(null)
 
   const showToast = (type, message) => {
@@ -129,6 +131,20 @@ export default function Connection() {
       showToast('error', err.message)
     } finally {
       setTestingId(null)
+    }
+  }
+
+  const onCreateDemo = async (row) => {
+    if (creatingDemoId !== null) return
+    if (!window.confirm(t('msg.confirmDemo', { name: row.name }))) return
+    setCreatingDemoId(row.id)
+    try {
+      await createDemoData(row.id)
+      showToast('success', t('msg.demoCreated'))
+    } catch (e) {
+      showToast('error', e.message)
+    } finally {
+      setCreatingDemoId(null)
     }
   }
 
@@ -255,6 +271,13 @@ export default function Connection() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
+                      {hasOp('connection:demo') && <ActionBtn
+                        title={t(creatingDemoId === row.id ? 'action.creatingDemo' : 'action.createDemo')}
+                        onClick={() => onCreateDemo(row)}
+                        disabled={row.status !== 1 || creatingDemoId !== null}
+                      >
+                        <Database size={15} className={creatingDemoId === row.id ? 'animate-pulse' : ''} />
+                      </ActionBtn>}
                       {hasOp('connection:test') && <ActionBtn title={t('action.testConnection')} onClick={() => onTest(row)} disabled={testingId === row.id}>
                         <Plug size={15} />
                       </ActionBtn>}

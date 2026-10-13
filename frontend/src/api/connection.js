@@ -1,5 +1,9 @@
 import client from './client'
 
+export function createDemoData(id) {
+  return client.post(`/connection/${id}/demo-data`)
+}
+
 export function listConnections(keyword) {
   return client.get('/connection', { params: keyword ? { keyword } : {} })
 }

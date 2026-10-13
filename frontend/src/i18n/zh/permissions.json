@@ -17,6 +17,7 @@
     "operation-log": "操作日志"
   },
   "op": {
+    "connection__demo": "创建演示数据",
     "connection__create": "新增连接",
     "connection__delete": "删除连接",
     "connection__test": "测试连接",

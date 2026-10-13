@@ -41,7 +41,8 @@ public final class PermissionCatalog {
                 op("connection:create", "新增"),
                 op("connection:update", "编辑"),
                 op("connection:delete", "删除"),
-                op("connection:test", "测试连接")
+                op("connection:test", "测试连接"),
+                op("connection:demo", "创建演示数据")
         )));
         menus.add(menu("topology", "Topology 浏览", ops(
                 op("topology:view", "查看拓扑"),

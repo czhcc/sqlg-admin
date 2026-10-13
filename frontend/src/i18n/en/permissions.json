@@ -17,6 +17,7 @@
     "operation-log": "Operation Log"
   },
   "op": {
+    "connection__demo": "Create Demo Data",
     "connection__create": "Create Connection",
     "connection__delete": "Delete Connection",
     "connection__test": "Test Connection",

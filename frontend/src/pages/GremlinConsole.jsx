@@ -636,7 +636,7 @@ function ResultRaw({ results }) {
 }
 
 function HistoryPanel({ history, onUse, onDelete, onClear }) {
-  const { t } = useTranslation('gremlin')
+  const { t, i18n } = useTranslation('gremlin')
   if (history.length === 0) return <Empty text={t("noHistory")} icon={Clock} />
   return (
     <div className="p-4">
