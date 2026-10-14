@@ -14,7 +14,8 @@
     "user-management": "用户管理",
     "role-management": "角色管理",
     "login-log": "登录日志",
-    "operation-log": "操作日志"
+    "operation-log": "操作日志",
+    "graph-algorithm": "图算法"
   },
   "op": {
     "connection__demo": "创建演示数据",
@@ -44,7 +45,10 @@
     "gremlin__execute": "执行 Gremlin 查询",
     "io__import": "导入边数据",
     "io__topology_import": "导入 Topology",
-    "permission__view": "查看权限总览"
+    "permission__view": "查看权限总览",
+    "graph_algorithm__view": "查看图算法",
+    "graph_algorithm__execute": "执行图算法",
+    "graph_algorithm__export": "导出算法结果"
   },
   "dangerous": {
     "dangerous__batch_delete": "数据批量删除",

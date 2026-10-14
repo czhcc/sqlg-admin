@@ -32,8 +32,11 @@ import java.util.Map;
 public class TaskController {
 
     private final TaskService service;
+    private final com.trs.modules.graphAlgorithm.AlgorithmAccess algorithmAccess;
 
-    public TaskController(TaskService service) {
+    /** 创建任务控制器，并对图算法结果应用独立权限检查。 */
+    public TaskController(TaskService service, com.trs.modules.graphAlgorithm.AlgorithmAccess algorithmAccess) {
+        this.algorithmAccess = algorithmAccess;
         this.service = service;
     }
 
@@ -78,6 +81,8 @@ public class TaskController {
             }
         }
 
+        // 非管理员始终限定本人，避免通过 userId 参数绕过任务访问隔离。
+        if (!isAdmin && current != null) effectiveUserId = current.getId();
         return Result.ok(service.page(page, size, status, category, taskType, connectionId,
                 adminOverride ? null : effectiveUserId,
                 schemaName, targetLabel, keyword, start, end));
@@ -92,6 +97,7 @@ public class TaskController {
                 && !task.getUserId().equals(current.getId())) {
             return Result.fail(403, "无权查看其他用户的任务");
         }
+        if ("GRAPH_ALGORITHM".equals(task.getTaskType())) algorithmAccess.require(task.getConnectionId(), "view");
         return Result.ok(task);
     }
 
@@ -118,6 +124,8 @@ public class TaskController {
     @PostMapping("/{id}/cancel")
     public Result<?> cancel(@PathVariable Long id) {
         checkOwnership(id);
+        Task task = service.getById(id);
+        if (task != null && "GRAPH_ALGORITHM".equals(task.getTaskType())) algorithmAccess.require(task.getConnectionId(), "execute");
         boolean ok = service.cancel(id);
         if (!ok) return Result.fail(400, "任务无法取消(可能已结束)");
         return Result.ok();
@@ -141,6 +149,7 @@ public class TaskController {
         Task task = service.getById(id);
         if (task == null) return ResponseEntity.notFound().build();
 
+        if ("GRAPH_ALGORITHM".equals(task.getTaskType())) algorithmAccess.require(task.getConnectionId(), "export");
         String relPath = "error".equals(fileType) ? task.getErrorFilePath() : task.getResultFilePath();
         if (relPath == null || relPath.isBlank()) return ResponseEntity.notFound().build();
 
@@ -163,7 +172,7 @@ public class TaskController {
         byCategory.put("IMPORT", List.of("IMPORT_VERTEX", "IMPORT_EDGE", "IMPORT_TOPOLOGY"));
         byCategory.put("EXPORT", List.of("EXPORT_VERTEX", "EXPORT_EDGE", "EXPORT_TOPOLOGY"));
         byCategory.put("MAINTENANCE", List.of("BATCH_DELETE_VERTEX", "BATCH_DELETE_EDGE", "CLEAR_VERTEX", "CLEAR_EDGE"));
-        byCategory.put("STATISTICS", List.of("STAT_VERTEX_COUNTS", "STAT_EDGE_COUNTS", "STAT_ORPHAN"));
+        byCategory.put("STATISTICS", List.of("STAT_VERTEX_COUNTS", "STAT_EDGE_COUNTS", "STAT_ORPHAN", "GRAPH_ALGORITHM"));
         byCategory.put("DIAGNOSTIC", List.of("DIAG_TOPOLOGY", "DIAG_INDEX", "DIAG_DATA_INTEGRITY", "DIAG_ORPHAN", "DIAG_CUSTOM"));
         result.put("categories", byCategory);
         return Result.ok(result);
@@ -176,10 +185,14 @@ public class TaskController {
     }
 
     private boolean isAdmin(User u) {
-        return u.getRoles() != null && u.getRoles().toUpperCase().contains("SUPER_ADMIN");
+        return u.getRoles() != null && java.util.Arrays.stream(u.getRoles().split(","))
+                .map(String::trim).anyMatch("SUPER_ADMIN"::equals);
     }
 
     private void checkOwnership(Long taskId) {
+        Task checkedTask = service.getById(taskId);
+        if (checkedTask != null && "GRAPH_ALGORITHM".equals(checkedTask.getTaskType()))
+            algorithmAccess.require(checkedTask.getConnectionId(), "view");
         User current = currentUser();
         if (current == null) return;
         if (isAdmin(current)) return;

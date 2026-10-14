@@ -18,7 +18,8 @@
     "loginLog": "Login Log",
     "taskCenter": "Task Center",
     "diagnosticTools": "Diagnostic Tools",
-    "operationMonitor": "Operation Monitor"
+    "operationMonitor": "Operation Monitor",
+    "graphAlgorithm": "Graph algorithms"
   },
   "group": {
     "userPermission": "Users & Permissions",

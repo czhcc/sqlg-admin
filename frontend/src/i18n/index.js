@@ -14,6 +14,7 @@ import zhProperty from './zh/propertyManagement.json'
 import zhVertexData from './zh/vertexData.json'
 import zhEdgeData from './zh/edgeData.json'
 import zhGraphExplore from './zh/graphExplore.json'
+import zhGraphAlgorithm from './zh/graphAlgorithm.json'
 import zhGremlin from './zh/gremlin.json'
 import zhImportExport from './zh/importExport.json'
 import zhOperationLog from './zh/operationLog.json'
@@ -39,6 +40,7 @@ import enProperty from './en/propertyManagement.json'
 import enVertexData from './en/vertexData.json'
 import enEdgeData from './en/edgeData.json'
 import enGraphExplore from './en/graphExplore.json'
+import enGraphAlgorithm from './en/graphAlgorithm.json'
 import enGremlin from './en/gremlin.json'
 import enImportExport from './en/importExport.json'
 import enOperationLog from './en/operationLog.json'
@@ -70,6 +72,7 @@ i18n
         vertexData: zhVertexData,
         edgeData: zhEdgeData,
         graphExplore: zhGraphExplore,
+        graphAlgorithm: zhGraphAlgorithm,
         gremlin: zhGremlin,
         importExport: zhImportExport,
         operationLog: zhOperationLog,
@@ -96,6 +99,7 @@ i18n
         vertexData: enVertexData,
         edgeData: enEdgeData,
         graphExplore: enGraphExplore,
+        graphAlgorithm: enGraphAlgorithm,
         gremlin: enGremlin,
         importExport: enImportExport,
         operationLog: enOperationLog,

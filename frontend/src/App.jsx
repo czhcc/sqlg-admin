@@ -12,6 +12,7 @@ import PropertyManagement from './pages/PropertyManagement'
 import VertexData from './pages/VertexData'
 import EdgeData from './pages/EdgeData'
 import GraphExplore from './pages/GraphExplore'
+import GraphAlgorithm from './pages/GraphAlgorithm'
 import GremlinConsole from './pages/GremlinConsole'
 import ImportExport from './pages/ImportExport'
 import OperationLog from './pages/OperationLog'
@@ -35,6 +36,7 @@ const pages = [
   { path: 'vertex-data', element: <VertexData /> },
   { path: 'edge-data', element: <EdgeData /> },
   { path: 'graph-explore', element: <GraphExplore /> },
+  { path: 'graph-algorithm', element: <GraphAlgorithm /> },
   { path: 'gremlin', element: <GremlinConsole /> },
   { path: 'import-export', element: <ImportExport /> },
   { path: 'operation-log', element: <OperationLog /> },

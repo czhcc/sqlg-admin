@@ -46,6 +46,7 @@ const menuConfig = [
   { to: '/vertex-data', key: 'vertexData', icon: Table },
   { to: '/edge-data', key: 'edgeData', icon: GitFork },
   { to: '/graph-explore', key: 'graphExplore', icon: Network },
+  { to: '/graph-algorithm', key: 'graphAlgorithm', icon: Share2 },
   { to: '/gremlin', key: 'gremlin', icon: TerminalSquare },
   { to: '/import-export', key: 'importExport', icon: ArrowLeftRight },
   {

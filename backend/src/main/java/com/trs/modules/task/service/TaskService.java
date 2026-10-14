@@ -39,6 +39,9 @@ public class TaskService {
     private static final Map<String, String> TYPE_DEFAULT_NAME = new LinkedHashMap<>();
 
     static {
+        TYPE_PREFIX.put("GRAPH_ALGORITHM", "ALG");
+        TYPE_CATEGORY.put("GRAPH_ALGORITHM", Task.CAT_STATISTICS);
+        TYPE_DEFAULT_NAME.put("GRAPH_ALGORITHM", "图算法");
         TYPE_PREFIX.put("IMPORT_VERTEX", "IMP");
         TYPE_PREFIX.put("IMPORT_EDGE", "IMP");
         TYPE_PREFIX.put("IMPORT_TOPOLOGY", "IMP");
@@ -100,14 +103,17 @@ public class TaskService {
     private final TaskMapper taskMapper;
     private final GraphConnectionMapper connectionMapper;
     private final TaskEngine engine;
+    private final com.trs.modules.graphAlgorithm.AlgorithmAccess algorithmAccess;
 
     private final String storageDir;
 
+    /** 创建任务服务，图算法提交与重试均应用独立执行权限。 */
     public TaskService(TaskMapper taskMapper, GraphConnectionMapper connectionMapper,
-                        TaskEngine engine, Environment env) {
+                        TaskEngine engine, Environment env, com.trs.modules.graphAlgorithm.AlgorithmAccess algorithmAccess) {
         this.taskMapper = taskMapper;
         this.connectionMapper = connectionMapper;
         this.engine = engine;
+        this.algorithmAccess = algorithmAccess;
         this.storageDir = env.getProperty("app.task.storage-dir", "./task-files");
     }
 
@@ -119,6 +125,11 @@ public class TaskService {
                         String targetLabel, Map<String, Object> params, User user) {
         if (!TYPE_PREFIX.containsKey(taskType)) {
             throw new IllegalArgumentException("不支持的任务类型: " + taskType);
+        }
+        if ("GRAPH_ALGORITHM".equals(taskType)) {
+            algorithmAccess.require(connectionId, "execute");
+            if (params == null) throw new IllegalArgumentException("缺少算法参数");
+            MAPPER.convertValue(params, com.trs.modules.graphAlgorithm.AlgorithmRequest.class);
         }
 
         Task task = new Task();
@@ -161,6 +172,8 @@ public class TaskService {
     public Task retry(Long taskId, User user) {
         Task original = taskMapper.selectById(taskId);
         if (original == null) throw new IllegalArgumentException("任务不存在: " + taskId);
+        if ("GRAPH_ALGORITHM".equals(original.getTaskType()))
+            algorithmAccess.require(original.getConnectionId(), "execute");
 
         Map<String, Object> params;
         try {

@@ -14,7 +14,8 @@
     "user-management": "Users",
     "role-management": "Roles",
     "login-log": "Login Log",
-    "operation-log": "Operation Log"
+    "operation-log": "Operation Log",
+    "graph-algorithm": "Graph algorithms"
   },
   "op": {
     "connection__demo": "Create Demo Data",
@@ -44,7 +45,10 @@
     "gremlin__execute": "Execute Gremlin Query",
     "io__import": "Import Data",
     "io__topology_import": "Import Topology",
-    "permission__view": "View Permissions"
+    "permission__view": "View Permissions",
+    "graph_algorithm__view": "View graph algorithms",
+    "graph_algorithm__execute": "Execute graph algorithms",
+    "graph_algorithm__export": "Export algorithm results"
   },
   "dangerous": {
     "dangerous__batch_delete": "Batch Data Deletion",

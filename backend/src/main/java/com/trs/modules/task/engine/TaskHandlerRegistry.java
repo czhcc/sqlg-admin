@@ -9,8 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * 任务类型 → 处理器映射注册表。
  * <p>
- * TaskService 创建 18 种具体类型(IMPORT_VERTEX/EXPORT_EDGE/.../DIAG_CUSTOM)的任务,
- * 而处理器只有 4 个聚合实现,本类负责将具体类型路由到对应处理器。
+ * 将导入导出、维护、统计诊断和图算法任务路由到对应处理器。
  *
  * @author czh
  * @date 2026/07/23
@@ -22,19 +21,25 @@ public class TaskHandlerRegistry {
     private final MaintenanceTaskHandler maintenanceHandler;
     private final StatisticsDiagnosticTaskHandler statsDiagHandler;
     private final DiagnosticTaskHandler diagnosticHandler;
+    private final com.trs.modules.graphAlgorithm.GraphAlgorithmTaskHandler algorithmHandler;
 
+    /** 注入各类任务处理器。 */
     public TaskHandlerRegistry(ImportExportTaskHandler importExportHandler,
                                  MaintenanceTaskHandler maintenanceHandler,
                                  StatisticsDiagnosticTaskHandler statsDiagHandler,
-                                 DiagnosticTaskHandler diagnosticHandler) {
+                                 DiagnosticTaskHandler diagnosticHandler,
+                                 com.trs.modules.graphAlgorithm.GraphAlgorithmTaskHandler algorithmHandler) {
         this.importExportHandler = importExportHandler;
         this.maintenanceHandler = maintenanceHandler;
         this.statsDiagHandler = statsDiagHandler;
         this.diagnosticHandler = diagnosticHandler;
+        this.algorithmHandler = algorithmHandler;
     }
 
+    /** 根据具体任务类型选择处理器。 */
     public TaskHandler getHandler(String taskType) {
         return switch (taskType) {
+            case "GRAPH_ALGORITHM" -> algorithmHandler;
             case "IMPORT_VERTEX", "IMPORT_EDGE", "IMPORT_TOPOLOGY",
                  "EXPORT_VERTEX", "EXPORT_EDGE", "EXPORT_TOPOLOGY" -> importExportHandler;
             case "BATCH_DELETE_VERTEX", "BATCH_DELETE_EDGE",

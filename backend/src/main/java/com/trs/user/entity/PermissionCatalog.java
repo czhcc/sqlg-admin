@@ -82,6 +82,11 @@ public final class PermissionCatalog {
                 op("edge_data:batch_delete", "批量删除"),
                 op("edge_data:clear", "清空")
         )));
+        menus.add(menu("graph-algorithm", "图算法", ops(
+                op("graph_algorithm:view", "查看算法"),
+                op("graph_algorithm:execute", "执行算法"),
+                op("graph_algorithm:export", "导出结果")
+        )));
         menus.add(menu("graph-explore", "图关系展开", ops(
                 op("graph_explore:view", "查看图谱"),
                 op("graph_explore:expand", "展开节点")

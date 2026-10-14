@@ -82,7 +82,8 @@
     "DIAG_TOPOLOGY": "Topology Consistency",
     "DIAG_INDEX": "Index Check",
     "DIAG_DATA_INTEGRITY": "Data Integrity",
-    "DIAG_ORPHAN": "Orphan Check"
+    "DIAG_ORPHAN": "Orphan Check",
+    "GRAPH_ALGORITHM": "Graph algorithm"
   },
   "action": {
     "detail": "Detail",

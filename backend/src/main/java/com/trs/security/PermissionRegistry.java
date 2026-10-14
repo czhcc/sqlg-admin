@@ -46,6 +46,7 @@ public class PermissionRegistry {
         MENU_LABELS.put("vertex-data", "点数据管理");
         MENU_LABELS.put("edge-data", "边数据管理");
         MENU_LABELS.put("graph-explore", "图关系展开");
+        MENU_LABELS.put("graph-algorithm", "图算法");
         MENU_LABELS.put("gremlin", "Gremlin 控制台");
         MENU_LABELS.put("import-export", "导入导出");
         MENU_LABELS.put("user-management", "用户管理");

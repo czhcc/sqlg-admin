@@ -82,7 +82,8 @@
     "DIAG_TOPOLOGY": "Topology 一致性检查",
     "DIAG_INDEX": "索引检查",
     "DIAG_DATA_INTEGRITY": "数据完整性检查",
-    "DIAG_ORPHAN": "孤立点检查"
+    "DIAG_ORPHAN": "孤立点检查",
+    "GRAPH_ALGORITHM": "图算法"
   },
   "action": {
     "detail": "详情",
